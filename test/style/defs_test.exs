@@ -125,6 +125,22 @@ defmodule Styler.Style.DefsTest do
       )
     end
 
+    test "keyword do with a list" do
+      assert_style(
+        """
+        def foo,
+          do: [
+            # Weirdo comment
+            :never_write_code_like_this
+          ]
+        """,
+        """
+        # Weirdo comment
+        def foo, do: [:never_write_code_like_this]
+        """
+      )
+    end
+
     test "rewrites subsequent definitions" do
       assert_style(
         """
@@ -157,10 +173,10 @@ defmodule Styler.Style.DefsTest do
             :a,
             :b
           ]
-          # Weird place for a comment
-          do
+          do # Weird place for a comment
+          # Above the body
           :never_write_code_like_this
-          # Will this even work?
+          # Below the body
         end
         """,
         """
@@ -168,9 +184,25 @@ defmodule Styler.Style.DefsTest do
         # Baz should be either :a or :b
         # Weird place for a comment
         def foo(%{bar: baz}) when baz in [:a, :b] do
+          # Above the body
           :never_write_code_like_this
-          # Will this even work?
+          # Below the body
         end
+        """
+      )
+    end
+
+    test "Doesn't move stuff around if it would make the line too long" do
+      assert_style(
+        """
+        @doc "this is a doc"
+        # And also a comment
+        def wow_this_function_name_is_super_long(it_also, has_a, ton_of, arguments),
+          do: "this is going to end up making the line too long if we inline it"
+
+        @doc "this is another function"
+        # And it also has a comment
+        def this_one_fits_on_one_line, do: :ok
         """
       )
     end

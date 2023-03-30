@@ -43,7 +43,7 @@ defmodule Styler.Style do
 
   @doc """
   This is a convenience function for when a style needs to compact or eliminate
-  a range of lines, but preserve any comments in those lines by displacing them
+  a `range` of lines, but preserve any comments in those lines by displacing them
   all to be start of the compacted lines.
 
   `comments` should be the same data structure passed as the second argument to
@@ -69,10 +69,10 @@ defmodule Styler.Style do
   Obviously, it would then be up to the developer to rewrite the comments to
   that they're more descriptive about what they are referring to.
   """
-  def displace_comments(comments, range_of_lines) do
+  def displace_comments(comments, range) do
     Enum.map(comments, fn comment ->
-      if comment.line in range_of_lines do
-        %{comment | line: range_of_lines.first}
+      if comment.line in range do
+        %{comment | line: range.first}
       else
         comment
       end
@@ -80,9 +80,9 @@ defmodule Styler.Style do
   end
 
   @doc """
-  This is a convenience function for shifting all comments after `after_line`
-  by `delta` lines (negative `delta` means to shift the comments up, and
-  positive means to shift them down).
+  This is a convenience function for shifting all comments in a `range` by
+  `delta` lines (negative `delta` means to shift the comments up, and positive
+  means to shift them down).
 
   For example, if the following code were to be styled such each `def` became a one-liner:
 
@@ -111,10 +111,10 @@ defmodule Styler.Style do
 
       # This comment comes at the end
   """
-  def shift_comments(comments, after_line, delta) do
+  def shift_comments(comments, range, delta) do
     Enum.map(comments, fn comment ->
-      if comment.line > after_line do
-        %{comment | line: max(0, comment.line + delta)}
+      if comment.line in range do
+        %{comment | line: comment.line + delta}
       else
         comment
       end

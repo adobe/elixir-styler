@@ -57,9 +57,7 @@ defmodule Styler.Style.Defs do
       if first_line == last_line do
         comments
       else
-        comments
-        |> Style.displace_comments(first_line..last_line)
-        |> Style.shift_comments(meta[:closing], first_line - last_line)
+        Style.displace_comments(comments, first_line..last_line)
       end
 
     # There won't be any defs deeper in here, so lets skip ahead if we can
@@ -68,46 +66,54 @@ defmodule Styler.Style.Defs do
 
   # all the other kinds of defs!
   def run({{def, def_meta, [head, body]}, _} = zipper, comments) when def in [:def, :defp] do
-    def_start_line = def_meta[:line]
-    # order matters here! the end of the def is where the `do`s line is - but only if there's a do end block.
-    # otherwise it's just where the end of the (def) expression is.
-    def_end_line = (def_meta[:do] || def_meta[:end_of_expression])[:line]
+    if def_meta[:do] do
+      # we're in a `def do ... end`
+      def_start = def_meta[:line]
+      def_do = def_meta[:do][:line]
+      def_end = def_meta[:end][:line]
 
-    if def_start_line == def_end_line do
-      {:skip, zipper, comments}
-    else
-      head = flatten_head(head, def_start_line)
+      delta = def_start - def_do
+      apply_delta = &(&1 + delta)
 
-      {def_meta, body_meta_rewriter, range} =
-        if def_meta[:do] do
-          # we're in a `def do ... end`
-          delta = def_end_line - def_start_line
-          up_by_delta = &(&1 - delta)
+      # collapse everything in the head from `def` to `do` onto one line
+      def_meta =
+        def_meta
+        |> Keyword.replace_lazy(:do, &Keyword.put(&1, :line, def_start))
+        |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, apply_delta))
 
-          # this is what does the shrinking of the `def ... do` stanza
-          def_meta =
-            def_meta
-            |> Keyword.replace_lazy(:do, &Keyword.put(&1, :line, def_start_line))
-            |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, up_by_delta))
+      head = flatten_head(head, def_start)
 
-          # move all body line #s up by the amount we squished the head by
-          {def_meta, collapse_lines(up_by_delta), def_start_line..def_end_line}
-        else
-          # we're in a `def, do:`
-          [{{:__block__, do_meta, [:do]}, _children} | _] = body
-          def_end_line = do_meta[:line]
-          to_same_line = fn _ -> def_start_line end
-          {def_meta, collapse_lines(to_same_line), def_start_line..def_end_line}
-        end
+      # move all body lines up by the amount we squished the head by
+      body = update_all_meta(body, collapse_lines(apply_delta))
 
-      body = update_all_meta(body, body_meta_rewriter)
-
+      # move comments in the head to the top, and move comments in the body up by the delta
       comments =
         comments
-        |> Style.displace_comments(range)
-        |> Style.shift_comments(range.last, range.first - range.last)
+        |> Style.displace_comments(def_start..def_do)
+        |> Style.shift_comments(def_do..def_end, delta)
 
-      # There won't be any defs deeper in here, so lets skip ahead if we can
+      {:skip, Zipper.replace(zipper, {def, def_meta, [head, body]}), comments}
+    else
+      # we're in a `def, do:`
+      [{
+        {:__block__, do_meta, [:do]},
+        {_, body_meta, _}
+      }] = body
+      def_start = def_meta[:line]
+      def_do = do_meta[:line]
+      def_end = body_meta[:closing][:line] || def_do
+
+      head = flatten_head(head, def_start)
+
+      # collapse the whole thing to one line
+      to_same_line = fn _ -> def_start end
+      body = update_all_meta(body, collapse_lines(to_same_line))
+
+      # move all comments to the top
+      comments =
+        comments
+        |> Style.displace_comments(def_start..def_end)
+
       {:skip, Zipper.replace(zipper, {def, def_meta, [head, body]}), comments}
     end
   end
@@ -119,6 +125,7 @@ defmodule Styler.Style.Defs do
       meta
       |> Keyword.replace_lazy(:line, line_mover)
       |> Keyword.replace_lazy(:closing, &Keyword.replace_lazy(&1, :line, line_mover))
+      |> Keyword.delete(:newlines)
     end
   end
 
