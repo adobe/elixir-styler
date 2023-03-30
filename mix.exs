@@ -38,7 +38,11 @@ defmodule Styler.MixProject do
 
   def application, do: [extra_applications: [:logger]]
 
-  defp deps, do: []
+  defp deps do
+    [
+      {:ex_doc, "~> 0.29.4", runtime: false}
+    ]
+  end
 
   defp package do
     [
@@ -50,10 +54,13 @@ defmodule Styler.MixProject do
 
   defp docs do
     [
-      main: "Styler",
+      main: "readme",
       source_ref: "v#{@version}",
       source_url: @url,
-      extras: ["CHANGELOG.md": [title: "Changelog"]]
+      extras: [
+        "CHANGELOG.md": [title: "Changelog"],
+        "README.md": [title: "Styler"]
+      ]
     ]
   end
 end
