@@ -5,9 +5,37 @@ you what's wrong, it just rewrites the code for you to fit our style rules. Henc
 
 Styler is configuration-free. Like `mix format`, it runs based on the `inputs` from `.formatter.exs` and has opinions rather than configuration.
 
-## `mix style`
+## Installation
 
-`mix style` is a 1-1 stand-in for `mix format` in all the normal use-cases. Run `mix help style` for help using it.
+Add `:styler` as a dependency to your project's `mix.exs`:
+
+```
+def deps do
+  [
+    {:styler, "~> 0.1", only: [:dev, :test], runtime: false},
+  ]
+end
+```
+
+Styler is meant to be a 1-1 replacement for `mix format`. So at your discretion, you can alias it in place of `format`
+
+```
+def aliases do
+  [
+    format: "style"
+  ]
+end
+```
+
+## Usage
+
+```bash
+$ mix style
+```
+
+This will rewrite your code according to the Styles of `Styler` and format it.
+
+As stated above, `Styler` takes a cue from Elixir's Formatter and offers no configuration. Instead, it harnesses the same `.formatter.exs` file as Formatter to know which files within your project it should style.
 
 ### Styler and Comments...
 
