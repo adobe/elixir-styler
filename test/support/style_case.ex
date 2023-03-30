@@ -58,13 +58,14 @@ defmodule Styler.StyleCase do
   def style(code, style) do
     {ast, comments} = Styler.string_to_quoted_with_comments(code)
 
-    styled_ast =
+    {styled_ast, updated_comments} =
       ast
       |> Zipper.zip()
-      |> Zipper.traverse_while(Style.wrap_run(style))
-      |> Zipper.root()
+      |> Zipper.traverse_while(comments, Style.wrap_run(style))
 
-    styled_code = Styler.quoted_to_string(styled_ast, comments)
+    styled_ast = Zipper.root(styled_ast)
+
+    styled_code = Styler.quoted_to_string(styled_ast, updated_comments)
 
     {styled_ast, styled_code}
   end

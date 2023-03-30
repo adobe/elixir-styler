@@ -37,7 +37,8 @@ defmodule Mix.Tasks.Style do
   @styles [
     Styler.Style.ModuleDirectives,
     Styler.Style.Pipes,
-    Styler.Style.Simple
+    Styler.Style.Simple,
+    Styler.Style.Defs
   ]
 
   @impl Mix.Task
@@ -108,20 +109,23 @@ defmodule Mix.Tasks.Style do
     {ast, comments} = Styler.string_to_quoted_with_comments(input, to_string(file))
     zipper = Zipper.zip(ast)
 
-    output =
+    {styled_ast, updated_comments} =
       @styles
-      |> Enum.reduce(zipper, fn style, zipper ->
+      |> Enum.reduce({zipper, comments}, fn style, {zipper, comments} ->
         traverser = Style.wrap_run(style)
 
         try do
-          Zipper.traverse_while(zipper, traverser)
+          Zipper.traverse_while(zipper, comments, traverser)
         rescue
           exception ->
             reraise StyleError, [exception: exception, style: style, file: file], __STACKTRACE__
         end
       end)
+
+    output =
+      styled_ast
       |> Zipper.root()
-      |> Styler.quoted_to_string(comments, formatter_opts)
+      |> Styler.quoted_to_string(updated_comments, formatter_opts)
 
     changed? = input != output
 
