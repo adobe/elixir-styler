@@ -81,7 +81,6 @@ defmodule Styler.Style.Pipes do
   #   |> a()
   #   |> b()
   defp fix_start({{:|>, pipe_meta, [{block, _, _} = expression, rhs]}, _} = zipper) when block in @blocks do
-    # credo:disable-for-next-line Credo.Check.Warning.UnsafeToAtom
     variable = {:"#{block}_result", [], nil}
 
     zipper

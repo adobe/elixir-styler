@@ -9,7 +9,7 @@
 # governing permissions and limitations under the License.
 
 defmodule Mix.Tasks.Style do
-  @shortdoc "Rewrites & formats your code so you don't get as mad at Credo"
+  @shortdoc "Rewrites (styles!) and formats your code as a drop in replacement for `mix format`"
   @moduledoc """
   Formats and rewrites the given files and patterns.
 

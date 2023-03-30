@@ -36,10 +36,11 @@ Write a new Style by implementing the `Styler.Style` behaviour. See its moduledo
 
 ## Where is Sourceror?
 
-This work was inspired by earlier large-scale rewrites of our codebase that used the fantastic tool called [`Sourceror`](https://github.com/doorgan/sourceror/).
+This work was inspired by earlier large-scale rewrites of an internal codebase that used the fantastic tool [`Sourceror`](https://github.com/doorgan/sourceror/).
 
-The initial implementation of Styler used Sourceror, but Sourceror's AST-embedding comment algorithm causes Styler to be
-too slow to use as a normal formatter. Still, we're grateful for the inspiration Sourceror provided and the changes to the
-Elixir AST APIs that it drove.
+The initial implementation of Styler used Sourceror, but Sourceror's AST-embedding comment algorithm slows Styler down to
+the point that it's no longer an appropriate drop-in for `mix format`.
+
+Still, we're grateful for the inspiration Sourceror provided and the changes to the Elixir AST APIs that it drove.
 
 The AST-Zipper implementation in this project was derived mostly from Sourceror's implementation.
