@@ -50,12 +50,13 @@ You can find the currently-enabled styles in the `Mix.Tasks.Style` module, insid
 
 ## Credo Rules Styler Replaces
 
-| credo rule                            | style that rewrites to suit          |
+| credo rule                            | Styler Style                         |
 |---------------------------------------|--------------------------------------|
 | `Credo.Check.Readability.AliasOrder`  | `Styler.Style.Aliases`               |
+| `Credo.Check.Readability.LargeNumbers`| `Styler.Style.Simple`                |
 | `Credo.Check.Readability.MultiAlias`  | `Styler.Style.Aliases`               |
-| `Credo.Check.Readability.UnnecessaryAliasExpansion` | `Styler.Style.Aliases` |
 | `Credo.Check.Readability.SinglePipe`  | `Styler.Style.Pipes`                 |
+| `Credo.Check.Readability.UnnecessaryAliasExpansion` | `Styler.Style.Aliases` |
 | `Credo.Check.Refactor.PipeChainStart` | `Styler.Style.Pipes`                 |
 
 ## Writing Styles
