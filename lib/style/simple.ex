@@ -1,0 +1,57 @@
+# Copyright 2023 Adobe. All rights reserved.
+# This file is licensed to you under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License. You may obtain a copy
+# of the License at http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software distributed under
+# the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
+# OF ANY KIND, either express or implied. See the License for the specific language
+# governing permissions and limitations under the License.
+
+defmodule Styler.Style.Simple do
+  @moduledoc """
+  Simple 1-1 rewrites all crammed into one module to make for more efficient traversals
+
+  Credo Rules addressed:
+
+  * Credo.Check.Readability.LargeNumbers
+  """
+
+  @behaviour Styler.Style
+
+  alias Styler.Zipper
+
+  def run({{:__block__, meta, [number]}, _} = zipper) when is_number(number) and abs(number) >= 10_000 do
+    meta =
+      Keyword.update!(meta, :token, fn
+        "0x" <> _ = token ->
+          token
+
+        "0b" <> _ = token ->
+          token
+
+        "0o" <> _ = token ->
+          token
+
+        token when is_integer(number) ->
+          delimit(token)
+
+        token when is_float(number) ->
+          [integer, decimals] = String.split(token, ".")
+          "#{delimit(integer)}.#{decimals}"
+      end)
+
+    Zipper.replace(zipper, {:__block__, meta, [number]})
+  end
+
+  def run(zipper), do: zipper
+
+  defp delimit(integer), do: integer |> String.to_charlist() |> remove_underscores([]) |> add_underscores([])
+
+  defp remove_underscores([?_ | rest], acc), do: remove_underscores(rest, acc)
+  defp remove_underscores([digit | rest], acc), do: remove_underscores(rest, [digit | acc])
+  defp remove_underscores([], reversed_list), do: reversed_list
+
+  defp add_underscores([a, b, c, d | rest], acc), do: add_underscores([d | rest], [?_, c, b, a | acc])
+  defp add_underscores(reversed_list, acc), do: reversed_list |> Enum.reverse(acc) |> to_string()
+end
