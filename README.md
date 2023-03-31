@@ -62,7 +62,9 @@ You can find the currently-enabled styles in the `Mix.Tasks.Style` module, insid
 
 Write a new Style by implementing the `Styler.Style` behaviour. See its moduledoc for more.
 
-## Where is Sourceror?
+## Thanks & Inspiration
+
+### Sourceror
 
 This work was inspired by earlier large-scale rewrites of an internal codebase that used the fantastic tool [`Sourceror`](https://github.com/doorgan/sourceror/).
 
@@ -71,4 +73,11 @@ the point that it's no longer an appropriate drop-in for `mix format`.
 
 Still, we're grateful for the inspiration Sourceror provided and the changes to the Elixir AST APIs that it drove.
 
-The AST-Zipper implementation in this project was derived mostly from Sourceror's implementation.
+The AST-Zipper implementation in this project was forked from Sourceror's implementation.
+
+### Credo
+
+Similarly, this project originated from one-off scripts doing large scale rewrites of an enormous codebase as part of an
+effort to enable particular Credo rules for that codebase. Credo's tests and implementations were referenced for implementing
+Styles that took the work the rest of the way. Thanks to Credo & the Elixir community at large for coalescing around
+many of these Elixir style credos.
