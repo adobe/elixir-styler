@@ -21,7 +21,11 @@ defmodule Styler.Style.Simple do
 
   alias Styler.Zipper
 
-  def run({{:__block__, meta, [number]}, _} = zipper) when is_number(number) and abs(number) >= 10_000 do
+  # note that `?-` isn't part of the number node - it's its parent - so all numbers are positive at this point
+  def run({{:__block__, meta, [number]}, _} = zipper) when is_number(number) and number >= 10_000 do
+    # Checking here rather than in the anon function due to compiler bug https://github.com/elixir-lang/elixir/issues/10485
+    integer? = is_integer(number)
+
     meta =
       Keyword.update!(meta, :token, fn
         "0x" <> _ = token ->
@@ -33,12 +37,12 @@ defmodule Styler.Style.Simple do
         "0o" <> _ = token ->
           token
 
-        token when is_integer(number) ->
+        token when integer? ->
           delimit(token)
-
-        token when is_float(number) ->
-          [integer, decimals] = String.split(token, ".")
-          "#{delimit(integer)}.#{decimals}"
+        # is float
+        token ->
+          [int_token, decimals] = String.split(token, ".")
+          "#{delimit(int_token)}.#{decimals}"
       end)
 
     Zipper.replace(zipper, {:__block__, meta, [number]})
@@ -46,7 +50,7 @@ defmodule Styler.Style.Simple do
 
   def run(zipper), do: zipper
 
-  defp delimit(integer), do: integer |> String.to_charlist() |> remove_underscores([]) |> add_underscores([])
+  defp delimit(token), do: token |> String.to_charlist() |> remove_underscores([]) |> add_underscores([])
 
   defp remove_underscores([?_ | rest], acc), do: remove_underscores(rest, acc)
   defp remove_underscores([digit | rest], acc), do: remove_underscores(rest, [digit | acc])

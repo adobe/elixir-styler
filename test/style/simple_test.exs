@@ -12,26 +12,28 @@ defmodule Styler.Style.SimpleTest do
   use Styler.StyleCase, style: Styler.Style.Simple, async: true
 
   describe "run/1" do
-    test "styles decimal floats and integers > 10k" do
+    test "styles floats and integers with >5 digits" do
       assert_style(
         """
         10000
         1_0_0_0_0
-        -54321
+        -543213
         123456789
         55333.22
+        -123456728.0001
         """,
         """
         10_000
         10_000
-        -54_321
+        -543_213
         123_456_789
         55_333.22
+        -123_456_728.0001
         """
       )
     end
 
-    test "stays away from small numbers and science" do
+    test "stays away from small numbers, strings and science" do
       assert_style("""
       1234
       9999
