@@ -9,7 +9,7 @@ Styler is configuration-free. Like `mix format`, it runs based on the `inputs` f
 
 Add `:styler` as a dependency to your project's `mix.exs`:
 
-```
+```ex
 def deps do
   [
     {:styler, "~> 0.1", only: [:dev, :test], runtime: false},
@@ -19,7 +19,7 @@ end
 
 Styler is meant to be a 1-1 replacement for `mix format`. So at your discretion, you can alias it in place of `format`
 
-```
+```ex
 def aliases do
   [
     format: "style"
