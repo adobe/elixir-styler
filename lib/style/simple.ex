@@ -15,13 +15,14 @@ defmodule Styler.Style.Simple do
   Credo Rules addressed:
 
   * Credo.Check.Readability.LargeNumbers
+      Formatter handles large number (>5 digits) rewrites, but doesn't rewrite typos like `100_000_0`, so it's worthwhile to have styler do this
   """
 
   @behaviour Styler.Style
 
   alias Styler.Zipper
 
-  # note that `?-` isn't part of the number node - it's its parent - so all numbers are positive at this point
+  # `?-` isn't part of the number node - it's its parent - so all numbers are positive at this point
   def run({{:__block__, meta, [number]}, _} = zipper) when is_number(number) and number >= 10_000 do
     # Checking here rather than in the anon function due to compiler bug https://github.com/elixir-lang/elixir/issues/10485
     integer? = is_integer(number)

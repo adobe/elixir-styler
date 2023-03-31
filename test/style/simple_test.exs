@@ -12,7 +12,7 @@ defmodule Styler.Style.SimpleTest do
   use Styler.StyleCase, style: Styler.Style.Simple, async: true
 
   describe "run/1" do
-    test "styles floats and integers with >5 digits" do
+    test "styles floats and integers with >4 digits" do
       assert_style(
         """
         10000
