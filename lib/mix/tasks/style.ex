@@ -90,7 +90,7 @@ defmodule Mix.Tasks.Style do
 
   defp style_file(file, formatter_opts, check_styled?) do
     input = String.trim(File.read!(file))
-    {ast, comments} = Styler.string_to_quoted_with_comments(input)
+    {ast, comments} = Styler.string_to_quoted_with_comments(input, file)
     zipper = Zipper.zip(ast)
 
     output =

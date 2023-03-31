@@ -14,11 +14,12 @@ defmodule Styler do
   @doc """
   Wraps `Code.string_to_quoted_with_comments` with our desired options
   """
-  def string_to_quoted_with_comments(code) when is_binary(code) do
+  def string_to_quoted_with_comments(code, file \\ "nofile") when is_binary(code) do
     Code.string_to_quoted_with_comments!(code,
       literal_encoder: &__MODULE__.literal_encoder/2,
       token_metadata: true,
-      unescape: false
+      unescape: false,
+      file: file
     )
   end
 
