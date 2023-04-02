@@ -120,7 +120,7 @@ defmodule Styler.Zipper do
   def up({_, nil}), do: nil
 
   def up({tree, meta}) do
-    children = Enum.reverse(meta.l) ++ [tree] ++ (meta.r)
+    children = Enum.reverse(meta.l, [tree | meta.r])
     {parent, parent_meta} = meta.ptree
     {make_node(parent, children), parent_meta}
   end
@@ -137,9 +137,8 @@ defmodule Styler.Zipper do
   """
   @spec leftmost(zipper) :: zipper
   def leftmost({tree, %{l: [_ | _] = l} = meta}) do
-    [left | rest] = Enum.reverse(l)
-    r = rest ++ [tree] ++ (meta.r)
-    {left, %{meta | l: [], r: r}}
+    [leftmost | r] = Enum.reverse(l, [tree | meta.r])
+    {leftmost, %{meta | l: [], r: r}}
   end
 
   def leftmost(zipper), do: zipper
@@ -156,9 +155,8 @@ defmodule Styler.Zipper do
   """
   @spec rightmost(zipper) :: zipper
   def rightmost({tree, %{r: [_ | _] = r} = meta}) do
-    [right | rest] = Enum.reverse(r)
-    l = rest ++ [tree | meta.l]
-    {right, %{meta | l: l, r: []}}
+    [rightmost | l] = Enum.reverse(r, [tree | meta.l])
+    {rightmost, %{meta | l: l, r: []}}
   end
 
   def rightmost(zipper), do: zipper
