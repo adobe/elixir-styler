@@ -22,17 +22,6 @@ defmodule Styler.Zipper do
   2-tuple where the first element is the focus and the second element is the
   metadata/context. The metadata is `nil` when the focus is the topmost node
   """
-
-  # Remove once we figure out why these functions cause a "pattern can never
-  # match" error:
-  #
-  # The pattern can never match the type.
-  #
-  # Pattern: _child = {_, _}
-  #
-  # Type: nil
-  @dialyzer {:nowarn_function, do_prev: 1}
-
   import Kernel, except: [node: 1]
 
   @type tree :: Macro.t()
@@ -120,7 +109,7 @@ defmodule Styler.Zipper do
   def up({_, nil}), do: nil
 
   def up({tree, meta}) do
-    children = Enum.reverse(meta.l) ++ [tree] ++ (meta.r)
+    children = Enum.reverse(meta.l, [tree | meta.r])
     {parent, parent_meta} = meta.ptree
     {make_node(parent, children), parent_meta}
   end
@@ -137,9 +126,8 @@ defmodule Styler.Zipper do
   """
   @spec leftmost(zipper) :: zipper
   def leftmost({tree, %{l: [_ | _] = l} = meta}) do
-    [left | rest] = Enum.reverse(l)
-    r = rest ++ [tree] ++ (meta.r)
-    {left, %{meta | l: [], r: r}}
+    [leftmost | r] = Enum.reverse(l, [tree | meta.r])
+    {leftmost, %{meta | l: [], r: r}}
   end
 
   def leftmost(zipper), do: zipper
@@ -156,9 +144,8 @@ defmodule Styler.Zipper do
   """
   @spec rightmost(zipper) :: zipper
   def rightmost({tree, %{r: [_ | _] = r} = meta}) do
-    [right | rest] = Enum.reverse(r)
-    l = rest ++ [tree | meta.l]
-    {right, %{meta | l: l, r: []}}
+    [rightmost | l] = Enum.reverse(r, [tree | meta.l])
+    {rightmost, %{meta | l: l, r: []}}
   end
 
   def rightmost(zipper), do: zipper
@@ -182,13 +169,8 @@ defmodule Styler.Zipper do
   """
   @spec remove(zipper) :: zipper
   def remove({_, nil}), do: raise(ArgumentError, message: "Cannot remove the top level node.")
-  def remove({_, %{l: [left | rest]} = meta}), do: do_prev({left, %{meta | l: rest}})
-
-  def remove({_, meta}) do
-    children = meta.r
-    {parent, parent_meta} = meta.ptree
-    {make_node(parent, children), parent_meta}
-  end
+  def remove({_, %{l: [left | rest]} = meta}), do: prev_down({left, %{meta | l: rest}})
+  def remove({_, %{ptree: {parent, parent_meta}, r: children}}), do: {make_node(parent, children), parent_meta}
 
   @doc """
   Inserts the item as the left sibling of the node at this zipper, without
@@ -255,15 +237,11 @@ defmodule Styler.Zipper do
   def skip(zipper, :prev), do: left(zipper) || prev_up(zipper)
 
   defp next_up(zipper) do
-    if parent = up(zipper) do
-      right(parent) || next_up(parent)
-    end
+    if parent = up(zipper), do: right(parent) || next_up(parent)
   end
 
   defp prev_up(zipper) do
-    if parent = up(zipper) do
-      left(parent) || prev_up(parent)
-    end
+    if parent = up(zipper), do: left(parent) || prev_up(parent)
   end
 
   @doc """
@@ -272,15 +250,11 @@ defmodule Styler.Zipper do
   """
   @spec prev(zipper) :: zipper | nil
   def prev(zipper) do
-    if left = left(zipper),
-      do: do_prev(left),
-      else: up(zipper)
+    if left = left(zipper), do: prev_down(left), else: up(zipper)
   end
 
-  defp do_prev(zipper) do
-    if down = down(zipper),
-      do: down |> rightmost() |> do_prev(),
-      else: zipper
+  defp prev_down(zipper) do
+    if down = down(zipper), do: down |> rightmost() |> prev_down(), else: zipper
   end
 
   @doc """
@@ -338,7 +312,8 @@ defmodule Styler.Zipper do
 
   The function must return a zipper.
   """
-  @spec traverse_while(zipper, (zipper -> {:cont, zipper} | {:halt, zipper} | {:skip, zipper})) :: zipper
+  @spec traverse_while(zipper, (zipper -> {command, zipper})) :: zipper
+        when command: :cont | :halt | :skip
   def traverse_while({_tree, nil} = zipper, fun) do
     do_traverse_while(zipper, fun)
   end
@@ -365,11 +340,8 @@ defmodule Styler.Zipper do
 
   If the zipper is not at the top, just the subtree will be traversed.
   """
-  @spec traverse_while(
-          zipper,
-          term,
-          (zipper, term -> {:cont, zipper, term} | {:halt, zipper, term} | {:skip, zipper, term})
-        ) :: {zipper, term}
+  @spec traverse_while(zipper, term, (zipper, term -> {command, zipper, term})) :: {zipper, term}
+        when command: :cont | :halt | :skip
   def traverse_while({_tree, nil} = zipper, acc, fun) do
     do_traverse_while(zipper, acc, fun)
   end

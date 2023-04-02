@@ -40,6 +40,7 @@ defmodule Styler.Style.Simple do
 
         token when integer? ->
           delimit(token)
+
         # is float
         token ->
           [int_token, decimals] = String.split(token, ".")
