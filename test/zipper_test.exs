@@ -76,14 +76,14 @@ defmodule StylerTest.ZipperTest do
 
   describe "down/1" do
     test "rips and tears the parent node" do
-      assert [1, 2] |> Zipper.zip() |> Zipper.down() == {1, %{l: nil, r: [2], ptree: {[1, 2], nil}}}
-      assert {1, 2} |> Zipper.zip() |> Zipper.down() == {1, %{l: nil, r: [2], ptree: {{1, 2}, nil}}}
+      assert [1, 2] |> Zipper.zip() |> Zipper.down() == {1, %{l: [], r: [2], ptree: {[1, 2], nil}}}
+      assert {1, 2} |> Zipper.zip() |> Zipper.down() == {1, %{l: [], r: [2], ptree: {{1, 2}, nil}}}
 
       assert {:foo, [], [1, 2]} |> Zipper.zip() |> Zipper.down() ==
-               {1, %{l: nil, r: [2], ptree: {{:foo, [], [1, 2]}, nil}}}
+               {1, %{l: [], r: [2], ptree: {{:foo, [], [1, 2]}, nil}}}
 
       assert {{:., [], [:a, :b]}, [], [1, 2]} |> Zipper.zip() |> Zipper.down() ==
-               {{:., [], [:a, :b]}, %{l: nil, r: [1, 2], ptree: {{{:., [], [:a, :b]}, [], [1, 2]}, nil}}}
+               {{:., [], [:a, :b]}, %{l: [], r: [1, 2], ptree: {{{:., [], [:a, :b]}, [], [1, 2]}, nil}}}
     end
   end
 

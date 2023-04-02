@@ -107,8 +107,8 @@ defmodule Styler.Zipper do
   def down({tree, meta}) do
     case children(tree) do
       [] -> nil
-      [only_child] -> {only_child, %{ptree: {tree, meta}, l: nil, r: nil}}
-      [first | rest] -> {first, %{ptree: {tree, meta}, l: nil, r: rest}}
+      [only_child] -> {only_child, %{ptree: {tree, meta}, l: [], r: []}}
+      [first | rest] -> {first, %{ptree: {tree, meta}, l: [], r: rest}}
     end
   end
 
@@ -120,7 +120,7 @@ defmodule Styler.Zipper do
   def up({_, nil}), do: nil
 
   def up({tree, meta}) do
-    children = Enum.reverse(meta.l || []) ++ [tree] ++ (meta.r || [])
+    children = Enum.reverse(meta.l) ++ [tree] ++ (meta.r)
     {parent, parent_meta} = meta.ptree
     {make_node(parent, children), parent_meta}
   end
@@ -138,8 +138,8 @@ defmodule Styler.Zipper do
   @spec leftmost(zipper) :: zipper
   def leftmost({tree, %{l: [_ | _] = l} = meta}) do
     [left | rest] = Enum.reverse(l)
-    r = rest ++ [tree] ++ (meta.r || [])
-    {left, %{meta | l: nil, r: r}}
+    r = rest ++ [tree] ++ (meta.r)
+    {left, %{meta | l: [], r: r}}
   end
 
   def leftmost(zipper), do: zipper
@@ -148,7 +148,7 @@ defmodule Styler.Zipper do
   Returns the zipper of the right sibling of the node at this zipper, or nil.
   """
   @spec right(zipper) :: zipper | nil
-  def right({tree, %{r: [rtree | r]} = meta}), do: {rtree, %{meta | r: r, l: [tree | meta.l || []]}}
+  def right({tree, %{r: [rtree | r]} = meta}), do: {rtree, %{meta | r: r, l: [tree | meta.l]}}
   def right(_), do: nil
 
   @doc """
@@ -157,8 +157,8 @@ defmodule Styler.Zipper do
   @spec rightmost(zipper) :: zipper
   def rightmost({tree, %{r: [_ | _] = r} = meta}) do
     [right | rest] = Enum.reverse(r)
-    l = rest ++ [tree] ++ (meta.l || [])
-    {right, %{meta | l: l, r: nil}}
+    l = rest ++ [tree | meta.l]
+    {right, %{meta | l: l, r: []}}
   end
 
   def rightmost(zipper), do: zipper
@@ -185,7 +185,7 @@ defmodule Styler.Zipper do
   def remove({_, %{l: [left | rest]} = meta}), do: do_prev({left, %{meta | l: rest}})
 
   def remove({_, meta}) do
-    children = meta.r || []
+    children = meta.r
     {parent, parent_meta} = meta.ptree
     {make_node(parent, children), parent_meta}
   end
@@ -197,7 +197,7 @@ defmodule Styler.Zipper do
   """
   @spec insert_left(zipper, tree) :: zipper
   def insert_left({_, nil}, _), do: raise(ArgumentError, message: "Can't insert siblings at the top level.")
-  def insert_left({tree, meta}, child), do: {tree, %{meta | l: [child | meta.l || []]}}
+  def insert_left({tree, meta}, child), do: {tree, %{meta | l: [child | meta.l]}}
 
   @doc """
   Inserts the item as the right sibling of the node at this zipper, without
@@ -206,7 +206,7 @@ defmodule Styler.Zipper do
   """
   @spec insert_right(zipper, tree) :: zipper
   def insert_right({_, nil}, _), do: raise(ArgumentError, message: "Can't insert siblings at the top level.")
-  def insert_right({tree, meta}, child), do: {tree, %{meta | r: [child | meta.r || []]}}
+  def insert_right({tree, meta}, child), do: {tree, %{meta | r: [child | meta.r]}}
 
   @doc """
   Inserts the item as the leftmost child of the node at this zipper,
