@@ -34,7 +34,8 @@ defmodule Mix.Tasks.Style do
 
   @styles [
     Styler.Style.Aliases,
-    Styler.Style.Pipes
+    Styler.Style.Pipes,
+    Styler.Style.Simple
   ]
 
   @impl Mix.Task
