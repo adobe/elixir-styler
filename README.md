@@ -1,7 +1,7 @@
 # Styler
 
 Styler is an AST-rewriting tool. Think of it as a combination of `mix format` and `mix credo`, except instead of telling
-you what's wrong, it just rewrites the code for you to fit our style rules. Hence, `mix style`!
+you what's wrong, it just rewrites the code for you to fit its style rules. Hence, `mix style`!
 
 Styler is configuration-free. Like `mix format`, it runs based on the `inputs` from `.formatter.exs` and has opinions rather than configuration.
 
@@ -17,16 +17,6 @@ def deps do
 end
 ```
 
-Styler is meant to be a 1-1 replacement for `mix format`. So at your discretion, you can alias it in place of `format`
-
-```ex
-def aliases do
-  [
-    format: "style"
-  ]
-end
-```
-
 ## Usage
 
 ```bash
@@ -35,7 +25,23 @@ $ mix style
 
 This will rewrite your code according to the Styles of `Styler` and format it.
 
+Run `mix help style` for more details on arguments and flags.
+
+### Replacing `mix format`
+
 As stated above, `Styler` takes a cue from Elixir's Formatter and offers no configuration. Instead, it harnesses the same `.formatter.exs` file as Formatter to know which files within your project it should style.
+
+Styler wraps up its work by running its rewrites through the Formatter - in fact, it's meant to be a complete stand-in for  `mix format`. You can alias it as `format` to quickly standardize its use across your project and save yourself the work of having to update existing formatter-related CI scripts and documentation.
+
+```ex
+def aliases do
+  [
+    # `mix format` will now actually run `mix style` behind the scenes
+    # saving you from updating your existing CI scripts etc!
+    format: "style"
+  ]
+end
+```
 
 ## Styles
 
