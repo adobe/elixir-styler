@@ -51,10 +51,11 @@ You can find the currently-enabled styles in the `Mix.Tasks.Style` module, insid
 
 | credo rule                            | Styler Style                         |
 |---------------------------------------|--------------------------------------|
-| `Credo.Check.Readability.AliasOrder`  | `Styler.Style.ModuleDirectives`               |
+| `Credo.Check.Consistency.MultiAliasImportRequireUse` | `Styler.Style.ModuleDirectives` |
+| `Credo.Check.Readability.AliasOrder`  | `Styler.Style.ModuleDirectives`      |
 | `Credo.Check.Readability.BlockPipe`   | `Styler.Style.Pipes`                 |
 | `Credo.Check.Readability.LargeNumbers`| `Styler.Style.Simple`                |
-| `Credo.Check.Readability.MultiAlias`  | `Styler.Style.ModuleDirectives`               |
+| `Credo.Check.Readability.MultiAlias`  | `Styler.Style.ModuleDirectives`      |
 | `Credo.Check.Readability.SinglePipe`  | `Styler.Style.Pipes`                 |
 | `Credo.Check.Readability.UnnecessaryAliasExpansion` | `Styler.Style.ModuleDirectives` |
 | `Credo.Check.Refactor.PipeChainStart` | `Styler.Style.Pipes`                 |

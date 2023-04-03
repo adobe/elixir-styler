@@ -12,11 +12,12 @@ defmodule Styler.Style.ModuleDirectives do
   @moduledoc """
   Styles up module directives!
 
-  This Style will expand multi-aliases/requires and sort aliases/requires within their groups.
-  It also adds a newline after each directive group.
+  This Style will expand multi-aliases/requires/imports/use and sort the directive within its groups (except `use`s, which cannot be sorted)
+  It also adds a blank line after each directive group.
 
   Rewrites for the following Credo rules:
 
+    * `Credo.Check.Consistency.MultiAliasImportRequireUse` (force expansion)
     * `Credo.Check.Readability.AliasOrder`
     * `Credo.Check.Readability.MultiAlias`
     * `Credo.Check.Readability.UnnecessaryAliasExpansion`
