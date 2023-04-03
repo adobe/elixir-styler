@@ -15,6 +15,8 @@ defmodule Mix.Tasks.Style do
 
     mix style mix.exs "lib/**/*.{ex,exs}" "test/**/*.{ex,exs}"
 
+  If `-` is one of the files, input is read from stdin and written to stdout.
+
   `mix style` uses the same options as `mix format` specified in `.formatter.exs` to
   format the code, and to determine which files to style if you don't pass any as arguments
 
@@ -59,7 +61,10 @@ defmodule Mix.Tasks.Style do
       end
 
     files
-    |> Stream.flat_map(&(&1 |> Path.expand() |> Path.wildcard(match_dot: true)))
+    |> Stream.flat_map(fn
+      "-" -> [:stdin]
+      path -> path |> Path.expand() |> Path.wildcard(match_dot: true)
+    end)
     |> Task.async_stream(&style_file(&1, formatter_opts, check_styled?),
       ordered: false,
       timeout: :timer.seconds(30)
@@ -76,6 +81,11 @@ defmodule Mix.Tasks.Style do
     :ok
   end
 
+  defp check!({[{:stdin, exception, stacktrace} | _], _not_styled}) do
+    Mix.shell().error("mix style failed for stdin:")
+    reraise exception, stacktrace
+  end
+
   defp check!({[{file, exception, stacktrace} | _], _not_styled}) do
     Mix.shell().error("mix style failed for file: #{Path.relative_to_cwd(file)}")
     reraise exception, stacktrace
@@ -90,8 +100,12 @@ defmodule Mix.Tasks.Style do
   end
 
   defp style_file(file, formatter_opts, check_styled?) do
-    input = String.trim(File.read!(file))
-    {ast, comments} = Styler.string_to_quoted_with_comments(input, file)
+    input =
+      if file == :stdin,
+        do: IO.stream() |> Enum.to_list() |> IO.iodata_to_binary(),
+        else: file |> File.read!() |> String.trim()
+
+    {ast, comments} = Styler.string_to_quoted_with_comments(input, to_string(file))
     zipper = Zipper.zip(ast)
 
     output =
@@ -113,6 +127,7 @@ defmodule Mix.Tasks.Style do
 
     cond do
       check_styled? and changed? -> {:not_styled, file}
+      file == :stdin -> IO.write([output, "\n"])
       changed? -> File.write!(file, [output, "\n"])
       true -> :ok
     end
