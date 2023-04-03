@@ -23,7 +23,7 @@ defmodule Styler.Style.Pipes do
 
   alias Styler.Zipper
 
-  @blocks ~w(case if with cond for)a
+  @blocks ~w(case if with cond for unless)a
 
   # we're in a multi-pipe, so only need to fix pipe_start
   def run({{:|>, _, [{:|>, _, _} | _]}, _} = zipper), do: zipper |> check_start() |> Zipper.next()

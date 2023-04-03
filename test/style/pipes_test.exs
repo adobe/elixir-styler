@@ -29,6 +29,25 @@ defmodule Styler.Style.PipesTest do
       )
     end
 
+    test "rewrites unless" do
+      assert_style(
+        """
+        unless foo do
+          bar
+        end
+        |> wee()
+        """,
+        """
+        unless_result =
+          unless foo do
+            bar
+          end
+
+        wee(unless_result)
+        """
+      )
+    end
+
     test "rewrites blocks" do
       assert_style(
         """
