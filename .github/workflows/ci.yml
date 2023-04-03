@@ -1,0 +1,23 @@
+on: push
+name: Build & Test
+env:
+  MIX_ENV: test
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Ex${{matrix.elixir}}/OTP${{matrix.otp}}
+    strategy:
+      matrix:
+        elixir: ['1.14.2']
+        otp: ['25.1.2']
+    steps:
+      - uses: actions/checkout@v3
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+      - run: mix deps.get
+      - run: mix compile
+      - run: mix test
+      - run: mix style --check-styled
