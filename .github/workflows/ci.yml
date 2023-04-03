@@ -1,0 +1,19 @@
+on: push
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: OTP${{matrix.otp}} | Ex${{matrix.elixir}}
+    strategy:
+      matrix:
+        otp: ['25.1.2']
+        elixir: ['1.14.2']
+    steps:
+      - uses: actions/checkout@v3
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{matrix.otp}}
+          elixir-version: ${{matrix.elixir}}
+      - run: mix deps.get
+      - run: mix test
+      - run: mix style --check-styled
