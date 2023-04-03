@@ -34,11 +34,13 @@ defmodule Styler.Style.ModuleDirectives do
 
     directives = Enum.flat_map(directives, &expand_directive/1)
 
-    [last | rest ] =
-      if d == :use do
-        # don't sort `use` since it's side-effecting
-        Enum.reverse(directives)
-      else
+    if d == :use do
+      # don't sort `use` since it's side-effecting
+      [last | rest ] = Enum.reverse(directives)
+
+      {last, %{meta | r: right, l: rest ++ left}}
+    else
+      [last | rest ] =
         directives
         # Credo does case-agnostic sorting, so we have to match that here
         |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
@@ -46,9 +48,9 @@ defmodule Styler.Style.ModuleDirectives do
         |> Enum.uniq_by(&elem(&1, 1))
         |> List.keysort(1, :desc)
         |> Enum.map(&(&1 |> elem(0) |> set_newlines(1)))
-      end
 
-    {set_newlines(last, 2), %{meta | r: right, l: rest ++ left}}
+      {set_newlines(last, 2), %{meta | r: right, l: rest ++ left}}
+    end
   end
 
   def run(zipper), do: zipper

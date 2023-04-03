@@ -44,6 +44,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
     test "expands use but does not sort it" do
       assert_style(
         """
+        use A
         use D
         use A.{
           C,
@@ -51,8 +52,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
         }
         """,
         """
+        use A
         use D
-
         use A.C
         use A.B
         """
