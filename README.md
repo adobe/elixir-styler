@@ -52,6 +52,7 @@ You can find the currently-enabled styles in the `Mix.Tasks.Style` module, insid
 | credo rule                            | Styler Style                         |
 |---------------------------------------|--------------------------------------|
 | `Credo.Check.Readability.AliasOrder`  | `Styler.Style.Aliases`               |
+| `Credo.Check.Readability.BlockPipe`   | `Styler.Style.Pipes`                 |
 | `Credo.Check.Readability.LargeNumbers`| `Styler.Style.Simple`                |
 | `Credo.Check.Readability.MultiAlias`  | `Styler.Style.Aliases`               |
 | `Credo.Check.Readability.SinglePipe`  | `Styler.Style.Pipes`                 |
