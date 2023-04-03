@@ -1,4 +1,5 @@
 on: push
+name: Build & Test
 
 jobs:
   test:
