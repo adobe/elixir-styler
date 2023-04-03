@@ -42,7 +42,7 @@ defmodule Mix.Tasks.Style do
 
   @impl Mix.Task
   def run(args) do
-    for style <- @styles, do: Code.ensure_loaded!(style)
+    Enum.each(@styles, &Code.ensure_loaded!/1)
 
     # we take `check_formatted` so we can easily replace `mix format`
     {opts, files} = OptionParser.parse!(args, strict: [check_styled: :boolean, check_formatted: :boolean])

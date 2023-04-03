@@ -22,6 +22,7 @@ defmodule Styler.MixProject do
       start_permanent: Mix.env() == :prod,
       elixirc_paths: elixirc_paths(Mix.env()),
       deps: deps(),
+      dialyzer: dialyzer(),
 
       ## Hex
       package: package(),
@@ -40,7 +41,16 @@ defmodule Styler.MixProject do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.29.4", runtime: false, only: :dev}
+      {:ex_doc, "~> 0.29.4", runtime: false, only: :dev},
+      {:dialyxir, "~> 1.2.0", runtime: false, only: :dev}
+    ]
+  end
+
+  defp dialyzer do
+    [
+      plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
+      plt_add_apps: [:mix],
+      flags: [:error_handling, :underspecs, :unmatched_returns, :unknown]
     ]
   end
 
