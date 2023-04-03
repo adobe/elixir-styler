@@ -8,30 +8,75 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 
-defmodule Styler.Style.AliasesTest do
-  use Styler.StyleCase, style: Styler.Style.Aliases, async: true
+defmodule Styler.Style.ModuleDirectivesTest do
+  use Styler.StyleCase, style: Styler.Style.ModuleDirectives, async: true
 
   describe "run/1" do
-    test "sorts, dedupes & expands aliases while respecting groups" do
+    test "sorts, dedupes & expands alias/require/import while respecting groups" do
+      for d <- ~w(alias require import) do
+        assert_style(
+          """
+          #{d} D
+          #{d} A.{B}
+          #{d} A.{
+            A,
+            B,
+            C
+          }
+          #{d} A.B
+
+          #{d} B
+          #{d} A
+          """,
+          """
+          #{d} A.A
+          #{d} A.B
+          #{d} A.C
+          #{d} D
+
+          #{d} A
+          #{d} B
+          """
+        )
+      end
+    end
+
+    test "expands use but does not sort it" do
+      assert_style(
+        """
+        use D
+        use A.{
+          C,
+          B
+        }
+        """,
+        """
+        use D
+
+        use A.C
+        use A.B
+        """
+      )
+    end
+
+    test "interwoven alias requires" do
       assert_style(
         """
         alias D
         alias A.{B}
-        alias A.{
+        require A.{
           A,
-          B,
           C
         }
-        alias A.B
-
         alias B
         alias A
         """,
         """
-        alias A.A
         alias A.B
-        alias A.C
         alias D
+
+        require A.A
+        require A.C
 
         alias A
         alias B
