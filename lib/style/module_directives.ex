@@ -27,7 +27,7 @@ defmodule Styler.Style.ModuleDirectives do
   """
   @behaviour Styler.Style
 
-  @directives ~w(use import require alias)a
+  @directives ~w(alias import use require)a
 
   def run({{d, _, _} = directive, %{l: left, r: right} = meta}) when d in @directives do
     {right, directives} = consume_directive_group(d, [directive | right], [])
