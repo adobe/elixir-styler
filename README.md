@@ -9,7 +9,7 @@ Styler is configuration-free. Like `mix format`, it runs based on the `inputs` f
 
 Add `:styler` as a dependency to your project's `mix.exs`:
 
-```ex
+```elixir
 def deps do
   [
     {:styler, "~> 0.1", only: [:dev, :test], runtime: false},
@@ -33,7 +33,7 @@ As stated above, `Styler` takes a cue from Elixir's Formatter and offers no conf
 
 Styler wraps up its work by running its rewrites through the Formatter - in fact, it's meant to be a complete stand-in for  `mix format`. You can alias it as `format` to quickly standardize its use across your project and save yourself the work of having to update existing formatter-related CI scripts and documentation.
 
-```ex
+```elixir
 def aliases do
   [
     # `mix format` will now actually run `mix style` behind the scenes
