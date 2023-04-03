@@ -15,6 +15,8 @@ defmodule Mix.Tasks.Style do
 
     mix style mix.exs "lib/**/*.{ex,exs}" "test/**/*.{ex,exs}"
 
+  If `-` is one of the files, input is read from stdin and written to stdout.
+
   `mix style` uses the same options as `mix format` specified in `.formatter.exs` to
   format the code, and to determine which files to style if you don't pass any as arguments
 
