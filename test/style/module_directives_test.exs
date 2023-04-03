@@ -50,12 +50,15 @@ defmodule Styler.Style.ModuleDirectivesTest do
           C,
           B
         }
+        import F
         """,
         """
         use A
         use D
         use A.C
         use A.B
+
+        import F
         """
       )
     end

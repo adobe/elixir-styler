@@ -32,15 +32,17 @@ defmodule Styler.Style.ModuleDirectives do
   def run({{d, _, _} = directive, %{l: left, r: right} = meta}) when d in @directives do
     {right, directives} = consume_directive_group(d, [directive | right], [])
 
-    directives = Enum.flat_map(directives, &expand_directive/1)
-
     if d == :use do
       # don't sort `use` since it's side-effecting
-      [last | rest ] = Enum.reverse(directives)
+      [last | rest] = Enum.reverse(directives)
+      meta = %{meta | r: right, l: rest ++ left}
 
-      {last, %{meta | r: right, l: rest ++ left}}
+      case right do
+        [{:use, _, _} | _] -> {last, meta}
+        _ -> {set_newlines(last, 2), meta}
+      end
     else
-      [last | rest ] =
+      [last | rest] =
         directives
         # Credo does case-agnostic sorting, so we have to match that here
         |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
@@ -55,6 +57,18 @@ defmodule Styler.Style.ModuleDirectives do
 
   def run(zipper), do: zipper
 
+  defp consume_directive_group(d, [{d, meta, _} = directive | siblings], directives) do
+    directives = expand_directive(directive) ++ directives
+
+    if d != :use and meta[:end_of_expression][:newlines] == 1 do
+      consume_directive_group(d, siblings, directives)
+    else
+      {siblings, directives}
+    end
+  end
+
+  defp consume_directive_group(_, siblings, directives), do: {siblings, directives}
+
   # alias Foo.{Bar, Baz}
   # =>
   # alias Foo.Bar
@@ -64,16 +78,6 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   defp expand_directive(alias), do: [alias]
-
-  defp consume_directive_group(d, [{d, meta, _} = directive | siblings], directives) do
-    if d != :use and meta[:end_of_expression][:newlines] == 1 do
-      consume_directive_group(d, siblings, [directive | directives])
-    else
-      {siblings, [directive | directives]}
-    end
-  end
-
-  defp consume_directive_group(_, siblings, directives), do: {siblings, directives}
 
   defp set_newlines({directive, meta, children}, newline) do
     updated_meta = Keyword.update(meta, :end_of_expression, [newlines: newline], &Keyword.put(&1, :newlines, newline))
