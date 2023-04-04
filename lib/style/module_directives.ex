@@ -15,15 +15,53 @@ defmodule Styler.Style.ModuleDirectives do
   This Style will expand multi-aliases/requires/imports/use and sort the directive within its groups (except `use`s, which cannot be sorted)
   It also adds a blank line after each directive group.
 
+  ## Credo rules
+
   Rewrites for the following Credo rules:
 
     * `Credo.Check.Consistency.MultiAliasImportRequireUse` (force expansion)
-    * `Credo.Check.Readability.AliasOrder`
+    * `Credo.Check.Readability.AliasOrder` (we sort `__MODULE__`, which credo doesn't)
+    * `Credo.Check.Readability.ModuleDoc` (adds `@moduledoc false` if missing. includes `*.exs` files)
     * `Credo.Check.Readability.MultiAlias`
+    * `Credo.Check.Readability.StrictModuleLayout` (see section below for details)
     * `Credo.Check.Readability.UnnecessaryAliasExpansion`
 
-  This module is more particular than credo for sorting. Notably, it sorts `alias __MODULE__`, whereas Credo allowed
-  that alias intermixed anywhere in a group.
+  ## Strict Layout
+
+  **This can break your code.**
+
+  Modules directives are sorted into the following order:
+
+    * `@shortdoc`
+    * `@moduledoc`
+    * `@behaviour`
+    * `use`
+    * `import`
+    * `alias`
+    * `require`
+    * everything else (unchanged)
+
+  If any of the sorted directives had a dependency on code that is now below it, your code will fail to compile after being styled.
+
+  For instance, the following will be broken because the module attribute definition will
+  be moved below the `use` clause, meaning `@pi` is undefined when invoked.
+
+    ```elixir
+    # before `mix style`
+    defmodule Approximation do
+      @pi 3.14
+      use Math, pi: @pi
+    end
+
+    # after `mix style`
+    defmodule Approximation do
+      @moduledoc false
+      use Math, pi: @pi
+      @pi 3.14
+    end
+    ```
+
+  For now, it's up to you to come up with a fix for this issue. Sorry!
   """
   @behaviour Styler.Style
 
