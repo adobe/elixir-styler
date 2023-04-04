@@ -28,13 +28,14 @@ defmodule Styler.Style.ModuleDirectives do
   @behaviour Styler.Style
 
   @directives ~w(alias import require)a
+  @attr_directives ~w(moduledoc shortdoc behaviour)a
 
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
   def run({{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}) do
     {directives, other} =
       Enum.split_with(children, fn
-        {:@, _, [{:moduledoc, _, _}]} -> true
+        {:@, _, [{attr, _, _}]} -> attr in @attr_directives
         {directive, _, _} -> directive in [:use | @directives]
         _ -> false
       end)
@@ -48,7 +49,12 @@ defmodule Styler.Style.ModuleDirectives do
     # TODO: (optimization)
     # now that we have use/import/alias/require, we might as well run
     # them through the sort/expand/dedupe functionality and skip them in the traversal
-    moduledoc = directives[:"@moduledoc"] || [@moduledoc_false]
+    shortdocs = directives[:"@shortdoc"] || []
+    moduledocs = directives[:"@moduledoc"] || [@moduledoc_false]
+    # TODO sort behaviours?
+    behaviours = directives[:"@behaviour"] || []
+    behaviours = List.update_at(behaviours, -1, &set_newlines(&1, 2))
+
     uses = directives[:use] || []
     imports = directives[:import] || []
     aliases = directives[:alias] || []
@@ -56,7 +62,9 @@ defmodule Styler.Style.ModuleDirectives do
 
     children =
       Enum.concat([
-        moduledoc,
+        shortdocs,
+        moduledocs,
+        behaviours,
         uses,
         imports,
         aliases,

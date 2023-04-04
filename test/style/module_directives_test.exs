@@ -9,6 +9,7 @@
 # governing permissions and limitations under the License.
 
 defmodule Styler.Style.ModuleDirectivesTest do
+  @moduledoc false
   use Styler.StyleCase, style: Styler.Style.ModuleDirectives, async: true
 
   describe "module directive sorting" do
@@ -61,22 +62,32 @@ defmodule Styler.Style.ModuleDirectivesTest do
           alias A
 
           def c(x), do: y
-
+          @behaviour Chaotic
           def d do
             alias X
             alias H
+            import Ecto.Query
             X.foo()
           end
-
+          @shortdoc "it's pretty short"
           import A
           require B
           use A
-          @moduledoc "yeehaw"
+          @moduledoc "README.md"
+                     |> File.read!()
+                     |> String.split("<!-- MDOC !-->")
+                     |> Enum.fetch!(1)
         end
         """,
         """
         defmodule Foo do
-          @moduledoc "yeehaw"
+          @shortdoc "it's pretty short"
+          @moduledoc "README.md"
+                     |> File.read!()
+                     |> String.split("<!-- MDOC !-->")
+                     |> Enum.fetch!(1)
+          @behaviour Chaotic
+
           use A
 
           import A
@@ -91,6 +102,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
           def d do
             alias H
             alias X
+
+            import Ecto.Query
 
             X.foo()
           end
