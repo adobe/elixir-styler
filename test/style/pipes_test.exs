@@ -9,7 +9,6 @@
 # governing permissions and limitations under the License.
 
 defmodule Styler.Style.PipesTest do
-  @moduledoc false
   use Styler.StyleCase, style: Styler.Style.Pipes, async: true
 
   describe "block starts" do
