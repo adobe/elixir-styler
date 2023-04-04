@@ -27,32 +27,31 @@ defmodule Styler.Style.ModuleDirectives do
   """
   @behaviour Styler.Style
 
-  @directives ~w(alias import use require)a
+  @directives ~w(alias import require)a
+
+  def run({{:use, _, _} = directive, meta}) do
+    [last | rest] = directive |> expand_directive() |> Enum.reverse()
+    meta = %{meta | l: rest ++ meta.l}
+
+    case meta.r do
+      [{:use, _, _} | _] -> {last, meta}
+      _ -> {set_newlines(last, 2), meta}
+    end
+  end
 
   def run({{d, _, _} = directive, %{l: left, r: right} = meta}) when d in @directives do
     {right, directives} = consume_directive_group(d, [directive | right], [])
 
-    if d == :use do
-      # don't sort `use` since it's side-effecting
-      [last | rest] = Enum.reverse(directives)
-      meta = %{meta | r: right, l: rest ++ left}
+    [last | rest] =
+      directives
+      # Credo does case-agnostic sorting, so we have to match that here
+      |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
+      # a splash of deduping for happiness
+      |> Enum.uniq_by(&elem(&1, 1))
+      |> List.keysort(1, :desc)
+      |> Enum.map(&(&1 |> elem(0) |> set_newlines(1)))
 
-      case right do
-        [{:use, _, _} | _] -> {last, meta}
-        _ -> {set_newlines(last, 2), meta}
-      end
-    else
-      [last | rest] =
-        directives
-        # Credo does case-agnostic sorting, so we have to match that here
-        |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
-        # a splash of deduping for happiness
-        |> Enum.uniq_by(&elem(&1, 1))
-        |> List.keysort(1, :desc)
-        |> Enum.map(&(&1 |> elem(0) |> set_newlines(1)))
-
-      {set_newlines(last, 2), %{meta | r: right, l: rest ++ left}}
-    end
+    {set_newlines(last, 2), %{meta | r: right, l: rest ++ left}}
   end
 
   def run(zipper), do: zipper
@@ -60,11 +59,9 @@ defmodule Styler.Style.ModuleDirectives do
   defp consume_directive_group(d, [{d, meta, _} = directive | siblings], directives) do
     directives = expand_directive(directive) ++ directives
 
-    if d != :use and meta[:end_of_expression][:newlines] == 1 do
-      consume_directive_group(d, siblings, directives)
-    else
-      {siblings, directives}
-    end
+    if meta[:end_of_expression][:newlines] == 1,
+      do: consume_directive_group(d, siblings, directives),
+      else: {siblings, directives}
   end
 
   defp consume_directive_group(_, siblings, directives), do: {siblings, directives}
