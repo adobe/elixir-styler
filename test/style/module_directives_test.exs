@@ -16,6 +16,9 @@ defmodule Styler.Style.ModuleDirectivesTest do
     test "adds moduledoc" do
       assert_style(
         """
+        defmodule A do
+        end
+
         defmodule Bar do
           alias Bop
 
@@ -33,6 +36,10 @@ defmodule Styler.Style.ModuleDirectivesTest do
         def Foo, do: :ok
         """,
         """
+        defmodule A do
+          @moduledoc false
+        end
+
         defmodule Bar do
           @moduledoc false
           alias Bop
@@ -52,6 +59,16 @@ defmodule Styler.Style.ModuleDirectivesTest do
         def Foo, do: :ok
         """
       )
+    end
+
+    test "doesn't add moduledoc to modules of specific names" do
+      for verboten <- ~w(Test Mixfile Controller Endpoint Repo Router Socket View HTML JSON) do
+        assert_style("""
+        defmodule A.B.C#{verboten} do
+          @shortdoc "Don't change me!"
+        end
+        """)
+      end
     end
 
     test "groups directives in order" do

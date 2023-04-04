@@ -30,6 +30,8 @@ defmodule Styler.Style.ModuleDirectives do
   @directives ~w(alias import require)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a
 
+  # module names ending with these suffixes will not have a default moduledoc appended
+  @dont_moduledoc ~w(Test Mixfile Controller Endpoint Repo Router Socket View HTML JSON)
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
   def run({{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}) do
@@ -50,7 +52,7 @@ defmodule Styler.Style.ModuleDirectives do
     # now that we have use/import/alias/require, we might as well run
     # them through the sort/expand/dedupe functionality and skip them in the traversal
     shortdocs = directives[:"@shortdoc"] || []
-    moduledocs = directives[:"@moduledoc"] || [@moduledoc_false]
+    moduledocs = directives[:"@moduledoc"] || if needs_moduledoc?(name), do: [@moduledoc_false], else: []
     # TODO sort behaviours?
     behaviours = directives[:"@behaviour"] || []
     behaviours = List.update_at(behaviours, -1, &set_newlines(&1, 2))
@@ -81,20 +83,12 @@ defmodule Styler.Style.ModuleDirectives do
   def run({{:defmodule, def_meta, [name, [{mod_do, mod_child}]]}, zipper_meta} = zipper) do
     # a module with a single child. lets add moduledoc false
     # ... unless it's a `defmodule Foo, do: ...`, that is
-    {_, do_meta, _} = mod_do
-
-    if do_meta[:format] == :keyword do
-      zipper
-    else
+    if needs_moduledoc?(name, mod_do) do
       # @TODO copy the line meta from mod_child to @moduledoc_false?
-      mod_children =
-        {:__block__, [],
-         [
-           @moduledoc_false,
-           mod_child
-         ]}
-
+      mod_children = {:__block__, [], [@moduledoc_false, mod_child]}
       {{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta}
+    else
+      zipper
     end
   end
 
@@ -124,6 +118,15 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   def run(zipper), do: zipper
+
+  def needs_moduledoc?({_, _, aliases}) do
+    name = aliases |> List.last() |> to_string()
+    not String.ends_with?(name, @dont_moduledoc)
+  end
+
+  def needs_moduledoc?(name, {_, do_meta, _}) do
+    needs_moduledoc?(name) and do_meta[:format] != :keyword
+  end
 
   defp consume_directive_group(d, [{d, meta, _} = directive | siblings], directives) do
     directives = expand_directive(directive) ++ directives
