@@ -118,12 +118,11 @@ defmodule Styler.Style.ModuleDirectives do
   # a module whose only child is a moduledoc. pass it on through
   def run({{:defmodule, _, [_, [{_, {:@, _, [{:moduledoc, _, _}]}}]]}, _} = zipper), do: zipper
 
-  def run({{:defmodule, def_meta, [name, [{mod_do, mod_child}]]}, zipper_meta} = zipper) do
+  def run({{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta} = zipper) do
     # a module with a single child. lets add moduledoc false
     # ... unless it's a `defmodule Foo, do: ...`, that is
     if needs_moduledoc?(name, mod_do) do
-      # @TODO copy the line meta from mod_child to @moduledoc_false?
-      mod_children = {:__block__, [], [@moduledoc_false, mod_child]}
+      mod_children = {:__block__, [], [@moduledoc_false, mod_children]}
       {{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta}
     else
       zipper
