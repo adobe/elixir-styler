@@ -31,7 +31,7 @@ defmodule Styler.Style.ModuleDirectives do
   @attr_directives ~w(moduledoc shortdoc behaviour)a
 
   # module names ending with these suffixes will not have a default moduledoc appended
-  @dont_moduledoc ~w(Test Mixfile Controller Endpoint Repo Router Socket View HTML JSON)
+  @dont_moduledoc ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
   def run({{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}) do
