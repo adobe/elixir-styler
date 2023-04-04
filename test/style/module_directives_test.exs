@@ -11,63 +11,96 @@
 defmodule Styler.Style.ModuleDirectivesTest do
   use Styler.StyleCase, style: Styler.Style.ModuleDirectives, async: true
 
-  describe "module groupings" do
-    test "groups directives in order" do
+  describe "module directive sorting" do
+    test "adds moduledoc" do
       assert_style(
-      """
-      defmodule Foo do
-        require A
-        alias A
+        """
+        defmodule Bar do
+          alias Bop
 
-        def c(x), do: y
-
-        def d do
-          alias X
-          alias H
-          X.foo()
+          :ok
         end
 
-        import A
-        require B
-        use A
-      end
-      """,
-      """
-      defmodule Foo do
-        use A
-
-        import A
-
-        alias A
-
-        require A
-        require B
-
-        def c(x), do: y
-
-        def d do
-          alias H
-          alias X
-
-          X.foo()
+        defmodule DocsOnly do
+          @moduledoc "woohoo"
         end
-      end
-      """
+
+        defmodule Foo do
+          use Bar
+        end
+
+        def Foo, do: :ok
+        """,
+        """
+        defmodule Bar do
+          @moduledoc false
+          alias Bop
+
+          :ok
+        end
+
+        defmodule DocsOnly do
+          @moduledoc "woohoo"
+        end
+
+        defmodule Foo do
+          @moduledoc false
+          use Bar
+        end
+
+        def Foo, do: :ok
+        """
       )
     end
 
-    test "handles single child module" do
-      assert_style """
-      defmodule Foo do
-        use Bar
-      end
+    test "groups directives in order" do
+      assert_style(
+        """
+        defmodule Foo do
+          require A
+          alias A
 
-      defmodule Bar, do: use(Baz)
-      """
+          def c(x), do: y
+
+          def d do
+            alias X
+            alias H
+            X.foo()
+          end
+
+          import A
+          require B
+          use A
+          @moduledoc "yeehaw"
+        end
+        """,
+        """
+        defmodule Foo do
+          @moduledoc "yeehaw"
+          use A
+
+          import A
+
+          alias A
+
+          require A
+          require B
+
+          def c(x), do: y
+
+          def d do
+            alias H
+            alias X
+
+            X.foo()
+          end
+        end
+        """
+      )
     end
   end
 
-  describe "run/1" do
+  describe "directive sort/dedupe/expansion" do
     test "sorts, dedupes & expands alias/require/import while respecting groups" do
       for d <- ~w(alias require import) do
         assert_style(
@@ -119,7 +152,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
       )
     end
 
-    test "interwoven alias requires" do
+    test "interwoven directives w/o the context of a module" do
       assert_style(
         """
         alias D

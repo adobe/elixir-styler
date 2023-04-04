@@ -29,25 +29,66 @@ defmodule Styler.Style.ModuleDirectives do
 
   @directives ~w(alias import require)a
 
-  def run({{:defmodule, def_meta, [name, [{do_block, {:__block__, children_meta, children}}]]}, zipper_meta}) do
+  @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
+
+  def run({{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}) do
     {directives, other} =
       Enum.split_with(children, fn
+        {:@, _, [{:moduledoc, _, _}]} -> true
         {directive, _, _} -> directive in [:use | @directives]
         _ -> false
       end)
 
-    directives = Enum.group_by(directives, &elem(&1, 0))
+    directives =
+      Enum.group_by(directives, fn
+        {:@, _, [{attr_name, _, _}]} -> :"@#{attr_name}"
+        {directive, _, _} -> directive
+      end)
+
     # TODO: (optimization)
     # now that we have use/import/alias/require, we might as well run
     # them through the sort/expand/dedupe functionality and skip them in the traversal
+    moduledoc = directives[:"@moduledoc"] || [@moduledoc_false]
     uses = directives[:use] || []
     imports = directives[:import] || []
     aliases = directives[:alias] || []
     requires = directives[:require] || []
 
-    children = Enum.concat([uses, imports, aliases, requires, other])
+    children =
+      Enum.concat([
+        moduledoc,
+        uses,
+        imports,
+        aliases,
+        requires,
+        other
+      ])
 
-    {{:defmodule, def_meta, [name, [{do_block, {:__block__, children_meta, children}}]]}, zipper_meta}
+    {{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}
+  end
+
+  # a module whose only child is a moduledoc. pass it on through
+  def run({{:defmodule, _, [_, [{_, {:@, _, [{:moduledoc, _, _}]}}]]}, _} = zipper), do: zipper
+
+  def run({{:defmodule, def_meta, [name, [{mod_do, mod_child}]]}, zipper_meta} = zipper) do
+    # a module with a single child. lets add moduledoc false
+    # ... unless it's a `defmodule Foo, do: ...`, that is
+    {_, do_meta, _} = mod_do
+
+    if do_meta[:format] == :keyword do
+      zipper
+    else
+      IO.puts("needs moduledoc")
+      # @TODO copy the line meta from mod_child to @moduledoc_false?
+      mod_children =
+        {:__block__, [],
+         [
+           @moduledoc_false,
+           mod_child
+         ]}
+
+      {{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta}
+    end
   end
 
   def run({{:use, _, _} = directive, meta}) do
