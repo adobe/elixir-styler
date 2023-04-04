@@ -11,6 +11,7 @@
 # Branched from https://github.com/doorgan/sourceror/blob/main/test/zipper_test.exs
 # See this issue for context on branching: https://github.com/doorgan/sourceror/issues/67
 defmodule StylerTest.ZipperTest do
+  @moduledoc false
   use ExUnit.Case, async: true
 
   alias Styler.Zipper

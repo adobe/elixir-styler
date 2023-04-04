@@ -9,6 +9,7 @@
 # governing permissions and limitations under the License.
 
 defmodule Styler.MixProject do
+  @moduledoc false
   use Mix.Project
 
   @version "0.1.1"

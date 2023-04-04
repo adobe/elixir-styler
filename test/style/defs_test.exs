@@ -9,6 +9,7 @@
 # governing permissions and limitations under the License.
 
 defmodule Styler.Style.DefsTest do
+  @moduledoc false
   use Styler.StyleCase, style: Styler.Style.Defs, async: true
 
   describe "run" do
