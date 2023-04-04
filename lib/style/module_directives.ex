@@ -29,6 +29,27 @@ defmodule Styler.Style.ModuleDirectives do
 
   @directives ~w(alias import require)a
 
+  def run({{:defmodule, def_meta, [name, [{do_block, {:__block__, children_meta, children}}]]}, zipper_meta}) do
+    {directives, other} =
+      Enum.split_with(children, fn
+        {directive, _, _} -> directive in [:use | @directives]
+        _ -> false
+      end)
+
+    directives = Enum.group_by(directives, &elem(&1, 0))
+    # TODO: (optimization)
+    # now that we have use/import/alias/require, we might as well run
+    # them through the sort/expand/dedupe functionality and skip them in the traversal
+    uses = directives[:use] || []
+    imports = directives[:import] || []
+    aliases = directives[:alias] || []
+    requires = directives[:require] || []
+
+    children = Enum.concat([uses, imports, aliases, requires, other])
+
+    {{:defmodule, def_meta, [name, [{do_block, {:__block__, children_meta, children}}]]}, zipper_meta}
+  end
+
   def run({{:use, _, _} = directive, meta}) do
     [last | rest] = directive |> expand_directive() |> Enum.reverse()
     meta = %{meta | l: rest ++ meta.l}

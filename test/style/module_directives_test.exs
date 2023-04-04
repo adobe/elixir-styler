@@ -11,6 +11,62 @@
 defmodule Styler.Style.ModuleDirectivesTest do
   use Styler.StyleCase, style: Styler.Style.ModuleDirectives, async: true
 
+  describe "module groupings" do
+    test "groups directives in order" do
+      assert_style(
+      """
+      defmodule Foo do
+        require A
+        alias A
+
+        def c(x), do: y
+
+        def d do
+          alias X
+          alias H
+          X.foo()
+        end
+
+        import A
+        require B
+        use A
+      end
+      """,
+      """
+      defmodule Foo do
+        use A
+
+        import A
+
+        alias A
+
+        require A
+        require B
+
+        def c(x), do: y
+
+        def d do
+          alias H
+          alias X
+
+          X.foo()
+        end
+      end
+      """
+      )
+    end
+
+    test "handles single child module" do
+      assert_style """
+      defmodule Foo do
+        use Bar
+      end
+
+      defmodule Bar, do: use(Baz)
+      """
+    end
+  end
+
   describe "run/1" do
     test "sorts, dedupes & expands alias/require/import while respecting groups" do
       for d <- ~w(alias require import) do
