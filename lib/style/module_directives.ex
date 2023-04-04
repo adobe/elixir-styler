@@ -86,7 +86,6 @@ defmodule Styler.Style.ModuleDirectives do
     if do_meta[:format] == :keyword do
       zipper
     else
-      IO.puts("needs moduledoc")
       # @TODO copy the line meta from mod_child to @moduledoc_false?
       mod_children =
         {:__block__, [],
