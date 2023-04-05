@@ -35,7 +35,7 @@ defmodule Mix.Tasks.Style do
   alias Styler.Zipper
 
   @styles [
-    Styler.Style.Aliases,
+    Styler.Style.ModuleDirectives,
     Styler.Style.Pipes,
     Styler.Style.Simple
   ]

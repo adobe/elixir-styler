@@ -8,11 +8,12 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 
+# Branched from https://github.com/doorgan/sourceror/blob/main/lib/sourceror/zipper.ex,
+# see this issue for context on branching: https://github.com/doorgan/sourceror/issues/67
+
+# Initial implementation Copyright (c) 2021 dorgandash@gmail.com, licenced under Apache 2.0
 defmodule Styler.Zipper do
   @moduledoc """
-  Branched from https://github.com/doorgan/sourceror/blob/main/lib/sourceror/zipper.ex,
-    see this issue for context on branching: https://github.com/doorgan/sourceror/issues/67
-
   Implements a Zipper for the Elixir AST based on Gérard Huet [Functional pearl: the
   zipper](https://www.st.cs.uni-saarland.de/edu/seminare/2005/advanced-fp/docs/huet-zipper.pdf) paper and
   Clojure's `clojure.zip` API.

@@ -30,9 +30,10 @@ defmodule Styler.StyleCase do
   end
 
   defmacro assert_style(before, expected \\ nil) do
-    expected = String.trim(expected || before)
+    expected = expected || before
 
     quote bind_quoted: [before: before, expected: expected] do
+      expected = String.trim(expected)
       {styled_ast, styled} = style(before)
 
       if styled != expected and ExUnit.configuration()[:trace] do
