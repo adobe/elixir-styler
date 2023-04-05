@@ -1,5 +1,17 @@
 # Changelog
 
+## v0.2.0
+
+### Improvements
+
+* Added `Styler.Style.ModuleDirectives`
+    * Note that this is potentially destructive in some rare cases. See moduledoc for more.
+* `mix style -` reads and writes to stdin/stdout
+
+### Fixes
+
+* `Styler.Style.Pipes` is now aware of `unless` blocks
+
 ## v0.1.1
 
 ### Improvements
