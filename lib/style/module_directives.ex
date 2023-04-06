@@ -76,8 +76,8 @@ defmodule Styler.Style.ModuleDirectives do
 
   def run({{:defmodule, _, [name, [{_, {:__block__, _, _}}]]}, _} = zipper) do
     # Traverse until the block is our focus to set up for skipping the traversal of directives we already handled
-    {{:__block__, block_meta, module_children}, meta} =
-      zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
+    {{:__block__, block_meta, module_children}, meta} = move_focus_to_defmodule_body(zipper)
+
 
     {directives, nondirectives} =
       Enum.split_with(module_children, fn
@@ -128,14 +128,19 @@ defmodule Styler.Style.ModuleDirectives do
   # a module whose only child is a moduledoc. pass it on through
   def run({{:defmodule, _, [_, [{_, {:@, _, [{:moduledoc, _, _}]}}]]}, _} = zipper), do: zipper
 
-  def run({{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta} = zipper) do
+  def run({{:defmodule, _, [name, [{mod_do, _only_child}]]}, _} = zipper) do
+    zipper = move_focus_to_defmodule_body(zipper)
     # a module with a single child. lets add moduledoc false
     # ... unless it's a `defmodule Foo, do: ...`, that is
     if needs_moduledoc?(name, mod_do) do
-      mod_children = {:__block__, [], [@moduledoc_false, mod_children]}
-      {{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta}
+      moduledoc =
+        zipper
+        |> Zipper.update(fn only_child -> {:__block__, [], [@moduledoc_false, only_child]} end)
+        |> Zipper.down()
+
+      {:skip, moduledoc}
     else
-      zipper
+      run(zipper)
     end
   end
 
@@ -165,6 +170,10 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   def run(zipper), do: zipper
+
+  defp move_focus_to_defmodule_body({{_defmodule, _, [_, [{_, _move_focus_here}]]}, _} = zipper) do
+    zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
+  end
 
   def needs_moduledoc?({_, _, aliases}) do
     name = aliases |> List.last() |> to_string()

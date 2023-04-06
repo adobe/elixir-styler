@@ -19,6 +19,11 @@ defmodule Styler.Style.ModuleDirectivesTest do
         defmodule A do
         end
 
+        defmodule B do
+          defmodule C do
+          end
+        end
+
         defmodule Bar do
           alias Bop
 
@@ -38,6 +43,13 @@ defmodule Styler.Style.ModuleDirectivesTest do
         """
         defmodule A do
           @moduledoc false
+        end
+
+        defmodule B do
+          @moduledoc false
+          defmodule C do
+            @moduledoc false
+          end
         end
 
         defmodule Bar do
