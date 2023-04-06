@@ -74,13 +74,63 @@ defmodule Styler.Style.ModuleDirectives do
   @dont_moduledoc ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
-  def run({{:defmodule, _, [name, [{_, {:__block__, _, _}}]]}, _} = zipper) do
+  def run({{:defmodule, _, [mod_name, [{mod_do, _mod_body}]]}, _} = zipper) do
+    body_zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
     # Traverse until the block is our focus to set up for skipping the traversal of directives we already handled
-    {{:__block__, block_meta, module_children}, meta} = move_focus_to_defmodule_body(zipper)
+     case body_zipper do
+       {{:__block__, _, _}, _} = zipper ->
+         organize_large_module(mod_name, zipper)
+       # a module whose only child is a moduledoc. nothing to do here!
+       {{:@, _, [{:moduledoc, _, _}]}, _} = only_moduledoc_zipper ->
+         {:skip, only_moduledoc_zipper}
+
+       only_child_zipper ->
+         # a module with a single child. lets add moduledoc false
+         # ... unless it's a `defmodule Foo, do: ...`, that is
+         if needs_moduledoc?(mod_name, mod_do) do
+           moduledoc_zipper =
+             only_child_zipper
+             |> Zipper.update(fn only_child -> {:__block__, [], [@moduledoc_false, only_child]} end)
+             |> Zipper.down()
+
+           {:skip, moduledoc_zipper}
+         else
+           run(only_child_zipper)
+         end
+     end
+   end
+
+  def run({{:use, _, _} = directive, meta}) do
+    [last | rest] = directive |> expand_directive() |> Enum.reverse()
+    meta = %{meta | l: rest ++ meta.l}
+
+    case meta.r do
+      [{:use, _, _} | _] -> {last, meta}
+      _ -> {set_newlines(last, 2), meta}
+    end
+  end
+
+  def run({{d, _, _} = directive, %{l: left, r: right} = meta}) when d in @directives do
+    {right, directives} = consume_directive_group(d, [directive | right], [])
+
+    [last | rest] =
+      directives
+      # Credo does case-agnostic sorting, so we have to match that here
+      |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
+      # a splash of deduping for happiness
+      |> Enum.uniq_by(&elem(&1, 1))
+      |> List.keysort(1, :desc)
+      |> Enum.map(&(&1 |> elem(0) |> set_newlines(1)))
+
+    {set_newlines(last, 2), %{meta | r: right, l: rest ++ left}}
+  end
+
+  def run(zipper), do: zipper
 
 
+ defp organize_large_module(name, {{:__block__, block_meta, children}, meta}) do
     {directives, nondirectives} =
-      Enum.split_with(module_children, fn
+      Enum.split_with(children, fn
         {:@, _, [{attr, _, _}]} -> attr in @attr_directives
         {directive, _, _} -> directive in [:use | @directives]
         _ -> false
@@ -123,56 +173,6 @@ defmodule Styler.Style.ModuleDirectives do
       {tree, meta} = Zipper.down({{:__block__, block_meta, nondirectives}, meta})
       run({tree, %{meta | l: Enum.reverse(directives)}})
     end
-  end
-
-  # a module whose only child is a moduledoc. pass it on through
-  def run({{:defmodule, _, [_, [{_, {:@, _, [{:moduledoc, _, _}]}}]]}, _} = zipper), do: zipper
-
-  def run({{:defmodule, _, [name, [{mod_do, _only_child}]]}, _} = zipper) do
-    zipper = move_focus_to_defmodule_body(zipper)
-    # a module with a single child. lets add moduledoc false
-    # ... unless it's a `defmodule Foo, do: ...`, that is
-    if needs_moduledoc?(name, mod_do) do
-      moduledoc =
-        zipper
-        |> Zipper.update(fn only_child -> {:__block__, [], [@moduledoc_false, only_child]} end)
-        |> Zipper.down()
-
-      {:skip, moduledoc}
-    else
-      run(zipper)
-    end
-  end
-
-  def run({{:use, _, _} = directive, meta}) do
-    [last | rest] = directive |> expand_directive() |> Enum.reverse()
-    meta = %{meta | l: rest ++ meta.l}
-
-    case meta.r do
-      [{:use, _, _} | _] -> {last, meta}
-      _ -> {set_newlines(last, 2), meta}
-    end
-  end
-
-  def run({{d, _, _} = directive, %{l: left, r: right} = meta}) when d in @directives do
-    {right, directives} = consume_directive_group(d, [directive | right], [])
-
-    [last | rest] =
-      directives
-      # Credo does case-agnostic sorting, so we have to match that here
-      |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
-      # a splash of deduping for happiness
-      |> Enum.uniq_by(&elem(&1, 1))
-      |> List.keysort(1, :desc)
-      |> Enum.map(&(&1 |> elem(0) |> set_newlines(1)))
-
-    {set_newlines(last, 2), %{meta | r: right, l: rest ++ left}}
-  end
-
-  def run(zipper), do: zipper
-
-  defp move_focus_to_defmodule_body({{_defmodule, _, [_, [{_, _move_focus_here}]]}, _} = zipper) do
-    zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
   end
 
   def needs_moduledoc?({_, _, aliases}) do
