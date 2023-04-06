@@ -65,6 +65,8 @@ defmodule Styler.Style.ModuleDirectives do
   """
   @behaviour Styler.Style
 
+  alias Styler.Zipper
+
   @directives ~w(alias import require)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a
 
@@ -72,9 +74,13 @@ defmodule Styler.Style.ModuleDirectives do
   @dont_moduledoc ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
-  def run({{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}) do
-    {directives, other} =
-      Enum.split_with(children, fn
+  def run({{:defmodule, _, [name, [{_, {:__block__, _, _}}]]}, _} = zipper) do
+    # Traverse until the block is our focus to set up for skipping the traversal of directives we already handled
+    {{:__block__, block_meta, module_children}, meta} =
+      zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
+
+    {directives, nondirectives} =
+      Enum.split_with(module_children, fn
         {:@, _, [{attr, _, _}]} -> attr in @attr_directives
         {directive, _, _} -> directive in [:use | @directives]
         _ -> false
@@ -86,21 +92,18 @@ defmodule Styler.Style.ModuleDirectives do
         {directive, _, _} -> directive
       end)
 
-    # TODO: (optimization)
-    # now that we have use/import/alias/require, we might as well run
-    # them through the sort/expand/dedupe functionality and skip them in the traversal
     shortdocs = directives[:"@shortdoc"] || []
     moduledocs = directives[:"@moduledoc"] || if needs_moduledoc?(name), do: [@moduledoc_false], else: []
     # TODO sort behaviours?
     behaviours = directives[:"@behaviour"] || []
     behaviours = List.update_at(behaviours, -1, &set_newlines(&1, 2))
-
+    # TODO extract directive runs and use them on each of these lists, now that we've optimized to not traverse them
     uses = directives[:use] || []
     imports = directives[:import] || []
     aliases = directives[:alias] || []
     requires = directives[:require] || []
 
-    children =
+    directives =
       Enum.concat([
         shortdocs,
         moduledocs,
@@ -108,11 +111,18 @@ defmodule Styler.Style.ModuleDirectives do
         uses,
         imports,
         aliases,
-        requires,
-        other
+        requires
       ])
 
-    {{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}
+    if Enum.empty?(nondirectives) do
+      # no other possible hits within this module - go to the next one
+      {:skip, {{:__block__, block_meta, directives}, meta}}
+    else
+      # could be other hits within the `nondirective` children, so continue traversal from the first of them
+      # we have to invoke `run` ourself since we're also calling `next` ourselves
+      {tree, meta} = Zipper.down({{:__block__, block_meta, nondirectives}, meta})
+      run({tree, %{meta | l: Enum.reverse(directives)}})
+    end
   end
 
   # a module whose only child is a moduledoc. pass it on through
