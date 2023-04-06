@@ -97,7 +97,6 @@ defmodule Styler.Zipper do
   def down({tree, meta}) do
     case children(tree) do
       [] -> nil
-      [only_child] -> {only_child, %{ptree: {tree, meta}, l: [], r: []}}
       [first | rest] -> {first, %{ptree: {tree, meta}, l: [], r: rest}}
     end
   end
