@@ -72,7 +72,7 @@ defmodule Styler.Style.ModuleDirectives do
   @dont_moduledoc ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
-  def run({{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}) do
+  def run({{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}, _comments) do
     {directives, other} =
       Enum.split_with(children, fn
         {:@, _, [{attr, _, _}]} -> attr in @attr_directives
@@ -116,9 +116,9 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   # a module whose only child is a moduledoc. pass it on through
-  def run({{:defmodule, _, [_, [{_, {:@, _, [{:moduledoc, _, _}]}}]]}, _} = zipper), do: zipper
+  def run({{:defmodule, _, [_, [{_, {:@, _, [{:moduledoc, _, _}]}}]]}, _} = zipper, _comments), do: zipper
 
-  def run({{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta} = zipper) do
+  def run({{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta} = zipper, _comments) do
     # a module with a single child. lets add moduledoc false
     # ... unless it's a `defmodule Foo, do: ...`, that is
     if needs_moduledoc?(name, mod_do) do
@@ -129,7 +129,7 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  def run({{:use, _, _} = directive, meta}) do
+  def run({{:use, _, _} = directive, meta}, _comments) do
     [last | rest] = directive |> expand_directive() |> Enum.reverse()
     meta = %{meta | l: rest ++ meta.l}
 
@@ -139,7 +139,7 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  def run({{d, _, _} = directive, %{l: left, r: right} = meta}) when d in @directives do
+  def run({{d, _, _} = directive, %{l: left, r: right} = meta}, _comments) when d in @directives do
     {right, directives} = consume_directive_group(d, [directive | right], [])
 
     [last | rest] =
@@ -154,7 +154,7 @@ defmodule Styler.Style.ModuleDirectives do
     {set_newlines(last, 2), %{meta | r: right, l: rest ++ left}}
   end
 
-  def run(zipper), do: zipper
+  def run(zipper, _comments), do: zipper
 
   def needs_moduledoc?({_, _, aliases}) do
     name = aliases |> List.last() |> to_string()
