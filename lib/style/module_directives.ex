@@ -102,21 +102,21 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   def run({{:use, _, _} = directive, meta}) do
-    [last | rest] = directive |> expand_directive() |> Enum.reverse()
-    meta = %{meta | l: rest ++ meta.l}
+    [last | rest] = directive |> expand_directive() |> Enum.reverse(meta.l)
 
-    case meta.r do
-      [{:use, _, _} | _] -> {last, meta}
-      _ -> {set_newlines(last, 2), meta}
-    end
+    last =
+      case meta.r do
+        [{:use, _, _} | _] -> last
+        _ -> set_newlines(last, 2)
+      end
+
+    {:skip, {last, %{meta | l: rest}}}
   end
 
   def run({{d, _, _} = directive, %{l: left, r: right} = meta}) when d in @directives do
     {right, directives} = consume_directive_group(d, [directive | right], [])
-
-    [last | rest] = group_directive(directives)
-
-    {last, %{meta | r: right, l: rest ++ left}}
+    [last | rest] = order_directives(directives)
+    {:skip, {last, %{meta | r: right, l: rest ++ left}}}
   end
 
   def run(zipper), do: zipper
@@ -149,9 +149,9 @@ defmodule Styler.Style.ModuleDirectives do
           [set_newlines(last, 2) | rest]
       end
 
-    imports = group_directive(directives[:import] || []) |> Enum.reverse()
-    aliases = group_directive(directives[:alias] || []) |> Enum.reverse()
-    requires = group_directive(directives[:require] || []) |> Enum.reverse()
+    imports = order_directives(directives[:import] || []) |> Enum.reverse()
+    aliases = order_directives(directives[:alias] || []) |> Enum.reverse()
+    requires = order_directives(directives[:require] || []) |> Enum.reverse()
 
     directives =
       Enum.concat([
@@ -175,11 +175,12 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  defp group_directive([]), do: []
+  defp order_directives([]), do: []
 
-  defp group_directive(directives) do
+  defp order_directives(directives) do
     [last | rest] =
       directives
+      |> Enum.flat_map(&expand_directive/1)
       # Credo does case-agnostic sorting, so we have to match that here
       |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
       # a splash of deduping for happiness
@@ -200,7 +201,7 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   defp consume_directive_group(d, [{d, meta, _} = directive | siblings], directives) do
-    directives = expand_directive(directive) ++ directives
+    directives = [directive | directives]
 
     if meta[:end_of_expression][:newlines] == 1,
       do: consume_directive_group(d, siblings, directives),
