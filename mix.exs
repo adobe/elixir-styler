@@ -41,7 +41,7 @@ defmodule Styler.MixProject do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.29.4", runtime: false, only: :dev}
+      {:ex_doc, "~> 0.29", runtime: false}
     ]
   end
 
