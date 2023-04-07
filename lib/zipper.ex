@@ -34,6 +34,7 @@ defmodule Styler.Zipper do
           }
 
   @type zipper :: {tree, path | nil}
+  @type command :: :cont | :skip | :halt
 
   @doc """
   Returns true if the node is a branch.
@@ -313,7 +314,6 @@ defmodule Styler.Zipper do
   The function must return a zipper.
   """
   @spec traverse_while(zipper, (zipper -> {command, zipper})) :: zipper
-        when command: :cont | :halt | :skip
   def traverse_while({_tree, nil} = zipper, fun) do
     do_traverse_while(zipper, fun)
   end
@@ -341,7 +341,6 @@ defmodule Styler.Zipper do
   If the zipper is not at the top, just the subtree will be traversed.
   """
   @spec traverse_while(zipper, term, (zipper, term -> {command, zipper, term})) :: {zipper, term}
-        when command: :cont | :halt | :skip
   def traverse_while({_tree, nil} = zipper, acc, fun) do
     do_traverse_while(zipper, acc, fun)
   end

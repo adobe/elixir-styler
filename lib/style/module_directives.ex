@@ -72,7 +72,7 @@ defmodule Styler.Style.ModuleDirectives do
   @dont_moduledoc ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
-  def run({{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}) do
+  def run({{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}, ctx) do
     {directives, other} =
       Enum.split_with(children, fn
         {:@, _, [{attr, _, _}]} -> attr in @attr_directives
@@ -112,34 +112,38 @@ defmodule Styler.Style.ModuleDirectives do
         other
       ])
 
-    {{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}
+    zipper = {{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}
+    {:cont, zipper, ctx}
   end
 
   # a module whose only child is a moduledoc. pass it on through
-  def run({{:defmodule, _, [_, [{_, {:@, _, [{:moduledoc, _, _}]}}]]}, _} = zipper), do: zipper
+  def run({{:defmodule, _, [_, [{_, {:@, _, [{:moduledoc, _, _}]}}]]}, _} = zipper, ctx), do: {:cont, zipper, ctx}
 
-  def run({{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta} = zipper) do
+  def run({{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta} = zipper, ctx) do
     # a module with a single child. lets add moduledoc false
     # ... unless it's a `defmodule Foo, do: ...`, that is
     if needs_moduledoc?(name, mod_do) do
       mod_children = {:__block__, [], [@moduledoc_false, mod_children]}
-      {{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta}
+      {:cont, {{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta}, ctx}
     else
-      zipper
+      {:cont, zipper, ctx}
     end
   end
 
-  def run({{:use, _, _} = directive, meta}) do
+  def run({{:use, _, _} = directive, meta}, ctx) do
     [last | rest] = directive |> expand_directive() |> Enum.reverse()
     meta = %{meta | l: rest ++ meta.l}
 
-    case meta.r do
-      [{:use, _, _} | _] -> {last, meta}
-      _ -> {set_newlines(last, 2), meta}
-    end
+    zipper =
+      case meta.r do
+        [{:use, _, _} | _] -> {last, meta}
+        _ -> {set_newlines(last, 2), meta}
+      end
+
+    {:skip, zipper, ctx}
   end
 
-  def run({{d, _, _} = directive, %{l: left, r: right} = meta}) when d in @directives do
+  def run({{d, _, _} = directive, %{l: left, r: right} = meta}, ctx) when d in @directives do
     {right, directives} = consume_directive_group(d, [directive | right], [])
 
     [last | rest] =
@@ -151,10 +155,12 @@ defmodule Styler.Style.ModuleDirectives do
       |> List.keysort(1, :desc)
       |> Enum.map(&(&1 |> elem(0) |> set_newlines(1)))
 
-    {set_newlines(last, 2), %{meta | r: right, l: rest ++ left}}
+    zipper = {set_newlines(last, 2), %{meta | r: right, l: rest ++ left}}
+
+    {:skip, zipper, ctx}
   end
 
-  def run(zipper), do: zipper
+  def run(zipper, ctx), do: {:cont, zipper, ctx}
 
   def needs_moduledoc?({_, _, aliases}) do
     name = aliases |> List.last() |> to_string()

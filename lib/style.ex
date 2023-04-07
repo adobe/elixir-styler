@@ -18,7 +18,10 @@ defmodule Styler.Style do
 
   alias Styler.Zipper
 
-  @type command :: :cont | :skip | :halt
+  @type context :: %{
+          comment: [map()],
+          file: :stdin | String.t()
+        }
 
   @doc """
   `run` will be used with `Zipper.traverse_while/3`, meaning it will be executed on every node of the AST.
@@ -26,17 +29,5 @@ defmodule Styler.Style do
   You can skip traversing parts of the tree by returning a Zipper that's further along in the traversal, for example
   by calling `Zipper.skip(zipper)` to skip an entire subtree you know is of no interest to your Style.
   """
-  @callback run(Zipper.zipper()) :: Zipper.zipper() | {command(), Zipper.zipper()}
-
-  @doc false
-  # this lets Styles optionally implement as though they're running inside of `Zipper.traverse`
-  # or `Zipper.traverse_while` for finer-grained control
-  def wrap_run(style) do
-    fn zipper ->
-      case style.run(zipper) do
-        {next, {_, _} = _zipper} = command when next in ~w(cont halt skip)a -> command
-        zipper -> {:cont, zipper}
-      end
-    end
-  end
+  @callback run(Zipper.zipper(), context()) :: {Zipper.command(), Zipper.zipper(), context()}
 end

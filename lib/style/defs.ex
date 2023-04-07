@@ -47,20 +47,20 @@ defmodule Styler.Style.Defs do
   #
   #  def example(foo, bar \\ nil)
   #
-  def run({{def, meta, [head]}, _} = zipper) when def in [:def, :defp] do
+  def run({{def, meta, [head]}, _} = zipper, ctx) when def in [:def, :defp] do
     # There won't be any defs deeper in here, so lets skip ahead if we can
-    {:skip, Zipper.replace(zipper, {def, meta, [flatten_head(head, meta[:line])]})}
+    {:skip, Zipper.replace(zipper, {def, meta, [flatten_head(head, meta[:line])]}), ctx}
   end
 
   # all the other kinds of defs!
-  def run({{def, def_meta, [head, body]}, _} = zipper) when def in [:def, :defp] do
+  def run({{def, def_meta, [head, body]}, _} = zipper, ctx) when def in [:def, :defp] do
     def_start_line = def_meta[:line]
     # order matters here! the end of the def is where the `do`s line is - but only if there's a do end block.
     # otherwise it's just where the end of the (def) expression is.
     def_end_line = (def_meta[:do] || def_meta[:end_of_expression])[:line]
 
     if def_start_line == def_end_line do
-      {:skip, zipper}
+      {:skip, zipper, ctx}
     else
       head = flatten_head(head, def_start_line)
 
@@ -87,11 +87,12 @@ defmodule Styler.Style.Defs do
       body = update_all_meta(body, body_meta_rewriter)
 
       # There won't be any defs deeper in here, so lets skip ahead if we can
-      {:skip, Zipper.replace(zipper, {def, def_meta, [head, body]})}
+      # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
+      {:skip, Zipper.replace(zipper, {def, def_meta, [head, body]}), ctx}
     end
   end
 
-  def run(zipper), do: zipper
+  def run(zipper, ctx), do: {:cont, zipper, ctx}
 
   defp collapse_lines(line_mover) do
     fn meta ->
