@@ -84,7 +84,7 @@ defmodule Styler.Style.Defs do
       head = flatten_head(head, def_start)
 
       # move all body lines up by the amount we squished the head by
-      body = update_all_meta(body, collapse_lines(apply_delta))
+      body = update_all_meta(body, shift_lines(apply_delta))
 
       # move comments in the head to the top, and move comments in the body up by the delta
       comments =
@@ -126,6 +126,14 @@ defmodule Styler.Style.Defs do
       |> Keyword.replace_lazy(:line, line_mover)
       |> Keyword.replace_lazy(:closing, &Keyword.replace_lazy(&1, :line, line_mover))
       |> Keyword.delete(:newlines)
+    end
+  end
+
+  defp shift_lines(line_mover) do
+    fn meta ->
+      meta
+      |> Keyword.replace_lazy(:line, line_mover)
+      |> Keyword.replace_lazy(:closing, &Keyword.replace_lazy(&1, :line, line_mover))
     end
   end
 

@@ -370,5 +370,17 @@ defmodule Styler.Style.DefsTest do
         """
       )
     end
+
+    test "Doesn't collapse pipe chains in a def do ... end" do
+      assert_style(
+        """
+        def foo(some_list) do
+          some_list
+          |> Enum.reject(&is_nil/1)
+          |> Enum.map(&transform/1)
+        end
+        """
+      )
+    end
   end
 end
