@@ -67,59 +67,65 @@ defmodule Styler.Style.Defs do
 
   # all the other kinds of defs!
   def run({{def, def_meta, [head, body]}, _} = zipper, ctx) when def in [:def, :defp] do
-    if def_meta[:do] do
-      # we're in a `def do ... end`
-      def_start = def_meta[:line]
-      def_do = def_meta[:do][:line]
-      def_end = def_meta[:end][:line]
+    {style, def_line, do_line, end_line} =
+      if def_meta[:do] do
+        # This is a def with a do block, like
+        #
+        #  def example(foo, bar \\ nil) do
+        #    :ok
+        #  end
+        #
+        def_line = def_meta[:line]
+        do_line = def_meta[:do][:line]
+        end_line = def_meta[:end][:line]
+        {:block, def_line, do_line, end_line}
+      else
+        # This is a def with a keyword do, like
+        #
+        #  def example(foo, bar \\ nil), do: :ok
+        #
+        [{{:__block__, do_meta, [:do]}, {_, body_meta, _}}] = body
+        def_line = def_meta[:line]
+        do_line = do_meta[:line]
+        end_line = body_meta[:closing][:line] || do_meta[:line]
+        {:keyword, def_line, do_line, end_line}
+      end
 
-      delta = def_start - def_do
-      apply_delta = &(&1 + delta)
-
-      # collapse everything in the head from `def` to `do` onto one line
-      def_meta =
-        def_meta
-        |> Keyword.replace_lazy(:do, &Keyword.put(&1, :line, def_start))
-        |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, apply_delta))
-
-      head = flatten_head(head, def_start)
-
-      # move all body lines up by the amount we squished the head by
-      body = update_all_meta(body, shift_lines(apply_delta))
-
-      # move comments in the head to the top, and move comments in the body up by the delta
-      comments =
-        ctx.comments
-        |> Style.displace_comments(def_start..def_do)
-        |> Style.shift_comments(def_do..def_end, delta)
-
-      # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
-      node = {def, def_meta, [head, body]}
-      {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
+    if def_line == end_line do
+      # Already collapsed
+      {:skip, zipper, ctx}
     else
-      # we're in a `def, do:`
-      [
-        {
-          {:__block__, do_meta, [:do]},
-          {_, body_meta, _}
-        }
-      ] = body
+      delta = def_line - do_line
+      move_up = &(&1 + delta)
+      set_to_def_line = fn _ -> def_line end
 
-      def_start = def_meta[:line]
-      def_do = do_meta[:line]
-      def_end = body_meta[:closing][:line] || def_do
+      {node, comments} =
+        if style == :block do
+          # We're working on a def do ... end
+          def_meta =
+            def_meta
+            |> Keyword.replace_lazy(:do, &Keyword.update!(&1, :line, set_to_def_line))
+            |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, move_up))
 
-      head = flatten_head(head, def_start)
+          head = flatten_head(head, def_line)
+          body = update_all_meta(body, shift_lines(move_up))
 
-      # collapse the whole thing to one line
-      to_same_line = fn _ -> def_start end
-      body = update_all_meta(body, collapse_lines(to_same_line))
+          comments =
+            ctx.comments
+            |> Style.displace_comments(def_line..do_line)
+            |> Style.shift_comments(do_line..end_line, delta)
 
-      # move all comments to the top
-      comments = Style.displace_comments(ctx.comments, def_start..def_end)
+          {{def, def_meta, [head, body]}, comments}
+        else
+          # We're working on a Keyword def do:
+          head = flatten_head(head, def_line)
+          body = update_all_meta(body, collapse_lines(set_to_def_line))
+          comments = Style.displace_comments(ctx.comments, def_line..end_line)
+
+          {{def, def_meta, [head, body]}, comments}
+        end
 
       # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
-      node = {def, def_meta, [head, body]}
       {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
     end
   end
