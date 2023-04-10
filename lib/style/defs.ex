@@ -48,24 +48,25 @@ defmodule Styler.Style.Defs do
   #
   #  def example(foo, bar \\ nil)
   #
-  def run({{def, meta, [head]}, _} = zipper, comments) when def in [:def, :defp] do
+  def run({{def, meta, [head]}, _} = zipper, ctx) when def in [:def, :defp] do
     {_fn_name, head_meta, _children} = head
     first_line = meta[:line]
     last_line = head_meta[:closing][:line]
 
     comments =
       if first_line == last_line do
-        comments
+        ctx.comments
       else
-        Style.displace_comments(comments, first_line..last_line)
+        Style.displace_comments(ctx.comments, first_line..last_line)
       end
 
     # There won't be any defs deeper in here, so lets skip ahead if we can
-    {:skip, Zipper.replace(zipper, {def, meta, [flatten_head(head, meta[:line])]}), comments}
+    head = flatten_head(head, meta[:line])
+    {:skip, Zipper.replace(zipper, {def, meta, []}), %{ctx | comments: comments}}
   end
 
   # all the other kinds of defs!
-  def run({{def, def_meta, [head, body]}, _} = zipper, comments) when def in [:def, :defp] do
+  def run({{def, def_meta, [head, body]}, _} = zipper, ctx) when def in [:def, :defp] do
     if def_meta[:do] do
       # we're in a `def do ... end`
       def_start = def_meta[:line]
@@ -88,11 +89,13 @@ defmodule Styler.Style.Defs do
 
       # move comments in the head to the top, and move comments in the body up by the delta
       comments =
-        comments
+        ctx.comments
         |> Style.displace_comments(def_start..def_do)
         |> Style.shift_comments(def_do..def_end, delta)
 
-      {:skip, Zipper.replace(zipper, {def, def_meta, [head, body]}), comments}
+      # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
+      node = {def, def_meta, [head, body]}
+      {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
     else
       # we're in a `def, do:`
       [{
@@ -111,14 +114,16 @@ defmodule Styler.Style.Defs do
 
       # move all comments to the top
       comments =
-        comments
+        ctx.comments
         |> Style.displace_comments(def_start..def_end)
 
-      {:skip, Zipper.replace(zipper, {def, def_meta, [head, body]}), comments}
+      # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
+      node = {def, def_meta, [head, body]}
+      {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
     end
   end
 
-  def run(zipper, _comments), do: zipper
+  def run(zipper, ctx), do: {:cont, zipper, ctx}
 
   defp collapse_lines(line_mover) do
     fn meta ->

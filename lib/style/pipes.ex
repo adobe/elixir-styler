@@ -26,12 +26,12 @@ defmodule Styler.Style.Pipes do
   @blocks ~w(case if with cond for unless)a
 
   # we're in a multi-pipe, so only need to fix pipe_start
-  def run({{:|>, _, [{:|>, _, _} | _]}, _} = zipper, _comments), do: zipper |> check_start() |> Zipper.next()
+  def run({{:|>, _, [{:|>, _, _} | _]}, _} = zipper, ctx), do: {:cont, zipper |> check_start() |> Zipper.next(), ctx}
   # this is a single pipe, since valid pipelines are consumed by the previous head
-  def run({{:|>, meta, [lhs, {fun, _, args}]}, _} = zipper, comments) do
+  def run({{:|>, meta, [lhs, {fun, _, args}]}, _} = zipper, ctx) do
     if valid_pipe_start?(lhs) do
       # `a |> f(b, c)` => `f(a, b, c)`
-      Zipper.replace(zipper, {fun, meta, [lhs | args]})
+      {:cont, Zipper.replace(zipper, {fun, meta, [lhs | args]}), ctx}
     else
       zipper = fix_start(zipper)
       {maybe_block, _, _} = lhs
@@ -39,16 +39,16 @@ defmodule Styler.Style.Pipes do
       if maybe_block in @blocks do
         # extracting a block means this is now `if_result |> single_pipe(a, b)`
         # recursing will give us `single_pipe(if_result, a, b)`
-        run(zipper, comments)
+        run(zipper, ctx)
       else
         # fixing the start when it was a function call added another pipe to the chain, and so it's no longer
         # a single pipe
-        zipper
+        {:cont, zipper, ctx}
       end
     end
   end
 
-  def run(zipper, _comments), do: zipper
+  def run(zipper, ctx), do: {:cont, zipper, ctx}
 
   # walking down a pipeline.
   # for reference, `a |> b() |> c()` is encoded `{:|>, [{:|>, _, [a, b]}, c]}`

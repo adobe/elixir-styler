@@ -23,7 +23,7 @@ defmodule Styler.Style.Simple do
   alias Styler.Zipper
 
   # `?-` isn't part of the number node - it's its parent - so all numbers are positive at this point
-  def run({{:__block__, meta, [number]}, _} = zipper, _comments) when is_number(number) and number >= 10_000 do
+  def run({{:__block__, meta, [number]}, _} = zipper, ctx) when is_number(number) and number >= 10_000 do
     # Checking here rather than in the anon function due to compiler bug https://github.com/elixir-lang/elixir/issues/10485
     integer? = is_integer(number)
 
@@ -47,10 +47,10 @@ defmodule Styler.Style.Simple do
           "#{delimit(int_token)}.#{decimals}"
       end)
 
-    Zipper.replace(zipper, {:__block__, meta, [number]})
+    {:skip, Zipper.replace(zipper, {:__block__, meta, [number]}), ctx}
   end
 
-  def run(zipper, _comments), do: zipper
+  def run(zipper, ctx), do: {:cont, zipper, ctx}
 
   defp delimit(token), do: token |> String.to_charlist() |> remove_underscores([]) |> add_underscores([])
 

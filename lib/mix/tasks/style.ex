@@ -30,7 +30,6 @@ defmodule Mix.Tasks.Style do
 
   use Mix.Task
 
-  alias Styler.Style
   alias Styler.StyleError
   alias Styler.Zipper
 
@@ -43,8 +42,6 @@ defmodule Mix.Tasks.Style do
 
   @impl Mix.Task
   def run(args) do
-    for style <- @styles, do: Code.ensure_loaded!(style)
-
     # we take `check_formatted` so we can easily replace `mix format`
     {opts, files} = OptionParser.parse!(args, strict: [check_styled: :boolean, check_formatted: :boolean])
     check_styled? = opts[:check_styled] || opts[:check_formatted] || false
@@ -108,31 +105,29 @@ defmodule Mix.Tasks.Style do
 
     {ast, comments} = Styler.string_to_quoted_with_comments(input, to_string(file))
     zipper = Zipper.zip(ast)
+    context = %{comments: comments, file: file}
 
-    {styled_ast, updated_comments} =
-      @styles
-      |> Enum.reduce({zipper, comments}, fn style, {zipper, comments} ->
-        traverser = Style.wrap_run(style)
-
+    {zipper, %{comments: comments}} =
+      Enum.reduce(@styles, {zipper, context}, fn style, {zipper, context} ->
         try do
-          Zipper.traverse_while(zipper, comments, traverser)
+          Zipper.traverse_while(zipper, context, &style.run/2)
         rescue
           exception ->
             reraise StyleError, [exception: exception, style: style, file: file], __STACKTRACE__
         end
       end)
 
-    output =
-      styled_ast
+    styled =
+      zipper
       |> Zipper.root()
       |> Styler.quoted_to_string(updated_comments, formatter_opts)
 
-    changed? = input != output
+    changed? = input != styled
 
     cond do
       check_styled? and changed? -> {:not_styled, file}
-      file == :stdin -> IO.write([output, "\n"])
-      changed? -> File.write!(file, [output, "\n"])
+      file == :stdin -> IO.write([styled, "\n"])
+      changed? -> File.write!(file, [styled, "\n"])
       true -> :ok
     end
   rescue
