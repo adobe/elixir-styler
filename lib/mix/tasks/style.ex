@@ -120,7 +120,7 @@ defmodule Mix.Tasks.Style do
     styled =
       zipper
       |> Zipper.root()
-      |> Styler.quoted_to_string(updated_comments, formatter_opts)
+      |> Styler.quoted_to_string(comments, formatter_opts)
 
     changed? = input != styled
 

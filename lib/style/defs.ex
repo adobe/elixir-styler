@@ -62,7 +62,7 @@ defmodule Styler.Style.Defs do
 
     # There won't be any defs deeper in here, so lets skip ahead if we can
     head = flatten_head(head, meta[:line])
-    {:skip, Zipper.replace(zipper, {def, meta, []}), %{ctx | comments: comments}}
+    {:skip, Zipper.replace(zipper, {def, meta, [head]}), %{ctx | comments: comments}}
   end
 
   # all the other kinds of defs!

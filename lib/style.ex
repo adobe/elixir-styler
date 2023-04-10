@@ -18,7 +18,6 @@ defmodule Styler.Style do
 
   alias Styler.Zipper
 
-  @type command :: :cont | :skip | :halt
   @type context :: %{
           comment: [map()],
           file: :stdin | String.t()
@@ -31,18 +30,6 @@ defmodule Styler.Style do
   by calling `Zipper.skip(zipper)` to skip an entire subtree you know is of no interest to your Style.
   """
   @callback run(Zipper.zipper(), context()) :: {Zipper.command(), Zipper.zipper(), context()}
-
-  @doc false
-  # this lets Styles optionally implement as though they're running inside of `Zipper.traverse`
-  # or `Zipper.traverse_while` for finer-grained control
-  def wrap_run(style) do
-    fn zipper, comments ->
-      case style.run(zipper, comments) do
-        {next, {_, _} = _zipper, _comments} = command when next in ~w(cont halt skip)a -> command
-        zipper -> {:cont, zipper, comments}
-      end
-    end
-  end
 
   @doc """
   This is a convenience function for when a style needs to compact or eliminate
