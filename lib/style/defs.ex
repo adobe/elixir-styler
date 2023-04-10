@@ -53,14 +53,19 @@ defmodule Styler.Style.Defs do
     first_line = meta[:line]
     last_line = head_meta[:closing][:line]
 
-    {head, comments} = Style.collapse_lines(head, comments)
+    comments =
+      if first_line == last_line do
+        comments
+      else
+        Style.displace_comments(comments, first_line..last_line)
+      end
 
     # There won't be any defs deeper in here, so lets skip ahead if we can
-    {:skip, Zipper.replace(zipper, {def, meta, [head]}), comments}
+    {:skip, Zipper.replace(zipper, {def, meta, [flatten_head(head, meta[:line])]}), comments}
   end
 
   # all the other kinds of defs!
-  def run({{def, def_meta, [head, body]} = node, _} = zipper, comments) when def in [:def, :defp] do
+  def run({{def, def_meta, [head, body]}, _} = zipper, comments) when def in [:def, :defp] do
     if def_meta[:do] do
       # we're in a `def do ... end`
       def_start = def_meta[:line]
@@ -71,15 +76,21 @@ defmodule Styler.Style.Defs do
       apply_delta = &(&1 + delta)
 
       # collapse everything in the head from `def` to `do` onto one line
-      {head, comments} = Style.collapse_lines(head, comments)
-
       def_meta =
         def_meta
         |> Keyword.replace_lazy(:do, &Keyword.put(&1, :line, def_start))
         |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, apply_delta))
 
+      head = flatten_head(head, def_start)
+
       # move all body lines up by the amount we squished the head by
-      {body, comments} = Style.shift_lines(body, delta, comments)
+      body = update_all_meta(body, shift_lines(apply_delta))
+
+      # move comments in the head to the top, and move comments in the body up by the delta
+      comments =
+        comments
+        |> Style.displace_comments(def_start..def_do)
+        |> Style.shift_comments(def_do..def_end, delta)
 
       {:skip, Zipper.replace(zipper, {def, def_meta, [head, body]}), comments}
     else
@@ -92,12 +103,57 @@ defmodule Styler.Style.Defs do
       def_do = do_meta[:line]
       def_end = body_meta[:closing][:line] || def_do
 
-      # collapse the whole def to one line if we can
-      {node, comments} = Style.collapse_lines(node, comments)
+      head = flatten_head(head, def_start)
 
-      {:skip, Zipper.replace(zipper, node), comments}
+      # collapse the whole thing to one line
+      to_same_line = fn _ -> def_start end
+      body = update_all_meta(body, collapse_lines(to_same_line))
+
+      # move all comments to the top
+      comments =
+        comments
+        |> Style.displace_comments(def_start..def_end)
+
+      {:skip, Zipper.replace(zipper, {def, def_meta, [head, body]}), comments}
     end
   end
 
   def run(zipper, _comments), do: zipper
+
+  defp collapse_lines(line_mover) do
+    fn meta ->
+      meta
+      |> Keyword.replace_lazy(:line, line_mover)
+      |> Keyword.replace_lazy(:closing, &Keyword.replace_lazy(&1, :line, line_mover))
+      |> Keyword.delete(:newlines)
+    end
+  end
+
+  defp shift_lines(line_mover) do
+    fn meta ->
+      meta
+      |> Keyword.replace_lazy(:line, line_mover)
+      |> Keyword.replace_lazy(:closing, &Keyword.replace_lazy(&1, :line, line_mover))
+    end
+  end
+
+  defp flatten_head(head, line) do
+    update_all_meta(head, fn meta ->
+      meta
+      |> Keyword.replace(:line, line)
+      |> Keyword.replace(:closing, line: line)
+      |> Keyword.replace(:last, line: line)
+      |> Keyword.delete(:newlines)
+    end)
+  end
+
+  defp update_all_meta(node, meta_fun) do
+    node
+    |> Zipper.zip()
+    |> Zipper.traverse(fn
+      {{node, meta, children}, _} = zipper -> Zipper.replace(zipper, {node, meta_fun.(meta), children})
+      zipper -> zipper
+    end)
+    |> Zipper.root()
+  end
 end

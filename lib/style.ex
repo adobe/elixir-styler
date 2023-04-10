@@ -42,10 +42,9 @@ defmodule Styler.Style do
   end
 
   @doc """
-  This is a convenience function for adjusting the metadata on the specified
-  AST node and its descendents such that they are moved to the same line as the
-  top AST node, displacing the comments associated with those lines above the
-  collapsed line.
+  This is a convenience function for when a style needs to compact or eliminate
+  a `range` of lines, but preserve any comments in those lines by displacing them
+  all to be start of the compacted lines.
 
   `comments` should be the same data structure passed as the second argument to
   the style's `run/2` function, which is the same data structure returned by
@@ -66,119 +65,59 @@ defmodule Styler.Style do
       # This is arg1
       # This is arg2
       def(arg1, arg2), do: :ok
+
+  Obviously, it would then be up to the developer to rewrite the comments to
+  that they're more descriptive about what they are referring to.
   """
-  def collapse_lines({_node, meta, _children} = ast_node, comments) do
-    set_to_first = fn _ -> meta[:line] end
-
-    {range, ast_node} =
-      update_all_meta(ast_node, fn meta ->
-        meta
-        |> Keyword.replace_lazy(:line, set_to_first)
-        |> Keyword.replace_lazy(:closing, &Keyword.replace_lazy(&1, :line, set_to_first))
-        |> Keyword.delete(:newlines)
-      end)
-
-    comments =
-      Enum.map(comments, fn comment ->
-        if comment.line in range do
-          Map.update!(comment, :line, set_to_first)
-        else
-          comment
-        end
-      end)
-
-    {ast_node, comments}
+  def displace_comments(comments, range) do
+    Enum.map(comments, fn comment ->
+      if comment.line in range do
+        %{comment | line: range.first}
+      else
+        comment
+      end
+    end)
   end
-
-  def collapse_lines(ast_node, comments), do: {ast_node, comments}
 
   @doc """
-  This is a convenience function for adjusting the metadata on the specified
-  AST node and its descendents such that they are moved `delta` lines, along
-  with the comments associated with those lines.(negative `delta` means to
-  shift the comments up, and positive means to shift them down).
+  This is a convenience function for shifting all comments in a `range` by
+  `delta` lines (negative `delta` means to shift the comments up, and positive
+  means to shift them down).
+
+  For example, if the following code were to be styled such each `def` became a one-liner:
+
+      # Positive numbers are good
+      def(
+        arg1,
+        arg2
+      ) when is_integer(arg1) and arg1 >= 0, do: :ok
+
+      # Negative numbers are are bad
+      def(
+        arg1,
+        arg2
+      ), do: :error
+
+      # This comment comes at the end
+
+  then this function would manipulate the `comments` such that they would end
+  up being formatted like this:
+
+      # Positive numbers are good
+      def(arg1, arg2) when is_integer(arg1) and arg1 >= 0, do: :ok
+
+      # Negative numbers are are bad
+      def(arg1, arg2), do: :error
+
+      # This comment comes at the end
   """
-  def shift_lines(ast_node, delta, comments) do
-    apply_delta = fn line -> line + delta end
-
-    {range, ast_node} =
-      update_all_meta(ast_node, fn meta ->
-        meta
-        |> Keyword.replace_lazy(:line, apply_delta)
-        |> Keyword.replace_lazy(:closing, &Keyword.replace_lazy(&1, :line, apply_delta))
-      end)
-
-    comments =
-      Enum.map(comments, fn comment ->
-        if comment.line in range do
-          Map.update!(comment, :line, apply_delta)
-        else
-          comment
-        end
-      end)
-
-    {ast_node, comments}
-  end
-
-  #defp update_all_meta(children, meta_fun) when is_list(children) do
-  #  {line_ranges, children} =
-  #    children
-  #    |> Enum.map(&update_all_meta(&1, meta_fun))
-  #    |> Enum.unzip()
-
-  #  range = Enum.reduce(line_ranges, nil, fn acc, range ->
-  #    if acc do
-  #      min(acc.first, range.first)..max(acc.last, range.last)
-  #    else
-  #      range
-  #    end
-  #  end)
-
-  #  {range, children}
-  #end
-
-  #defp update_all_meta({node, meta, nil = children}, meta_fun) do
-  #  first = meta[:line]
-  #  last = meta[:closing][:line] || meta[:line]
-  #  {first..last, {node, meta_fun.(meta), children}}
-  #end
-
-  #defp update_all_meta({node, meta, children}, meta_fun) do
-  #  first = meta[:line]
-  #  last = meta[:closing][:line] || meta[:line]
-
-  #  {line_ranges, children} =
-  #    children
-  #    |> Enum.map(&update_all_meta(&1, meta_fun))
-  #    |> Enum.unzip()
-
-  #  range = Enum.reduce(line_ranges, first..last, fn acc, range ->
-  #    min(acc.first, range.first)..max(acc.last, range.last)
-  #  end)
-
-  #  {range, {node, meta_fun.(meta), children}}
-  #end
-
-  defp update_all_meta(node, meta_fun) do
-    {zipper, range} =
-    node
-    |> Zipper.zip()
-    |> Zipper.traverse(nil, fn
-      {{node, meta, children}, _} = zipper, acc ->
-        first = meta[:line]
-        last = meta[:closing][:line] || meta[:line]
-        range = if acc do
-          min(acc.first, first)..max(acc.last, last)
-        else
-          first..last
-        end
-
-        {Zipper.replace(zipper, {node, meta_fun.(meta), children}), range}
-
-      zipper, acc ->
-        {zipper, acc}
+  def shift_comments(comments, range, delta) do
+    Enum.map(comments, fn comment ->
+      if comment.line in range do
+        %{comment | line: comment.line + delta}
+      else
+        comment
+      end
     end)
-
-    {range, Zipper.root(zipper)}
   end
 end
