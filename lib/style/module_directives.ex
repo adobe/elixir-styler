@@ -101,6 +101,14 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
+  # @TODO order groups when we detect them outside of a defmodule?
+  #
+  # def foo do
+  #   alias F
+  #   alias G
+  #
+  #  import X  <- put this import above those aliases?
+  # end
   def run({{:use, _, _} = directive, meta}) do
     [last | rest] = directive |> expand_directive() |> Enum.reverse(meta.l)
 
@@ -114,6 +122,7 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   def run({{d, _, _} = directive, %{l: left, r: right} = meta}) when d in @directives do
+    #@TODO just grab all, no more "groups"
     {right, directives} = consume_directive_group(d, [directive | right], [])
     [last | rest] = order_directives(directives)
     {:skip, {last, %{meta | r: right, l: rest ++ left}}}
@@ -138,20 +147,25 @@ defmodule Styler.Style.ModuleDirectives do
     shortdocs = directives[:"@shortdoc"] || []
     moduledocs = directives[:"@moduledoc"] || if needs_moduledoc?(name), do: [@moduledoc_false], else: []
     # TODO sort behaviours?
+    # TODO make a helper that efficiently sets newlines to 1 on everything in a list but the last element, get rid of using `set_newlines` directly
     behaviours = directives[:"@behaviour"] || []
     behaviours = List.update_at(behaviours, -1, &set_newlines(&1, 2))
 
     uses =
       case directives[:use] do
-        nil -> []
+        nil ->
+          []
+
         uses ->
-          [last | rest] = uses |> Enum.flat_map(&expand_directive/1) |> Enum.reverse()
-          [set_newlines(last, 2) | rest]
+          uses
+          |> Enum.flat_map(&expand_directive/1)
+          |> Enum.map(&set_newlines(&1, 1))
+          |> List.update_at(-1, &set_newlines(&1, 2))
       end
 
-    imports = order_directives(directives[:import] || []) |> Enum.reverse()
-    aliases = order_directives(directives[:alias] || []) |> Enum.reverse()
-    requires = order_directives(directives[:require] || []) |> Enum.reverse()
+    imports = (directives[:import] || []) |> order_directives() |> Enum.reverse()
+    aliases = (directives[:alias] || []) |> order_directives() |> Enum.reverse()
+    requires = (directives[:require] || []) |> order_directives() |> Enum.reverse()
 
     directives =
       Enum.concat([
