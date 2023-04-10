@@ -33,20 +33,23 @@ defmodule Styler.StyleCase do
 
     quote bind_quoted: [before: before, expected: expected] do
       expected = String.trim(expected)
-      {styled_ast, styled} = style(before)
+      {styled_ast, styled, styled_comments} = style(before)
 
       if styled != expected and ExUnit.configuration()[:trace] do
         IO.puts("\n======Given=============\n")
         IO.puts(before)
-        {before_ast, _} = Styler.string_to_quoted_with_comments(before)
+        {before_ast, before_comments} = Styler.string_to_quoted_with_comments(before)
         dbg(before_ast)
+        dbg(before_comments)
         IO.puts("======Expected==========\n")
         IO.puts(expected)
-        {expected_ast, _} = Styler.string_to_quoted_with_comments(expected)
+        {expected_ast, expected_comments} = Styler.string_to_quoted_with_comments(expected)
         dbg(expected_ast)
+        dbg(expected_comments)
         IO.puts("======Got===============\n")
         IO.puts(styled)
         dbg(styled_ast)
+        dbg(styled_comments)
         IO.puts("========================\n")
       end
 
@@ -64,6 +67,6 @@ defmodule Styler.StyleCase do
 
     styled_ast = Zipper.root(zipper)
     styled_code = Styler.quoted_to_string(styled_ast, comments)
-    {styled_ast, styled_code}
+    {styled_ast, styled_code, comments}
   end
 end
