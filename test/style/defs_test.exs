@@ -13,7 +13,8 @@ defmodule Styler.Style.DefsTest do
 
   describe "elixir ast dependencies we rely on" do
     test "def with do ... end block" do
-      {ast, _comments} = Styler.string_to_quoted_with_comments("""
+      {ast, _comments} =
+        Styler.string_to_quoted_with_comments("""
         def foo(
           arg1
         )
@@ -35,7 +36,8 @@ defmodule Styler.Style.DefsTest do
     end
 
     test "def with empty parens" do
-      {ast, _comments} = Styler.string_to_quoted_with_comments("""
+      {ast, _comments} =
+        Styler.string_to_quoted_with_comments("""
         def foo(
         )
         do
@@ -56,7 +58,8 @@ defmodule Styler.Style.DefsTest do
     end
 
     test "def with no parens" do
-      {ast, _comments} = Styler.string_to_quoted_with_comments("""
+      {ast, _comments} =
+        Styler.string_to_quoted_with_comments("""
         def foo do
           :ok
         end
@@ -74,7 +77,8 @@ defmodule Styler.Style.DefsTest do
     end
 
     test "def with a do: keyword and a simple body" do
-      {ast, _comments} = Styler.string_to_quoted_with_comments("""
+      {ast, _comments} =
+        Styler.string_to_quoted_with_comments("""
         def foo,
           do: :ok
         """)
@@ -87,11 +91,12 @@ defmodule Styler.Style.DefsTest do
 
       # The body is a keyword list
       assert [
-        {
-          {:__block__, key_meta, [:do]},
-          {:__block__, val_meta, [:ok]}
-        }
-      ] = body
+               {
+                 {:__block__, key_meta, [:do]},
+                 {:__block__, val_meta, [:ok]}
+               }
+             ] = body
+
       assert key_meta[:format] == :keyword
       assert key_meta[:line] == 2
 
@@ -101,7 +106,8 @@ defmodule Styler.Style.DefsTest do
     end
 
     test "def with a do: keyword and multi-line body" do
-      {ast, _comments} = Styler.string_to_quoted_with_comments("""
+      {ast, _comments} =
+        Styler.string_to_quoted_with_comments("""
         def foo,
           do: [
             1,
@@ -110,25 +116,30 @@ defmodule Styler.Style.DefsTest do
         """)
 
       assert {:def, _meta, [_head, body]} = ast
+
       assert [
-        {
-          {:__block__, _, [:do]},
-          {:__block__, val_meta, val}
-        }
-      ] = body
+               {
+                 {:__block__, _, [:do]},
+                 {:__block__, val_meta, val}
+               }
+             ] = body
 
       # Since the value is a list, the meta tells us where it begins and ends,
       # and its child node is the actual list elements as a sub-list
       assert val_meta[:line] == 2
       assert val_meta[:closing][:line] == 5
-      assert [[
-        {:__block__, _, [1]},
-        {:__block__, _, [2]}
-      ]] = val
+
+      assert [
+               [
+                 {:__block__, _, [1]},
+                 {:__block__, _, [2]}
+               ]
+             ] = val
     end
 
     test "def with a do: keyword and multi-statement body" do
-      {ast, _comments} = Styler.string_to_quoted_with_comments("""
+      {ast, _comments} =
+        Styler.string_to_quoted_with_comments("""
         def foo,
           do: (
             1;
@@ -137,12 +148,13 @@ defmodule Styler.Style.DefsTest do
         """)
 
       assert {:def, _meta, [_head, body]} = ast
+
       assert [
-        {
-          {:__block__, _, [:do]},
-          {:__block__, val_meta, [one, two]}
-        }
-      ] = body
+               {
+                 {:__block__, _, [:do]},
+                 {:__block__, val_meta, [one, two]}
+               }
+             ] = body
 
       # Block metadata works the same as a multi-line value
       assert val_meta[:line] == 2
@@ -153,7 +165,8 @@ defmodule Styler.Style.DefsTest do
     end
 
     test "def with a guard clause and a do: block" do
-      {ast, _comments} = Styler.string_to_quoted_with_comments("""
+      {ast, _comments} =
+        Styler.string_to_quoted_with_comments("""
         def foo
         when is_nil(nil)
         when is_atom(nil),
@@ -161,14 +174,17 @@ defmodule Styler.Style.DefsTest do
         """)
 
       # When clauses act like infix operators
-      assert {:def, _, [{:when, _, [head , guards]}, body]} = ast
+      assert {:def, _, [{:when, _, [head, guards]}, body]} = ast
       # Head is still just a normal function head (with no parens)
       assert {:foo, _, nil} = head
       # Body is still just a normal keyword list
-      assert [{
-        {:__block__, _, [:do]},
-        {:__block__, _, [:ok]}
-      }] = body
+      assert [
+               {
+                 {:__block__, _, [:do]},
+                 {:__block__, _, [:ok]}
+               }
+             ] = body
+
       # This `when` is just another infix operartor so multiple `when` clauses nest in the AST
       # It works the same with `:or` or `:and` e.g. if you wrote `when guard1() and guard2()`
       assert {:when, _, [{:is_nil, _, _}, {:is_atom, _, _}]} = guards
@@ -357,30 +373,26 @@ defmodule Styler.Style.DefsTest do
     end
 
     test "Doesn't move stuff around if it would make the line too long" do
-      assert_style(
-        """
-        @doc "this is a doc"
-        # And also a comment
-        def wow_this_function_name_is_super_long(it_also, has_a, ton_of, arguments),
-          do: "this is going to end up making the line too long if we inline it"
+      assert_style("""
+      @doc "this is a doc"
+      # And also a comment
+      def wow_this_function_name_is_super_long(it_also, has_a, ton_of, arguments),
+        do: "this is going to end up making the line too long if we inline it"
 
-        @doc "this is another function"
-        # And it also has a comment
-        def this_one_fits_on_one_line, do: :ok
-        """
-      )
+      @doc "this is another function"
+      # And it also has a comment
+      def this_one_fits_on_one_line, do: :ok
+      """)
     end
 
     test "Doesn't collapse pipe chains in a def do ... end" do
-      assert_style(
-        """
-        def foo(some_list) do
-          some_list
-          |> Enum.reject(&is_nil/1)
-          |> Enum.map(&transform/1)
-        end
-        """
-      )
+      assert_style("""
+      def foo(some_list) do
+        some_list
+        |> Enum.reject(&is_nil/1)
+        |> Enum.map(&transform/1)
+      end
+      """)
     end
   end
 end

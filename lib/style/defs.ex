@@ -41,8 +41,8 @@ defmodule Styler.Style.Defs do
 
   @behaviour Styler.Style
 
-  alias Styler.Zipper
   alias Styler.Style
+  alias Styler.Zipper
 
   # a def with no body like
   #
@@ -98,10 +98,13 @@ defmodule Styler.Style.Defs do
       {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
     else
       # we're in a `def, do:`
-      [{
-        {:__block__, do_meta, [:do]},
-        {_, body_meta, _}
-      }] = body
+      [
+        {
+          {:__block__, do_meta, [:do]},
+          {_, body_meta, _}
+        }
+      ] = body
+
       def_start = def_meta[:line]
       def_do = do_meta[:line]
       def_end = body_meta[:closing][:line] || def_do
@@ -113,9 +116,7 @@ defmodule Styler.Style.Defs do
       body = update_all_meta(body, collapse_lines(to_same_line))
 
       # move all comments to the top
-      comments =
-        ctx.comments
-        |> Style.displace_comments(def_start..def_end)
+      comments = Style.displace_comments(ctx.comments, def_start..def_end)
 
       # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
       node = {def, def_meta, [head, body]}
