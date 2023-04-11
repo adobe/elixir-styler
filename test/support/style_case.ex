@@ -14,7 +14,6 @@ defmodule Styler.StyleCase do
   """
   use ExUnit.CaseTemplate
 
-  alias Styler.Style
   alias Styler.Zipper
 
   using options do
@@ -58,14 +57,13 @@ defmodule Styler.StyleCase do
   def style(code, style) do
     {ast, comments} = Styler.string_to_quoted_with_comments(code)
 
-    styled_ast =
+    {zipper, %{comments: comments}} =
       ast
       |> Zipper.zip()
-      |> Zipper.traverse_while(Style.wrap_run(style))
-      |> Zipper.root()
+      |> Zipper.traverse_while(%{comments: comments, file: "test"}, &style.run/2)
 
+    styled_ast = Zipper.root(zipper)
     styled_code = Styler.quoted_to_string(styled_ast, comments)
-
     {styled_ast, styled_code}
   end
 end

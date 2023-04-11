@@ -74,7 +74,7 @@ defmodule Styler.Style.ModuleDirectives do
   @dont_moduledoc ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
-  def run({{:defmodule, _, children}, _} = zipper) do
+  def run({{:defmodule, _, children}, _} = zipper, ctx) do
     [{_, _, aliases} = _module_name, [{mod_do, _module_body__move_focus_here!}]] = children
     # Move the zipper's focus to the module's body
     name = aliases |> List.last() |> to_string()
@@ -83,12 +83,12 @@ defmodule Styler.Style.ModuleDirectives do
 
     case Zipper.node(body_zipper) do
       {:__block__, _, _} ->
-        organize_directives(body_zipper, add_moduledoc?)
+        {:skip, organize_directives(body_zipper, add_moduledoc?), ctx}
 
       {:@, _, [{:moduledoc, _, _}]} ->
         # a module whose only child is a moduledoc. nothing to do here!
         # seems weird at first blushm but lots of projects/libraries do this with their root namespace module
-        {:skip, zipper}
+        {:skip, zipper, ctx}
 
       only_child ->
         # There's only one child, and it's not a moduledoc. We'll maybe add a doc, then continue running this style
@@ -100,18 +100,18 @@ defmodule Styler.Style.ModuleDirectives do
           |> Zipper.replace({:__block__, [], [@moduledoc_false, only_child]})
           |> Zipper.down()
           |> Zipper.right()
-          |> run()
+          |> run(ctx)
         else
-          run(body_zipper)
+          run(body_zipper, ctx)
         end
     end
   end
 
-  def run({{d, _, _}, _} = zipper) when d in @directives do
-    zipper |> Zipper.up() |> organize_directives()
+  def run({{d, _, _}, _} = zipper, ctx) when d in @directives do
+    {:skip, zipper |> Zipper.up() |> organize_directives(), ctx}
   end
 
-  def run(zipper), do: zipper
+  def run(zipper, ctx), do: {:cont, zipper, ctx}
 
   defp organize_directives(parent, add_moduledoc? \\ false) do
     {directives, nondirectives} =
@@ -165,10 +165,10 @@ defmodule Styler.Style.ModuleDirectives do
     parent = Zipper.update(parent, &Zipper.replace_children(&1, directives))
 
     if Enum.empty?(nondirectives) do
-      {:skip, parent}
+      parent
     else
       {last_directive, meta} = parent |> Zipper.down() |> Zipper.rightmost()
-      {:skip, {last_directive, %{meta | r: nondirectives}}}
+      {last_directive, %{meta | r: nondirectives}}
     end
   end
 
