@@ -53,16 +53,14 @@ defmodule Styler.Style.Defs do
     first_line = meta[:line]
     last_line = head_meta[:closing][:line]
 
-    comments =
-      if first_line == last_line do
-        ctx.comments
-      else
-        Style.displace_comments(ctx.comments, first_line..last_line)
-      end
-
-    # There won't be any defs deeper in here, so lets skip ahead if we can
-    head = flatten_head(head, meta[:line])
-    {:skip, Zipper.replace(zipper, {def, meta, [head]}), %{ctx | comments: comments}}
+    if first_line == last_line do
+      # Already collapsed
+      {:skip, zipper, ctx}
+    else
+      comments = Style.displace_comments(ctx.comments, first_line..last_line)
+      node = {def, meta, [flatten_head(head, meta[:line])]}
+      {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
+    end
   end
 
   # all the other kinds of defs!
