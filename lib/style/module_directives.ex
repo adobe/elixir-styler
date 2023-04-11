@@ -168,7 +168,7 @@ defmodule Styler.Style.ModuleDirectives do
     |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
     |> Enum.uniq_by(&elem(&1, 1))
     |> List.keysort(1)
-    |> Enum.map(&(&1 |> elem(0)))
+    |> Enum.map(&elem(&1, 0))
     |> reset_newlines()
   end
 
