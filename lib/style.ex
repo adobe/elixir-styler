@@ -32,32 +32,7 @@ defmodule Styler.Style do
   @callback run(Zipper.zipper(), context()) :: {Zipper.command(), Zipper.zipper(), context()}
 
   @doc """
-  This is a convenience function for when a style needs to compact or eliminate
-  a `range` of lines, but preserve any comments in those lines by displacing them
-  all to be start of the compacted lines.
-
-  `comments` should be the same data structure passed as the second argument to
-  the style's `run/2` function, which is the same data structure returned by
-  Elixir's `Code.string_to_quoted_with_comments!/2`.
-
-  For example, if the following code were to be styled such that it became a one-liner:
-
-      def(
-        # This is arg 1
-        arg1,
-        # This is arg 2
-        arg2
-      ), do: :ok
-
-  then this function would manipulate the `comments` such that they would end
-  up being formatted like this:
-
-      # This is arg1
-      # This is arg2
-      def(arg1, arg2), do: :ok
-
-  Obviously, it would then be up to the developer to rewrite the comments to
-  that they're more descriptive about what they are referring to.
+  Set the line of all comments with `line` in `range_start..range_end` to instead have line `range_start`
   """
   def displace_comments(comments, range) do
     Enum.map(comments, fn comment ->
