@@ -10,12 +10,6 @@
 
 defmodule Styler.Style.Defs do
   @moduledoc """
-  NOT ENABLED
-  Currently has a bug where it puts comments into bad places no matter what, since it's
-  always rewriting every head. It's been run on our codebase once though...
-
-  --------------------------------------
-
   Styles function heads so that they're as small as possible.
 
   The goal is that a function head fits on a single line.

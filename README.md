@@ -64,13 +64,6 @@ You can find the currently-enabled styles in the `Mix.Tasks.Style` module, insid
 
 If you're using Credo and Styler, we recommend disabling these rules in Credo to save on unnecessary checks in CI.
 
-### Styler and Comments...
-
-Styler is currently unaware of comments, so you may find that they end up in really odd spots after a rewrite.
-
-If you find that a comment was put somewhere weird after using Styler, you'll just have to manually put it back where you want it after.
-Feel free to grumble about it in an Issue so that we can properly prioritize making this work better in the future.
-
 ## Thanks & Inspiration
 
 ### [Sourceror](https://github.com/doorgan/sourceror/)
