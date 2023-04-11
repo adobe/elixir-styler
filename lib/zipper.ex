@@ -57,12 +57,12 @@ defmodule Styler.Zipper do
   @doc """
   Returns a new branch node, given an existing node and new children.
   """
-  @spec make_node(tree, [tree]) :: tree
-  def make_node({form, meta, _}, args) when is_atom(form), do: {form, meta, args}
-  def make_node({_form, meta, args}, [first | rest]) when is_list(args), do: {first, meta, rest}
-  def make_node({_, _}, [left, right]), do: {left, right}
-  def make_node({_, _}, args), do: {:{}, [], args}
-  def make_node(list, children) when is_list(list), do: children
+  @spec replace_children(tree, [tree]) :: tree
+  def replace_children({form, meta, _}, children) when is_atom(form), do: {form, meta, children}
+  def replace_children({_form, meta, args}, [first | rest]) when is_list(args), do: {first, meta, rest}
+  def replace_children({_, _}, [left, right]), do: {left, right}
+  def replace_children({_, _}, children), do: {:{}, [], children}
+  def replace_children(list, children) when is_list(list), do: children
 
   @doc """
   Creates a zipper from a tree node.
@@ -111,7 +111,7 @@ defmodule Styler.Zipper do
   def up({tree, meta}) do
     children = Enum.reverse(meta.l, [tree | meta.r])
     {parent, parent_meta} = meta.ptree
-    {make_node(parent, children), parent_meta}
+    {replace_children(parent, children), parent_meta}
   end
 
   @doc """
@@ -170,7 +170,7 @@ defmodule Styler.Zipper do
   @spec remove(zipper) :: zipper
   def remove({_, nil}), do: raise(ArgumentError, message: "Cannot remove the top level node.")
   def remove({_, %{l: [left | rest]} = meta}), do: prev_down({left, %{meta | l: rest}})
-  def remove({_, %{ptree: {parent, parent_meta}, r: children}}), do: {make_node(parent, children), parent_meta}
+  def remove({_, %{ptree: {parent, parent_meta}, r: children}}), do: {replace_children(parent, children), parent_meta}
 
   @doc """
   Inserts the item as the left sibling of the node at this zipper, without

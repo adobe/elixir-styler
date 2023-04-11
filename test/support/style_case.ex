@@ -22,9 +22,9 @@ defmodule Styler.StyleCase do
     unless style, do: raise(ArgumentError, "missing required `:style` option")
 
     quote do
-      @style unquote(style)
       import unquote(__MODULE__), only: [assert_style: 1, assert_style: 2]
 
+      @style unquote(style)
       def style(code), do: unquote(__MODULE__).style(code, @style)
     end
   end

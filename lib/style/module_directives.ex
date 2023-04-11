@@ -74,13 +74,12 @@ defmodule Styler.Style.ModuleDirectives do
   @dont_moduledoc ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
-  def run({{:defmodule, _, [mod_name, [{mod_do, _move_focus_here_on_the_module_body}]]}, _} = zipper) do
+  def run({{:defmodule, _, mod_args}, _} = zipper) do
+    [{_, _, aliases = _mod_name}, [{mod_do, _module_body__move_focus_here!}]] = mod_args
     # Move the zipper's focus to the module's body
-    body_zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
-
-    {_, _, aliases} = mod_name
     name = aliases |> List.last() |> to_string()
     add_moduledoc? = not String.ends_with?(name, @dont_moduledoc)
+    body_zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
 
     case Zipper.node(body_zipper) do
       {:__block__, _, _} ->
@@ -88,18 +87,20 @@ defmodule Styler.Style.ModuleDirectives do
 
       {:@, _, [{:moduledoc, _, _}]} ->
         # a module whose only child is a moduledoc. nothing to do here!
+        # seems weird at first blushm but lots of projects/libraries do this with their root namespace module
         {:skip, zipper}
 
       only_child ->
+        # There's only one child, and it's not a moduledoc. We'll maybe add a doc, then continue running this style
+        # on the `only_child` node
         {_, do_meta, _} = mod_do
-        # a module with a single child. add moduledoc false and then carry on - we'll check the only_child next
-        if do_meta[:format] != :keyword and add_moduledoc? do
-          moduledoc_zipper =
-            body_zipper
-            |> Zipper.replace({:__block__, [], [@moduledoc_false, only_child]})
-            |> Zipper.down()
 
-          {:skip, moduledoc_zipper}
+        if add_moduledoc? and do_meta[:format] != :keyword do
+          body_zipper
+          |> Zipper.replace({:__block__, [], [@moduledoc_false, only_child]})
+          |> Zipper.down()
+          |> Zipper.right()
+          |> run()
         else
           run(body_zipper)
         end
@@ -148,21 +149,22 @@ defmodule Styler.Style.ModuleDirectives do
           |> List.update_at(-1, &set_newlines(&1, 2))
       end
 
-    imports = (directives[:import] || []) |> expand_and_sort()
-    aliases = (directives[:alias] || []) |> expand_and_sort()
-    requires = (directives[:require] || []) |> expand_and_sort()
+    imports = expand_and_sort(directives[:import] || [])
+    aliases = expand_and_sort(directives[:alias] || [])
+    requires = expand_and_sort(directives[:require] || [])
 
-    directives = Enum.concat([
-      shortdocs,
-      moduledocs,
-      behaviours,
-      uses,
-      imports,
-      aliases,
-      requires
-    ])
+    directives =
+      Enum.concat([
+        shortdocs,
+        moduledocs,
+        behaviours,
+        uses,
+        imports,
+        aliases,
+        requires
+      ])
 
-    parent = Zipper.update(parent, &Zipper.make_node(&1, directives))
+    parent = Zipper.update(parent, &Zipper.replace_children(&1, directives))
 
     if Enum.empty?(nondirectives) do
       {:skip, parent}
