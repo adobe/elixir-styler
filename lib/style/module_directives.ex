@@ -74,13 +74,23 @@ defmodule Styler.Style.ModuleDirectives do
   @dont_moduledoc ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
-  def run({{:defmodule, _, [mod_name, [{mod_do, _mod_body}]]}, _} = zipper) do
+  def run({{:defmodule, _, [mod_name, [{mod_do, _move_focus_here_on_the_module_body}]]}, _} = zipper) do
     # Move the zipper's focus to the module's body
-    zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
+    body_zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
 
-    case Zipper.node(zipper) do
+    # defmodule LargeModule do
+    #   eval_1
+    #   ...
+    # end
+    #
+    # defmodule SingleChild, do: use(SomeMacro)
+    # defmodule SingleChild do
+    #   @moduledoc "dont add moduledoc plz"
+    # end
+
+    case Zipper.node(body_zipper) do
       {:__block__, _, _} ->
-        organize_large_module(mod_name, zipper)
+        organize_large_module(mod_name, body_zipper)
 
       {:@, _, [{:moduledoc, _, _}]} ->
         # a module whose only child is a moduledoc. nothing to do here!
@@ -90,13 +100,13 @@ defmodule Styler.Style.ModuleDirectives do
         # a module with a single child. add moduledoc false and then carry on - we'll check the only_child next
         if needs_moduledoc?(mod_name, mod_do) do
           moduledoc_zipper =
-            zipper
+            body_zipper
             |> Zipper.replace({:__block__, [], [@moduledoc_false, only_child]})
             |> Zipper.down()
 
           {:skip, moduledoc_zipper}
         else
-          run(zipper)
+          run(body_zipper)
         end
     end
   end
@@ -184,8 +194,12 @@ defmodule Styler.Style.ModuleDirectives do
     else
       # could be other hits within the `nondirective` children, so continue traversal from the first of them
       # we have to invoke `run` ourself since we're also calling `next` ourselves
-      {tree, meta} = Zipper.down({{:__block__, block_meta, nondirectives}, meta})
-      run({tree, %{meta | l: Enum.reverse(directives)}})
+      nondirective_zipper = Zipper.down({{:__block__, block_meta, nondirectives}, meta})
+
+      # the `run` here is making sure that the first `nondirective` child isn't a defmodule - we'd miss it otherwise
+      directives
+      |> Enum.reduce(nondirective_zipper, &Zipper.insert_left(&2, &1))
+      |> run()
     end
   end
 
