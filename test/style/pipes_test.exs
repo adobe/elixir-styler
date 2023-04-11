@@ -175,6 +175,18 @@ defmodule Styler.Style.PipesTest do
       )
     end
 
+    test "keeps invocation on a single line" do
+      assert_style(
+        """
+        foo
+        |> bar(baz, bop, boom)
+        """,
+        """
+        bar(foo, baz, bop, boom)
+        """
+      )
+    end
+
     test "extracts blocks successfully" do
       assert_style(
         """
