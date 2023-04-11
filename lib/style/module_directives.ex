@@ -132,10 +132,7 @@ defmodule Styler.Style.ModuleDirectives do
 
     shortdocs = directives[:"@shortdoc"] || []
     moduledocs = directives[:"@moduledoc"] || if add_moduledoc?, do: [@moduledoc_false], else: []
-    # TODO sort behaviours?
-    # TODO make a helper that efficiently sets newlines to 1 on everything in a list but the last element, get rid of using `set_newlines` directly
-    behaviours = directives[:"@behaviour"] || []
-    behaviours = List.update_at(behaviours, -1, &set_newlines(&1, 2))
+    behaviours = expand_and_sort(directives[:"@behaviour"] || [])
 
     uses =
       case directives[:use] do
@@ -143,6 +140,7 @@ defmodule Styler.Style.ModuleDirectives do
           []
 
         uses ->
+          # this is `expand_and_sort` except we don't want to sort `use`, so it's just `expand` :)
           uses
           |> Enum.flat_map(&expand_directive/1)
           |> Enum.map(&set_newlines(&1, 1))
@@ -174,31 +172,26 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  defp expand_and_sort([]), do: []
-
   defp expand_and_sort(directives) do
-    [last | rest] =
-      directives
-      |> Enum.flat_map(&expand_directive/1)
-      # Credo does case-agnostic sorting, so we have to match that here
-      |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
-      # a splash of deduping for happiness
-      |> Enum.uniq_by(&elem(&1, 1))
-      |> List.keysort(1, :desc)
-      |> Enum.map(&(&1 |> elem(0) |> set_newlines(1)))
-
-    Enum.reverse([set_newlines(last, 2) | rest])
+    # sorting is done with `downcase` to match Credo
+    directives
+    |> Enum.flat_map(&expand_directive/1)
+    |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
+    |> Enum.uniq_by(&elem(&1, 1))
+    |> List.keysort(1, :desc)
+    |> Enum.map(&(&1 |> elem(0) |> set_newlines(1)))
+    |> List.update_at(0, &set_newlines(&1, 2))
+    |> Enum.reverse()
   end
 
   # alias Foo.{Bar, Baz}
   # =>
   # alias Foo.Bar
   # alias Foo.Baz
-  defp expand_directive({directive, _, [{{:., _, [{_, _, module}, :{}]}, _, right}]}) do
-    Enum.map(right, fn {_, meta, segments} -> {directive, meta, [{:__aliases__, [], module ++ segments}]} end)
-  end
+  defp expand_directive({directive, _, [{{:., _, [{_, _, module}, :{}]}, _, right}]}),
+    do: Enum.map(right, fn {_, meta, segments} -> {directive, meta, [{:__aliases__, [], module ++ segments}]} end)
 
-  defp expand_directive(alias), do: [alias]
+  defp expand_directive(other), do: [other]
 
   defp set_newlines({directive, meta, children}, newline) do
     updated_meta = Keyword.update(meta, :end_of_expression, [newlines: newline], &Keyword.put(&1, :newlines, newline))

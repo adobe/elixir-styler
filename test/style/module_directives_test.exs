@@ -87,6 +87,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
       assert_style(
         """
         defmodule Foo do
+          @behaviour Lawful
           require A
           alias A
 
@@ -132,6 +133,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
                      |> String.split("<!-- MDOC !-->")
                      |> Enum.fetch!(1)
           @behaviour Chaotic
+          @behaviour Lawful
 
           use B
           use A
