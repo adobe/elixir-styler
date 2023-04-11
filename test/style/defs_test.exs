@@ -15,13 +15,19 @@ defmodule Styler.Style.DefsTest do
     test "function with do keyword" do
       assert_style(
         """
+        # Top comment
         def save(
+               # Socket comment
                %Socket{assigns: %{user: user, live_action: :new}} = initial_socket,
+               # Params comment
                params
              ),
              do: :ok
         """,
         """
+        # Top comment
+        # Socket comment
+        # Params comment
         def save(%Socket{assigns: %{user: user, live_action: :new}} = initial_socket, params), do: :ok
         """
       )
@@ -36,9 +42,11 @@ defmodule Styler.Style.DefsTest do
 
     test "block function body doesn't get newlined" do
       assert_style("""
+      # Here's a comment
       def some_function(%{id: id, type: type, processed_at: processed_at} = file, params, _)
           when type == :file and is_nil(processed_at) do
         with {:ok, results} <- FileProcessor.process(file) do
+          # This comment could make sense
           {:ok, post_process_the_results_somehow(results)}
         end
       end
@@ -57,12 +65,13 @@ defmodule Styler.Style.DefsTest do
         """
         def save(
                %Socket{assigns: %{user: user, live_action: :new}} = initial_socket,
-               params
+               params # Comments in the darndest places
              ) do
           :ok
         end
         """,
         """
+        # Comments in the darndest places
         def save(%Socket{assigns: %{user: user, live_action: :new}} = initial_socket, params) do
           :ok
         end
@@ -73,16 +82,22 @@ defmodule Styler.Style.DefsTest do
     test "no body" do
       assert_style(
         """
+        # Top comment
         def no_body(
-          foo,
-          bar
+          foo, # This is a foo
+          bar  # This is a bar
         )
 
+        # Another comment for this head
         def no_body(nil, _), do: nil
         """,
         """
+        # Top comment
+        # This is a foo
+        # This is a bar
         def no_body(foo, bar)
 
+        # Another comment for this head
         def no_body(nil, _), do: nil
         """
       )
@@ -94,14 +109,34 @@ defmodule Styler.Style.DefsTest do
         def foo(%{
           bar: baz
           })
+          # Self-documenting code!
           when baz in [
-            :a,
-            :b
+            :a, # Obviously, this is a
+            :b  # ... and this is b
           ],
           do: :never_write_code_like_this
         """,
         """
+        # Self-documenting code!
+        # Obviously, this is a
+        # ... and this is b
         def foo(%{bar: baz}) when baz in [:a, :b], do: :never_write_code_like_this
+        """
+      )
+    end
+
+    test "keyword do with a list" do
+      assert_style(
+        """
+        def foo,
+          do: [
+            # Weirdo comment
+            :never_write_code_like_this
+          ]
+        """,
+        """
+        # Weirdo comment
+        def foo, do: [:never_write_code_like_this]
         """
       )
     end
@@ -113,12 +148,14 @@ defmodule Styler.Style.DefsTest do
 
         def foo(
           too,
+          # Long long is too long
           long
         ), do: :ok
         """,
         """
         def foo(), do: :ok
 
+        # Long long is too long
         def foo(too, long), do: :ok
         """
       )
@@ -127,23 +164,55 @@ defmodule Styler.Style.DefsTest do
     test "when clause with block do" do
       assert_style(
         """
+        # Foo takes a bar
         def foo(%{
           bar: baz
           })
+          # Baz should be either :a or :b
           when baz in [
             :a,
             :b
           ]
-          do
+          do # Weird place for a comment
+          # Above the body
           :never_write_code_like_this
+          # Below the body
         end
         """,
         """
+        # Foo takes a bar
+        # Baz should be either :a or :b
+        # Weird place for a comment
         def foo(%{bar: baz}) when baz in [:a, :b] do
+          # Above the body
           :never_write_code_like_this
+          # Below the body
         end
         """
       )
+    end
+
+    test "Doesn't move stuff around if it would make the line too long" do
+      assert_style("""
+      @doc "this is a doc"
+      # And also a comment
+      def wow_this_function_name_is_super_long(it_also, has_a, ton_of, arguments),
+        do: "this is going to end up making the line too long if we inline it"
+
+      @doc "this is another function"
+      # And it also has a comment
+      def this_one_fits_on_one_line, do: :ok
+      """)
+    end
+
+    test "Doesn't collapse pipe chains in a def do ... end" do
+      assert_style("""
+      def foo(some_list) do
+        some_list
+        |> Enum.reject(&is_nil/1)
+        |> Enum.map(&transform/1)
+      end
+      """)
     end
   end
 end

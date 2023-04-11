@@ -10,12 +10,6 @@
 
 defmodule Styler.Style.Defs do
   @moduledoc """
-  NOT ENABLED
-  Currently has a bug where it puts comments into bad places no matter what, since it's
-  always rewriting every head. It's been run on our codebase once though...
-
-  --------------------------------------
-
   Styles function heads so that they're as small as possible.
 
   The goal is that a function head fits on a single line.
@@ -41,6 +35,7 @@ defmodule Styler.Style.Defs do
 
   @behaviour Styler.Style
 
+  alias Styler.Style
   alias Styler.Zipper
 
   # a def with no body like
@@ -48,53 +43,99 @@ defmodule Styler.Style.Defs do
   #  def example(foo, bar \\ nil)
   #
   def run({{def, meta, [head]}, _} = zipper, ctx) when def in [:def, :defp] do
-    # There won't be any defs deeper in here, so lets skip ahead if we can
-    {:skip, Zipper.replace(zipper, {def, meta, [flatten_head(head, meta[:line])]}), ctx}
+    {_fn_name, head_meta, _children} = head
+    first_line = meta[:line]
+    last_line = head_meta[:closing][:line]
+
+    if first_line == last_line do
+      # Already collapsed
+      {:skip, zipper, ctx}
+    else
+      comments = Style.displace_comments(ctx.comments, first_line..last_line)
+      node = {def, meta, [flatten_head(head, meta[:line])]}
+      {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
+    end
   end
 
   # all the other kinds of defs!
   def run({{def, def_meta, [head, body]}, _} = zipper, ctx) when def in [:def, :defp] do
-    def_start_line = def_meta[:line]
-    # order matters here! the end of the def is where the `do`s line is - but only if there's a do end block.
-    # otherwise it's just where the end of the (def) expression is.
-    def_end_line = (def_meta[:do] || def_meta[:end_of_expression])[:line]
+    {def_line, do_line, end_line} =
+      if def_meta[:do] do
+        # This is a def with a do block, like
+        #
+        #  def example(foo, bar \\ nil) do
+        #    :ok
+        #  end
+        #
+        def_line = def_meta[:line]
+        do_line = def_meta[:do][:line]
+        end_line = def_meta[:end][:line]
+        {def_line, do_line, end_line}
+      else
+        # This is a def with a keyword do, like
+        #
+        #  def example(foo, bar \\ nil), do: :ok
+        #
+        [{{:__block__, do_meta, [:do]}, {_, body_meta, _}}] = body
+        def_line = def_meta[:line]
+        do_line = do_meta[:line]
+        end_line = body_meta[:closing][:line] || do_meta[:line]
+        {def_line, do_line, end_line}
+      end
 
-    if def_start_line == def_end_line do
-      {:skip, zipper, ctx}
-    else
-      head = flatten_head(head, def_start_line)
+    delta = def_line - do_line
+    move_up = &(&1 + delta)
+    set_to_def_line = fn _ -> def_line end
 
-      {def_meta, body_meta_rewriter} =
-        if def_meta[:do] do
-          # we're in a `def do ... end`
-          delta = def_end_line - def_start_line
-          up_by_delta = &(&1 - delta)
+    cond do
+      def_line == end_line ->
+        # Already collapsed
+        {:skip, zipper, ctx}
 
-          # this is what does the shrinking of the `def ... do` stanza
-          def_meta =
-            def_meta
-            |> Keyword.replace_lazy(:do, &Keyword.put(&1, :line, def_start_line))
-            |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, up_by_delta))
+      def_meta[:do] ->
+        # We're working on a def do ... end
+        def_meta =
+          def_meta
+          |> Keyword.replace_lazy(:do, &Keyword.update!(&1, :line, set_to_def_line))
+          |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, move_up))
 
-          # move all body line #s up by the amount we squished the head by
-          {def_meta, collapse_lines(up_by_delta)}
-        else
-          # we're in a `def, do:`
-          to_same_line = fn _ -> def_start_line end
-          {def_meta, collapse_lines(to_same_line)}
-        end
+        head = flatten_head(head, def_line)
+        body = update_all_meta(body, shift_lines(move_up))
+        node = {def, def_meta, [head, body]}
 
-      body = update_all_meta(body, body_meta_rewriter)
+        comments =
+          ctx.comments
+          |> Style.displace_comments(def_line..do_line)
+          |> Style.shift_comments(do_line..end_line, delta)
 
-      # There won't be any defs deeper in here, so lets skip ahead if we can
-      # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
-      {:skip, Zipper.replace(zipper, {def, def_meta, [head, body]}), ctx}
+        # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
+        {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
+
+      true ->
+        # We're working on a Keyword def do:
+        head = flatten_head(head, def_line)
+        body = update_all_meta(body, collapse_lines(set_to_def_line))
+        node = {def, def_meta, [head, body]}
+
+        comments = Style.displace_comments(ctx.comments, def_line..end_line)
+
+        # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
+        {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
     end
   end
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
 
   defp collapse_lines(line_mover) do
+    fn meta ->
+      meta
+      |> Keyword.replace_lazy(:line, line_mover)
+      |> Keyword.replace_lazy(:closing, &Keyword.replace_lazy(&1, :line, line_mover))
+      |> Keyword.delete(:newlines)
+    end
+  end
+
+  defp shift_lines(line_mover) do
     fn meta ->
       meta
       |> Keyword.replace_lazy(:line, line_mover)

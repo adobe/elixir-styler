@@ -12,7 +12,7 @@ defmodule Styler.MixProject do
   use Mix.Project
 
   # Don't forget to bump the README when doing non-patch version changes
-  @version "0.2.0"
+  @version "0.3.0"
   @url "https://github.com/adobe/elixir-styler"
 
   def project do
@@ -41,7 +41,7 @@ defmodule Styler.MixProject do
 
   defp deps do
     [
-      {:ex_doc, "~> 0.29.4", runtime: false, only: :dev}
+      {:ex_doc, "~> 0.29", runtime: false, only: :dev}
     ]
   end
 

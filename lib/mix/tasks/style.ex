@@ -36,7 +36,8 @@ defmodule Mix.Tasks.Style do
   @styles [
     Styler.Style.ModuleDirectives,
     Styler.Style.Pipes,
-    Styler.Style.Simple
+    Styler.Style.Simple,
+    Styler.Style.Defs
   ]
 
   @impl Mix.Task

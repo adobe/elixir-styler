@@ -30,4 +30,31 @@ defmodule Styler.Style do
   by calling `Zipper.skip(zipper)` to skip an entire subtree you know is of no interest to your Style.
   """
   @callback run(Zipper.zipper(), context()) :: {Zipper.command(), Zipper.zipper(), context()}
+
+  @doc """
+  Set the line of all comments with `line` in `range_start..range_end` to instead have line `range_start`
+  """
+  def displace_comments(comments, range) do
+    Enum.map(comments, fn comment ->
+      if comment.line in range do
+        %{comment | line: range.first}
+      else
+        comment
+      end
+    end)
+  end
+
+  @doc """
+  Change the `line` of all comments with `line` in `range` by adding `delta` to it.
+  A positive delta will move the lines further down a file, while a negative delta will move them up.
+  """
+  def shift_comments(comments, range, delta) do
+    Enum.map(comments, fn comment ->
+      if comment.line in range do
+        %{comment | line: comment.line + delta}
+      else
+        comment
+      end
+    end)
+  end
 end
