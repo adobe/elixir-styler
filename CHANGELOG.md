@@ -1,16 +1,23 @@
 # Changelog
 
+## v0.3.0
+
+### Improvements
+
+* Enabled `Defs` style and overhauled it to properly handles comments
+
 ## v0.2.0
 
 ### Improvements
 
-* Added `Styler.Style.ModuleDirectives`
+* Added `ModuleDirectives` style
     * Note that this is potentially destructive in some rare cases. See moduledoc for more.
+    * This supersedes the `Aliases` style, which has been removed.
 * `mix style -` reads and writes to stdin/stdout
 
 ### Fixes
 
-* `Styler.Style.Pipes` is now aware of `unless` blocks
+* `Pipes` style is now aware of `unless` blocks
 
 ## v0.1.1
 
