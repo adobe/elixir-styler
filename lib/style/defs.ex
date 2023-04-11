@@ -65,7 +65,7 @@ defmodule Styler.Style.Defs do
 
   # all the other kinds of defs!
   def run({{def, def_meta, [head, body]}, _} = zipper, ctx) when def in [:def, :defp] do
-    {style, def_line, do_line, end_line} =
+    {def_line, do_line, end_line} =
       if def_meta[:do] do
         # This is a def with a do block, like
         #
@@ -76,7 +76,7 @@ defmodule Styler.Style.Defs do
         def_line = def_meta[:line]
         do_line = def_meta[:do][:line]
         end_line = def_meta[:end][:line]
-        {:block, def_line, do_line, end_line}
+        {def_line, do_line, end_line}
       else
         # This is a def with a keyword do, like
         #
@@ -86,45 +86,47 @@ defmodule Styler.Style.Defs do
         def_line = def_meta[:line]
         do_line = do_meta[:line]
         end_line = body_meta[:closing][:line] || do_meta[:line]
-        {:keyword, def_line, do_line, end_line}
+        {def_line, do_line, end_line}
       end
 
-    if def_line == end_line do
-      # Already collapsed
-      {:skip, zipper, ctx}
-    else
-      delta = def_line - do_line
-      move_up = &(&1 + delta)
-      set_to_def_line = fn _ -> def_line end
+    delta = def_line - do_line
+    move_up = &(&1 + delta)
+    set_to_def_line = fn _ -> def_line end
 
-      {node, comments} =
-        if style == :block do
-          # We're working on a def do ... end
-          def_meta =
-            def_meta
-            |> Keyword.replace_lazy(:do, &Keyword.update!(&1, :line, set_to_def_line))
-            |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, move_up))
+    cond do
+      def_line == end_line ->
+        # Already collapsed
+        {:skip, zipper, ctx}
 
-          head = flatten_head(head, def_line)
-          body = update_all_meta(body, shift_lines(move_up))
+      def_meta[:do] ->
+        # We're working on a def do ... end
+        def_meta =
+          def_meta
+          |> Keyword.replace_lazy(:do, &Keyword.update!(&1, :line, set_to_def_line))
+          |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, move_up))
 
-          comments =
-            ctx.comments
-            |> Style.displace_comments(def_line..do_line)
-            |> Style.shift_comments(do_line..end_line, delta)
+        head = flatten_head(head, def_line)
+        body = update_all_meta(body, shift_lines(move_up))
+        node = {def, def_meta, [head, body]}
 
-          {{def, def_meta, [head, body]}, comments}
-        else
-          # We're working on a Keyword def do:
-          head = flatten_head(head, def_line)
-          body = update_all_meta(body, collapse_lines(set_to_def_line))
-          comments = Style.displace_comments(ctx.comments, def_line..end_line)
+        comments =
+          ctx.comments
+          |> Style.displace_comments(def_line..do_line)
+          |> Style.shift_comments(do_line..end_line, delta)
 
-          {{def, def_meta, [head, body]}, comments}
-        end
+        # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
+        {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
 
-      # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
-      {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
+      true ->
+        # We're working on a Keyword def do:
+        head = flatten_head(head, def_line)
+        body = update_all_meta(body, collapse_lines(set_to_def_line))
+        node = {def, def_meta, [head, body]}
+
+        comments = Style.displace_comments(ctx.comments, def_line..end_line)
+
+        # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
+        {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
     end
   end
 
