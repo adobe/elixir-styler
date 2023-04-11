@@ -178,10 +178,9 @@ defmodule Styler.Style.ModuleDirectives do
     |> Enum.flat_map(&expand_directive/1)
     |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
     |> Enum.uniq_by(&elem(&1, 1))
-    |> List.keysort(1, :desc)
+    |> List.keysort(1)
     |> Enum.map(&(&1 |> elem(0) |> set_newlines(1)))
-    |> List.update_at(0, &set_newlines(&1, 2))
-    |> Enum.reverse()
+    |> List.update_at(-1, &set_newlines(&1, 2))
   end
 
   # alias Foo.{Bar, Baz}
