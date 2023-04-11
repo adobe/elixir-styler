@@ -134,18 +134,7 @@ defmodule Styler.Style.ModuleDirectives do
     moduledocs = directives[:"@moduledoc"] || if add_moduledoc?, do: [@moduledoc_false], else: []
     behaviours = expand_and_sort(directives[:"@behaviour"] || [])
 
-    uses =
-      case directives[:use] do
-        nil ->
-          []
-
-        uses ->
-          # this is `expand_and_sort` except we don't want to sort `use`, so it's just `expand` :)
-          uses
-          |> Enum.flat_map(&expand_directive/1)
-          |> Enum.map(&set_newlines(&1, 1))
-          |> List.update_at(-1, &set_newlines(&1, 2))
-      end
+    uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> reset_newlines()
 
     imports = expand_and_sort(directives[:import] || [])
     aliases = expand_and_sort(directives[:alias] || [])
@@ -179,8 +168,8 @@ defmodule Styler.Style.ModuleDirectives do
     |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
     |> Enum.uniq_by(&elem(&1, 1))
     |> List.keysort(1)
-    |> Enum.map(&(&1 |> elem(0) |> set_newlines(1)))
-    |> List.update_at(-1, &set_newlines(&1, 2))
+    |> Enum.map(&(&1 |> elem(0)))
+    |> reset_newlines()
   end
 
   # alias Foo.{Bar, Baz}
@@ -191,6 +180,12 @@ defmodule Styler.Style.ModuleDirectives do
     do: Enum.map(right, fn {_, meta, segments} -> {directive, meta, [{:__aliases__, [], module ++ segments}]} end)
 
   defp expand_directive(other), do: [other]
+
+  defp reset_newlines([]), do: []
+  defp reset_newlines(directives), do: reset_newlines(directives, [])
+
+  defp reset_newlines([directive], acc), do: Enum.reverse([set_newlines(directive, 2) | acc])
+  defp reset_newlines([directive | rest], acc), do: reset_newlines(rest, [set_newlines(directive, 1) | acc])
 
   defp set_newlines({directive, meta, children}, newline) do
     updated_meta = Keyword.update(meta, :end_of_expression, [newlines: newline], &Keyword.put(&1, :newlines, newline))
