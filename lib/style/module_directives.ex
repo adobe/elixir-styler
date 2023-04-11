@@ -74,8 +74,8 @@ defmodule Styler.Style.ModuleDirectives do
   @dont_moduledoc ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
-  def run({{:defmodule, _, mod_args}, _} = zipper) do
-    [{_, _, aliases = _mod_name}, [{mod_do, _module_body__move_focus_here!}]] = mod_args
+  def run({{:defmodule, _, children}, _} = zipper) do
+    [{_, _, aliases} = _module_name, [{mod_do, _module_body__move_focus_here!}]] = children
     # Move the zipper's focus to the module's body
     name = aliases |> List.last() |> to_string()
     add_moduledoc? = not String.ends_with?(name, @dont_moduledoc)
