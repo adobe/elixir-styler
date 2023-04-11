@@ -45,36 +45,8 @@ defmodule Styler.Style do
   end
 
   @doc """
-  This is a convenience function for shifting all comments in a `range` by
-  `delta` lines (negative `delta` means to shift the comments up, and positive
-  means to shift them down).
-
-  For example, if the following code were to be styled such each `def` became a one-liner:
-
-      # Positive numbers are good
-      def(
-        arg1,
-        arg2
-      ) when is_integer(arg1) and arg1 >= 0, do: :ok
-
-      # Negative numbers are are bad
-      def(
-        arg1,
-        arg2
-      ), do: :error
-
-      # This comment comes at the end
-
-  then this function would manipulate the `comments` such that they would end
-  up being formatted like this:
-
-      # Positive numbers are good
-      def(arg1, arg2) when is_integer(arg1) and arg1 >= 0, do: :ok
-
-      # Negative numbers are are bad
-      def(arg1, arg2), do: :error
-
-      # This comment comes at the end
+  Change the `line` of all comments with `line` in `range` by adding `delta` to it.
+  A positive delta will move the lines further down a file, while a negative delta will move them up.
   """
   def shift_comments(comments, range, delta) do
     Enum.map(comments, fn comment ->
