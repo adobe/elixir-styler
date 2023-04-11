@@ -87,7 +87,7 @@ defmodule Styler.Style.ModuleDirectives do
 
       {:@, _, [{:moduledoc, _, _}]} ->
         # a module whose only child is a moduledoc. nothing to do here!
-        # seems weird at first blushm but lots of projects/libraries do this with their root namespace module
+        # seems weird at first blush but lots of projects/libraries do this with their root namespace module
         {:skip, zipper, ctx}
 
       only_child ->
