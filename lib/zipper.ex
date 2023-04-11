@@ -118,7 +118,7 @@ defmodule Styler.Zipper do
   Returns the zipper of the left sibling of the node at this zipper, or nil.
   """
   @spec left(zipper) :: zipper | nil
-  def left({tree, %{l: [ltree | l], r: r} = meta}), do: {ltree, %{meta | l: l, r: [tree | r || []]}}
+  def left({tree, %{l: [ltree | l], r: r} = meta}), do: {ltree, %{meta | l: l, r: [tree | r]}}
   def left(_), do: nil
 
   @doc """

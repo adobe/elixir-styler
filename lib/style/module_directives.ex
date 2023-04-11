@@ -67,7 +67,7 @@ defmodule Styler.Style.ModuleDirectives do
 
   alias Styler.Zipper
 
-  @directives ~w(alias import require)a
+  @directives ~w(alias import require use)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a
 
   # module names ending with these suffixes will not have a default moduledoc appended
@@ -78,27 +78,22 @@ defmodule Styler.Style.ModuleDirectives do
     # Move the zipper's focus to the module's body
     body_zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
 
-    # defmodule LargeModule do
-    #   eval_1
-    #   ...
-    # end
-    #
-    # defmodule SingleChild, do: use(SomeMacro)
-    # defmodule SingleChild do
-    #   @moduledoc "dont add moduledoc plz"
-    # end
+    {_, _, aliases} = mod_name
+    name = aliases |> List.last() |> to_string()
+    add_moduledoc? = not String.ends_with?(name, @dont_moduledoc)
 
     case Zipper.node(body_zipper) do
       {:__block__, _, _} ->
-        organize_large_module(mod_name, body_zipper)
+        organize_directives(body_zipper, add_moduledoc?)
 
       {:@, _, [{:moduledoc, _, _}]} ->
         # a module whose only child is a moduledoc. nothing to do here!
         {:skip, zipper}
 
       only_child ->
+        {_, do_meta, _} = mod_do
         # a module with a single child. add moduledoc false and then carry on - we'll check the only_child next
-        if needs_moduledoc?(mod_name, mod_do) do
+        if do_meta[:format] != :keyword and add_moduledoc? do
           moduledoc_zipper =
             body_zipper
             |> Zipper.replace({:__block__, [], [@moduledoc_false, only_child]})
@@ -111,40 +106,20 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  # @TODO order groups when we detect them outside of a defmodule?
-  #
-  # def foo do
-  #   alias F
-  #   alias G
-  #
-  #  import X  <- put this import above those aliases?
-  # end
-  def run({{:use, _, _} = directive, meta}) do
-    [last | rest] = directive |> expand_directive() |> Enum.reverse(meta.l)
-
-    last =
-      case meta.r do
-        [{:use, _, _} | _] -> last
-        _ -> set_newlines(last, 2)
-      end
-
-    {:skip, {last, %{meta | l: rest}}}
-  end
-
-  def run({{d, _, _} = directive, %{l: left, r: right} = meta}) when d in @directives do
-    #@TODO just grab all, no more "groups"
-    {right, directives} = consume_directive_group(d, [directive | right], [])
-    [last | rest] = order_directives(directives)
-    {:skip, {last, %{meta | r: right, l: rest ++ left}}}
+  def run({{d, _, _}, _} = zipper) when d in @directives do
+    zipper |> Zipper.up() |> organize_directives()
   end
 
   def run(zipper), do: zipper
 
-  defp organize_large_module(name, {{:__block__, block_meta, children}, meta}) do
+  defp organize_directives(parent, add_moduledoc? \\ false) do
     {directives, nondirectives} =
-      Enum.split_with(children, fn
+      parent
+      |> Zipper.node()
+      |> Zipper.children()
+      |> Enum.split_with(fn
         {:@, _, [{attr, _, _}]} -> attr in @attr_directives
-        {directive, _, _} -> directive in [:use | @directives]
+        {directive, _, _} -> directive in @directives
         _ -> false
       end)
 
@@ -155,7 +130,7 @@ defmodule Styler.Style.ModuleDirectives do
       end)
 
     shortdocs = directives[:"@shortdoc"] || []
-    moduledocs = directives[:"@moduledoc"] || if needs_moduledoc?(name), do: [@moduledoc_false], else: []
+    moduledocs = directives[:"@moduledoc"] || if add_moduledoc?, do: [@moduledoc_false], else: []
     # TODO sort behaviours?
     # TODO make a helper that efficiently sets newlines to 1 on everything in a list but the last element, get rid of using `set_newlines` directly
     behaviours = directives[:"@behaviour"] || []
@@ -173,39 +148,33 @@ defmodule Styler.Style.ModuleDirectives do
           |> List.update_at(-1, &set_newlines(&1, 2))
       end
 
-    imports = (directives[:import] || []) |> order_directives() |> Enum.reverse()
-    aliases = (directives[:alias] || []) |> order_directives() |> Enum.reverse()
-    requires = (directives[:require] || []) |> order_directives() |> Enum.reverse()
+    imports = (directives[:import] || []) |> expand_and_sort()
+    aliases = (directives[:alias] || []) |> expand_and_sort()
+    requires = (directives[:require] || []) |> expand_and_sort()
 
-    directives =
-      Enum.concat([
-        shortdocs,
-        moduledocs,
-        behaviours,
-        uses,
-        imports,
-        aliases,
-        requires
-      ])
+    directives = Enum.concat([
+      shortdocs,
+      moduledocs,
+      behaviours,
+      uses,
+      imports,
+      aliases,
+      requires
+    ])
+
+    parent = Zipper.update(parent, &Zipper.make_node(&1, directives))
 
     if Enum.empty?(nondirectives) do
-      # no other possible hits within this module - go to the next one
-      {:skip, {{:__block__, block_meta, directives}, meta}}
+      {:skip, parent}
     else
-      # could be other hits within the `nondirective` children, so continue traversal from the first of them
-      # we have to invoke `run` ourself since we're also calling `next` ourselves
-      nondirective_zipper = Zipper.down({{:__block__, block_meta, nondirectives}, meta})
-
-      # the `run` here is making sure that the first `nondirective` child isn't a defmodule - we'd miss it otherwise
-      directives
-      |> Enum.reduce(nondirective_zipper, &Zipper.insert_left(&2, &1))
-      |> run()
+      {last_directive, meta} = parent |> Zipper.down() |> Zipper.rightmost()
+      {:skip, {last_directive, %{meta | r: nondirectives}}}
     end
   end
 
-  defp order_directives([]), do: []
+  defp expand_and_sort([]), do: []
 
-  defp order_directives(directives) do
+  defp expand_and_sort(directives) do
     [last | rest] =
       directives
       |> Enum.flat_map(&expand_directive/1)
@@ -216,27 +185,8 @@ defmodule Styler.Style.ModuleDirectives do
       |> List.keysort(1, :desc)
       |> Enum.map(&(&1 |> elem(0) |> set_newlines(1)))
 
-    [set_newlines(last, 2) | rest]
+    Enum.reverse([set_newlines(last, 2) | rest])
   end
-
-  defp needs_moduledoc?({_, _, aliases}) do
-    name = aliases |> List.last() |> to_string()
-    not String.ends_with?(name, @dont_moduledoc)
-  end
-
-  defp needs_moduledoc?(name, {_, do_meta, _}) do
-    needs_moduledoc?(name) and do_meta[:format] != :keyword
-  end
-
-  defp consume_directive_group(d, [{d, meta, _} = directive | siblings], directives) do
-    directives = [directive | directives]
-
-    if meta[:end_of_expression][:newlines] == 1,
-      do: consume_directive_group(d, siblings, directives),
-      else: {siblings, directives}
-  end
-
-  defp consume_directive_group(_, siblings, directives), do: {siblings, directives}
 
   # alias Foo.{Bar, Baz}
   # =>
