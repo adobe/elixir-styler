@@ -19,6 +19,11 @@ defmodule Styler.Style.ModuleDirectivesTest do
         defmodule A do
         end
 
+        defmodule B do
+          defmodule C do
+          end
+        end
+
         defmodule Bar do
           alias Bop
 
@@ -34,12 +39,23 @@ defmodule Styler.Style.ModuleDirectivesTest do
         end
 
         def Foo, do: :ok
+
+        defmodule Foo do
+          alias Foo.{Bar, Baz}
+        end
         """,
         """
         defmodule A do
           @moduledoc false
         end
 
+        defmodule B do
+          @moduledoc false
+          defmodule C do
+            @moduledoc false
+          end
+        end
+
         defmodule Bar do
           @moduledoc false
           alias Bop
@@ -57,6 +73,12 @@ defmodule Styler.Style.ModuleDirectivesTest do
         end
 
         def Foo, do: :ok
+
+        defmodule Foo do
+          @moduledoc false
+          alias Foo.Bar
+          alias Foo.Baz
+        end
         """
       )
     end
@@ -75,21 +97,38 @@ defmodule Styler.Style.ModuleDirectivesTest do
       assert_style(
         """
         defmodule Foo do
+          @behaviour Lawful
           require A
           alias A
 
+          use B
+
           def c(x), do: y
+
+          import C
           @behaviour Chaotic
+          @doc "d doc"
           def d do
             alias X
             alias H
+
+            alias Z
             import Ecto.Query
             X.foo()
           end
           @shortdoc "it's pretty short"
           import A
+          alias C
+          alias D
+
+          require C
           require B
+
           use A
+
+          alias C
+          alias A
+
           @moduledoc "README.md"
                      |> File.read!()
                      |> String.split("<!-- MDOC !-->")
@@ -104,23 +143,31 @@ defmodule Styler.Style.ModuleDirectivesTest do
                      |> String.split("<!-- MDOC !-->")
                      |> Enum.fetch!(1)
           @behaviour Chaotic
+          @behaviour Lawful
 
+          use B
           use A
 
           import A
+          import C
 
           alias A
+          alias C
+          alias D
 
           require A
           require B
+          require C
 
           def c(x), do: y
 
+          @doc "d doc"
           def d do
+            import Ecto.Query
+
             alias H
             alias X
-
-            import Ecto.Query
+            alias Z
 
             X.foo()
           end
@@ -148,13 +195,12 @@ defmodule Styler.Style.ModuleDirectivesTest do
           #{d} A
           """,
           """
+          #{d} A
           #{d} A.A
           #{d} A.B
           #{d} A.C
-          #{d} D
-
-          #{d} A
           #{d} B
+          #{d} D
           """
         )
       end
@@ -163,8 +209,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
     test "expands use but does not sort it" do
       assert_style(
         """
-        use A
         use D
+        use A
         use A.{
           C,
           B
@@ -172,8 +218,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
         import F
         """,
         """
-        use A
         use D
+        use A
         use A.C
         use A.B
 
@@ -185,6 +231,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
     test "interwoven directives w/o the context of a module" do
       assert_style(
         """
+        @type foo :: :ok
         alias D
         alias A.{B}
         require A.{
@@ -195,14 +242,15 @@ defmodule Styler.Style.ModuleDirectivesTest do
         alias A
         """,
         """
+        alias A
         alias A.B
+        alias B
         alias D
 
         require A.A
         require A.C
 
-        alias A
-        alias B
+        @type foo :: :ok
         """
       )
     end

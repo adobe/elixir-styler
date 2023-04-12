@@ -65,18 +65,59 @@ defmodule Styler.Style.ModuleDirectives do
   """
   @behaviour Styler.Style
 
-  @directives ~w(alias import require)a
+  alias Styler.Zipper
+
+  @directives ~w(alias import require use)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a
 
   # module names ending with these suffixes will not have a default moduledoc appended
   @dont_moduledoc ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
-  def run({{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}, ctx) do
-    {directives, other} =
-      Enum.split_with(children, fn
+  def run({{:defmodule, _, children}, _} = zipper, ctx) do
+    [{:__aliases__, _, aliases}, [{{:__block__, do_meta, [:do]}, _module_body}]] = children
+    # Move the zipper's focus to the module's body
+    name = aliases |> List.last() |> to_string()
+    add_moduledoc? = do_meta[:format] != :keyword and not String.ends_with?(name, @dont_moduledoc)
+    body_zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
+
+    case Zipper.node(body_zipper) do
+      {:__block__, _, _} ->
+        {:skip, organize_directives(body_zipper, add_moduledoc?), ctx}
+
+      {:@, _, [{:moduledoc, _, _}]} ->
+        # a module whose only child is a moduledoc. nothing to do here!
+        # seems weird at first blush but lots of projects/libraries do this with their root namespace module
+        {:skip, zipper, ctx}
+
+      only_child ->
+        # There's only one child, and it's not a moduledoc. Conditionally add a moduledoc, then style the only_child
+        if add_moduledoc? do
+          body_zipper
+          |> Zipper.replace({:__block__, [], [@moduledoc_false, only_child]})
+          |> Zipper.down()
+          |> Zipper.right()
+          |> run(ctx)
+        else
+          run(body_zipper, ctx)
+        end
+    end
+  end
+
+  def run({{d, _, _}, _} = zipper, ctx) when d in @directives do
+    {:skip, zipper |> Zipper.up() |> organize_directives(), ctx}
+  end
+
+  def run(zipper, ctx), do: {:cont, zipper, ctx}
+
+  defp organize_directives(parent, add_moduledoc? \\ false) do
+    {directives, nondirectives} =
+      parent
+      |> Zipper.node()
+      |> Zipper.children()
+      |> Enum.split_with(fn
         {:@, _, [{attr, _, _}]} -> attr in @attr_directives
-        {directive, _, _} -> directive in [:use | @directives]
+        {directive, _, _} -> directive in @directives
         _ -> false
       end)
 
@@ -86,21 +127,17 @@ defmodule Styler.Style.ModuleDirectives do
         {directive, _, _} -> directive
       end)
 
-    # TODO: (optimization)
-    # now that we have use/import/alias/require, we might as well run
-    # them through the sort/expand/dedupe functionality and skip them in the traversal
     shortdocs = directives[:"@shortdoc"] || []
-    moduledocs = directives[:"@moduledoc"] || if needs_moduledoc?(name), do: [@moduledoc_false], else: []
-    # TODO sort behaviours?
-    behaviours = directives[:"@behaviour"] || []
-    behaviours = List.update_at(behaviours, -1, &set_newlines(&1, 2))
+    moduledocs = directives[:"@moduledoc"] || if add_moduledoc?, do: [@moduledoc_false], else: []
+    behaviours = expand_and_sort(directives[:"@behaviour"] || [])
 
-    uses = directives[:use] || []
-    imports = directives[:import] || []
-    aliases = directives[:alias] || []
-    requires = directives[:require] || []
+    uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> reset_newlines()
 
-    children =
+    imports = expand_and_sort(directives[:import] || [])
+    aliases = expand_and_sort(directives[:alias] || [])
+    requires = expand_and_sort(directives[:require] || [])
+
+    directives =
       Enum.concat([
         shortdocs,
         moduledocs,
@@ -108,88 +145,44 @@ defmodule Styler.Style.ModuleDirectives do
         uses,
         imports,
         aliases,
-        requires,
-        other
+        requires
       ])
 
-    zipper = {{:defmodule, def_meta, [name, [{mod_do, {:__block__, children_meta, children}}]]}, zipper_meta}
-    {:cont, zipper, ctx}
-  end
+    parent = Zipper.update(parent, &Zipper.replace_children(&1, directives))
 
-  # a module whose only child is a moduledoc. pass it on through
-  def run({{:defmodule, _, [_, [{_, {:@, _, [{:moduledoc, _, _}]}}]]}, _} = zipper, ctx), do: {:cont, zipper, ctx}
-
-  def run({{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta} = zipper, ctx) do
-    # a module with a single child. lets add moduledoc false
-    # ... unless it's a `defmodule Foo, do: ...`, that is
-    if needs_moduledoc?(name, mod_do) do
-      mod_children = {:__block__, [], [@moduledoc_false, mod_children]}
-      {:cont, {{:defmodule, def_meta, [name, [{mod_do, mod_children}]]}, zipper_meta}, ctx}
+    if Enum.empty?(nondirectives) do
+      parent
     else
-      {:cont, zipper, ctx}
+      {last_directive, meta} = parent |> Zipper.down() |> Zipper.rightmost()
+      {last_directive, %{meta | r: nondirectives}}
     end
   end
 
-  def run({{:use, _, _} = directive, meta}, ctx) do
-    [last | rest] = directive |> expand_directive() |> Enum.reverse()
-    meta = %{meta | l: rest ++ meta.l}
-
-    zipper =
-      case meta.r do
-        [{:use, _, _} | _] -> {last, meta}
-        _ -> {set_newlines(last, 2), meta}
-      end
-
-    {:skip, zipper, ctx}
+  defp expand_and_sort(directives) do
+    # sorting is done with `downcase` to match Credo
+    directives
+    |> Enum.flat_map(&expand_directive/1)
+    |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
+    |> Enum.uniq_by(&elem(&1, 1))
+    |> List.keysort(1)
+    |> Enum.map(&elem(&1, 0))
+    |> reset_newlines()
   end
-
-  def run({{d, _, _} = directive, %{l: left, r: right} = meta}, ctx) when d in @directives do
-    {right, directives} = consume_directive_group(d, [directive | right], [])
-
-    [last | rest] =
-      directives
-      # Credo does case-agnostic sorting, so we have to match that here
-      |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
-      # a splash of deduping for happiness
-      |> Enum.uniq_by(&elem(&1, 1))
-      |> List.keysort(1, :desc)
-      |> Enum.map(&(&1 |> elem(0) |> set_newlines(1)))
-
-    zipper = {set_newlines(last, 2), %{meta | r: right, l: rest ++ left}}
-
-    {:skip, zipper, ctx}
-  end
-
-  def run(zipper, ctx), do: {:cont, zipper, ctx}
-
-  def needs_moduledoc?({_, _, aliases}) do
-    name = aliases |> List.last() |> to_string()
-    not String.ends_with?(name, @dont_moduledoc)
-  end
-
-  def needs_moduledoc?(name, {_, do_meta, _}) do
-    needs_moduledoc?(name) and do_meta[:format] != :keyword
-  end
-
-  defp consume_directive_group(d, [{d, meta, _} = directive | siblings], directives) do
-    directives = expand_directive(directive) ++ directives
-
-    if meta[:end_of_expression][:newlines] == 1,
-      do: consume_directive_group(d, siblings, directives),
-      else: {siblings, directives}
-  end
-
-  defp consume_directive_group(_, siblings, directives), do: {siblings, directives}
 
   # alias Foo.{Bar, Baz}
   # =>
   # alias Foo.Bar
   # alias Foo.Baz
-  defp expand_directive({directive, _, [{{:., _, [{_, _, module}, :{}]}, _, right}]}) do
-    Enum.map(right, fn {_, meta, segments} -> {directive, meta, [{:__aliases__, [], module ++ segments}]} end)
-  end
+  defp expand_directive({directive, _, [{{:., _, [{_, _, module}, :{}]}, _, right}]}),
+    do: Enum.map(right, fn {_, meta, segments} -> {directive, meta, [{:__aliases__, [], module ++ segments}]} end)
 
-  defp expand_directive(alias), do: [alias]
+  defp expand_directive(other), do: [other]
+
+  defp reset_newlines([]), do: []
+  defp reset_newlines(directives), do: reset_newlines(directives, [])
+
+  defp reset_newlines([directive], acc), do: Enum.reverse([set_newlines(directive, 2) | acc])
+  defp reset_newlines([directive | rest], acc), do: reset_newlines(rest, [set_newlines(directive, 1) | acc])
 
   defp set_newlines({directive, meta, children}, newline) do
     updated_meta = Keyword.update(meta, :end_of_expression, [newlines: newline], &Keyword.put(&1, :newlines, newline))
