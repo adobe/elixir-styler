@@ -22,16 +22,19 @@ defmodule Styler.Style.ModuleDirectivesTest do
     end
 
     test "module with single child" do
-      assert_style("""
-      defmodule ATest do
-        alias Foo.{A, B}
-      end
-      """, """
-      defmodule ATest do
-        alias Foo.A
-        alias Foo.B
-      end
-      """)
+      assert_style(
+        """
+        defmodule ATest do
+          alias Foo.{A, B}
+        end
+        """,
+        """
+        defmodule ATest do
+          alias Foo.A
+          alias Foo.B
+        end
+        """
+      )
     end
 
     test "adds moduledoc" do

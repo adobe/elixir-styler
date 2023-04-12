@@ -114,11 +114,13 @@ defmodule Styler.Style.ModuleDirectives do
       case Zipper.up(zipper) do
         nil ->
           Zipper.replace(zipper, {:__block__, [], [directive]})
+
         {{{:__block__, _, [:do]}, _only_child}, _} ->
           Zipper.replace(zipper, {:__block__, [], [directive]})
+
         parent ->
           parent
-        end
+      end
 
     {:skip, organize_directives(parent), ctx}
   end
