@@ -28,7 +28,7 @@ defmodule Styler.Style.Pipes do
   # we're in a multi-pipe, so only need to fix pipe_start
   def run({{:|>, _, [{:|>, _, _} | _]}, _} = zipper, ctx), do: {:cont, zipper |> check_start() |> Zipper.next(), ctx}
   # this is a single pipe, since valid pipelines are consumed by the previous head
-  def run({{:|>, meta, [lhs, {fun, _, args}]}, _} = zipper, ctx) do
+  def run({{:|>, _, [lhs, {fun, meta, args}]}, _} = zipper, ctx) do
     if valid_pipe_start?(lhs) do
       # `a |> f(b, c)` => `f(a, b, c)`
       {:cont, Zipper.replace(zipper, {fun, meta, [lhs | args]}), ctx}
