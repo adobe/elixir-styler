@@ -76,36 +76,51 @@ defmodule Styler.Style.ModuleDirectives do
 
   def run({{:defmodule, _, children}, _} = zipper, ctx) do
     [{:__aliases__, _, aliases}, [{{:__block__, do_meta, [:do]}, _module_body}]] = children
-    # Move the zipper's focus to the module's body
-    name = aliases |> List.last() |> to_string()
-    add_moduledoc? = do_meta[:format] != :keyword and not String.ends_with?(name, @dont_moduledoc)
-    body_zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
 
-    case Zipper.node(body_zipper) do
-      {:__block__, _, _} ->
-        {:skip, organize_directives(body_zipper, add_moduledoc?), ctx}
+    if do_meta[:format] == :keyword do
+      {:skip, zipper, ctx}
+    else
+      name = aliases |> List.last() |> to_string()
+      add_moduledoc? = not String.ends_with?(name, @dont_moduledoc)
+      # Move the zipper's focus to the module's body
+      body_zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
 
-      {:@, _, [{:moduledoc, _, _}]} ->
-        # a module whose only child is a moduledoc. nothing to do here!
-        # seems weird at first blush but lots of projects/libraries do this with their root namespace module
-        {:skip, zipper, ctx}
+      case Zipper.node(body_zipper) do
+        {:__block__, _, _} ->
+          {:skip, organize_directives(body_zipper, add_moduledoc?), ctx}
 
-      only_child ->
-        # There's only one child, and it's not a moduledoc. Conditionally add a moduledoc, then style the only_child
-        if add_moduledoc? do
-          body_zipper
-          |> Zipper.replace({:__block__, [], [@moduledoc_false, only_child]})
-          |> Zipper.down()
-          |> Zipper.right()
-          |> run(ctx)
-        else
-          run(body_zipper, ctx)
-        end
+        {:@, _, [{:moduledoc, _, _}]} ->
+          # a module whose only child is a moduledoc. nothing to do here!
+          # seems weird at first blush but lots of projects/libraries do this with their root namespace module
+          {:skip, zipper, ctx}
+
+        only_child ->
+          # There's only one child, and it's not a moduledoc. Conditionally add a moduledoc, then style the only_child
+          if add_moduledoc? do
+            body_zipper
+            |> Zipper.replace({:__block__, [], [@moduledoc_false, only_child]})
+            |> Zipper.down()
+            |> Zipper.right()
+            |> run(ctx)
+          else
+            run(body_zipper, ctx)
+          end
+      end
     end
   end
 
-  def run({{d, _, _}, _} = zipper, ctx) when d in @directives do
-    {:skip, zipper |> Zipper.up() |> organize_directives(), ctx}
+  def run({{d, _, _} = directive, _} = zipper, ctx) when d in @directives do
+    parent =
+      case Zipper.up(zipper) do
+        nil ->
+          Zipper.replace(zipper, {:__block__, [], [directive]})
+        {{{:__block__, _, [:do]}, _only_child}, _} ->
+          Zipper.replace(zipper, {:__block__, [], [directive]})
+        parent ->
+          parent
+        end
+
+    {:skip, organize_directives(parent), ctx}
   end
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
@@ -148,13 +163,21 @@ defmodule Styler.Style.ModuleDirectives do
         requires
       ])
 
-    parent = Zipper.update(parent, &Zipper.replace_children(&1, directives))
+    cond do
+      Enum.empty?(directives) ->
+        parent
 
-    if Enum.empty?(nondirectives) do
-      parent
-    else
-      {last_directive, meta} = parent |> Zipper.down() |> Zipper.rightmost()
-      {last_directive, %{meta | r: nondirectives}}
+      Enum.empty?(nondirectives) ->
+        Zipper.update(parent, &Zipper.replace_children(&1, directives))
+
+      true ->
+        {last_directive, meta} =
+          parent
+          |> Zipper.update(&Zipper.replace_children(&1, directives))
+          |> Zipper.down()
+          |> Zipper.rightmost()
+
+        {last_directive, %{meta | r: nondirectives}}
     end
   end
 
