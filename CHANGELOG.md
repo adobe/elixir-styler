@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.3.0
+
 ### Improvements
 
 * Enabled `Defs` style and overhauled it to properly handles comments
