@@ -39,6 +39,10 @@ defmodule Styler.Style.ModuleDirectivesTest do
         end
 
         def Foo, do: :ok
+
+        defmodule Foo do
+          alias Foo.{Bar, Baz}
+        end
         """,
         """
         defmodule A do
@@ -69,6 +73,12 @@ defmodule Styler.Style.ModuleDirectivesTest do
         end
 
         def Foo, do: :ok
+
+        defmodule Foo do
+          @moduledoc false
+          alias Foo.Bar
+          alias Foo.Baz
+        end
         """
       )
     end

@@ -75,10 +75,10 @@ defmodule Styler.Style.ModuleDirectives do
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
   def run({{:defmodule, _, children}, _} = zipper, ctx) do
-    [{_, _, aliases} = _module_name, [{mod_do, _module_body__move_focus_here!}]] = children
+    [{:__aliases__, _, aliases}, [{{:__block__, do_meta, [:do]}, _module_body}]] = children
     # Move the zipper's focus to the module's body
     name = aliases |> List.last() |> to_string()
-    add_moduledoc? = not String.ends_with?(name, @dont_moduledoc)
+    add_moduledoc? = do_meta[:format] != :keyword and not String.ends_with?(name, @dont_moduledoc)
     body_zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
 
     case Zipper.node(body_zipper) do
@@ -91,11 +91,8 @@ defmodule Styler.Style.ModuleDirectives do
         {:skip, zipper, ctx}
 
       only_child ->
-        # There's only one child, and it's not a moduledoc. We'll maybe add a doc, then continue running this style
-        # on the `only_child` node
-        {_, do_meta, _} = mod_do
-
-        if add_moduledoc? and do_meta[:format] != :keyword do
+        # There's only one child, and it's not a moduledoc. Conditionally add a moduledoc, then style the only_child
+        if add_moduledoc? do
           body_zipper
           |> Zipper.replace({:__block__, [], [@moduledoc_false, only_child]})
           |> Zipper.down()
