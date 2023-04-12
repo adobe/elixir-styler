@@ -12,7 +12,31 @@ defmodule Styler.Style.ModuleDirectivesTest do
   @moduledoc false
   use Styler.StyleCase, style: Styler.Style.ModuleDirectives, async: true
 
-  describe "module directive sorting" do
+  describe "defmodule features" do
+    test "handles module with no directives" do
+      assert_style("""
+      defmodule Test do
+        def foo, do: :ok
+      end
+      """)
+    end
+
+    test "module with single child" do
+      assert_style(
+        """
+        defmodule ATest do
+          alias Foo.{A, B}
+        end
+        """,
+        """
+        defmodule ATest do
+          alias Foo.A
+          alias Foo.B
+        end
+        """
+      )
+    end
+
     test "adds moduledoc" do
       assert_style(
         """
@@ -37,8 +61,6 @@ defmodule Styler.Style.ModuleDirectivesTest do
         defmodule Foo do
           use Bar
         end
-
-        def Foo, do: :ok
 
         defmodule Foo do
           alias Foo.{Bar, Baz}
@@ -72,8 +94,6 @@ defmodule Styler.Style.ModuleDirectivesTest do
           use Bar
         end
 
-        def Foo, do: :ok
-
         defmodule Foo do
           @moduledoc false
           alias Foo.Bar
@@ -81,6 +101,10 @@ defmodule Styler.Style.ModuleDirectivesTest do
         end
         """
       )
+    end
+
+    test "skips keyword defmodules" do
+      assert_style("defmodule Foo, do: use(Bar)")
     end
 
     test "doesn't add moduledoc to modules of specific names" do
@@ -177,7 +201,38 @@ defmodule Styler.Style.ModuleDirectivesTest do
     end
   end
 
+  describe "quote blocks" do
+    test "quote do with one child" do
+      assert_style(
+        """
+        quote do
+          alias A.{C, B}
+        end
+        """,
+        """
+        quote do
+          alias A.B
+          alias A.C
+        end
+        """
+      )
+    end
+
+    test "quote do with multiple children" do
+      assert_style("""
+      quote do
+        import A
+        import B
+      end
+      """)
+    end
+  end
+
   describe "directive sort/dedupe/expansion" do
+    test "handles a lonely lonely directive" do
+      assert_style("import Foo")
+    end
+
     test "sorts, dedupes & expands alias/require/import while respecting groups" do
       for d <- ~w(alias require import) do
         assert_style(

@@ -5,6 +5,14 @@
 ### Improvements
 
 * Enabled `Defs` style and overhauled it to properly handles comments
+* Optimized and tweaked `ModuleDirectives` style
+    * Now culls newlines between "groups" of the same directive
+    * sorts `@behaviour` directives
+    * orders directives within non defmodule contexts (eg, a `def do`) if there's at least one `alias|require|use|import`
+
+### Fixes
+
+* `Pipes` will try to keep single-pipe rewrites on one line
 
 ## v0.2.0
 
