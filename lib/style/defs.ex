@@ -42,15 +42,15 @@ defmodule Styler.Style.Defs do
   #
   #  def example(foo, bar \\ nil)
   #
-  def run({{def, _, [head]}, _} = zipper, ctx) when def in [:def, :defp] do
-    {{_, def_meta, _}, _} = zipper = reset_newlines(zipper)
+  def run({{def, def_meta, [head]}, _} = zipper, ctx) when def in [:def, :defp] do
     {_fn_name, head_meta, _children} = head
+    def_meta = reset_newlines(def_meta)
     first_line = def_meta[:line]
     last_line = head_meta[:closing][:line]
 
     if first_line == last_line do
       # Already collapsed
-      {:skip, zipper, ctx}
+      {:skip, Zipper.replace(zipper, {def, def_meta, [head]}), ctx}
     else
       comments = Style.displace_comments(ctx.comments, first_line..last_line)
       node = {def, def_meta, [flatten_head(head, def_meta[:line])]}
@@ -59,9 +59,7 @@ defmodule Styler.Style.Defs do
   end
 
   # all the other kinds of defs!
-  def run({{def, _, [head, body]}, _} = zipper, ctx) when def in [:def, :defp] do
-    {{_, def_meta, _}, _} = zipper = reset_newlines(zipper)
-
+  def run({{def, def_meta, [head, body]}, _} = zipper, ctx) when def in [:def, :defp] do
     {def_line, do_line, end_line} =
       if def_meta[:do] do
         # This is a def with a do block, like
@@ -86,6 +84,7 @@ defmodule Styler.Style.Defs do
         {def_line, do_line, end_line}
       end
 
+    def_meta = reset_newlines(def_meta)
     delta = def_line - do_line
     move_up = &(&1 + delta)
     set_to_def_line = fn _ -> def_line end
@@ -93,7 +92,7 @@ defmodule Styler.Style.Defs do
     cond do
       def_line == end_line ->
         # Already collapsed
-        {:skip, zipper, ctx}
+        {:skip, Zipper.replace(zipper, {def, def_meta, [head, body]}), ctx}
 
       def_meta[:do] ->
         # We're working on a def do ... end
@@ -156,9 +155,8 @@ defmodule Styler.Style.Defs do
     end)
   end
 
-  defp reset_newlines({{def, def_meta, args}, tree}) do
-    def_meta = Keyword.replace_lazy(def_meta, :end_of_expression, &Keyword.replace(&1, :newlines, 1))
-    {{def, def_meta, args}, tree}
+  defp reset_newlines(def_meta) do
+    Keyword.replace_lazy(def_meta, :end_of_expression, &Keyword.replace(&1, :newlines, 1))
   end
 
   defp update_all_meta(node, meta_fun) do
