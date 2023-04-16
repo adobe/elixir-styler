@@ -2,6 +2,14 @@
 
 ## main
 
+## v0.3.1
+
+### Fixes
+
+* `Pipes`
+    * fixed omission of `==` as a valid pipe start operator (h/t @peake100 for the issue)
+    * fixed rewrite of `a |> b`, where `b` was invoked without parenthesis
+
 ## v0.3.0
 
 ### Improvements
