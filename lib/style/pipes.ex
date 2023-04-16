@@ -26,12 +26,13 @@ defmodule Styler.Style.Pipes do
   @blocks ~w(case if with cond for unless)a
 
   # we're in a multi-pipe, so only need to fix pipe_start
-  def run({{:|>, _, [{:|>, _, _} | _]}, _} = zipper, ctx), do: {:cont, zipper |> check_start() |> Zipper.next(), ctx}
+  def run({{:|>, _, [{:|>, _, _} | _]}, _} = zipper, ctx), do: ({:cont, zipper |> check_start() |> Zipper.next(), ctx})
   # this is a single pipe, since valid pipelines are consumed by the previous head
   def run({{:|>, _, [lhs, {fun, meta, args}]}, _} = zipper, ctx) do
     if valid_pipe_start?(lhs) do
+      replacement = {fun, meta, [lhs | (args || [])]}
       # `a |> f(b, c)` => `f(a, b, c)`
-      {:cont, Zipper.replace(zipper, {fun, meta, [lhs | args]}), ctx}
+      {:cont, Zipper.replace(zipper, replacement), ctx}
     else
       zipper = fix_start(zipper)
       {maybe_block, _, _} = lhs
@@ -170,7 +171,7 @@ defmodule Styler.Style.Pipes do
   # most of these values were lifted directly from credo's pipe_chain_start.ex
   @value_constructors ~w(% %{} .. <<>> @ {} & fn)a
   @simple_operators ~w(++ -- && ||)a
-  @math_operators ~w(- * + / > < <= >=)a
+  @math_operators ~w(- * + / > < <= >= ==)a
   @binary_operators ~w(<> <- ||| &&& <<< >>> <<~ ~>> <~ ~> <~> <|> ^^^ ~~~)a
   defp valid_pipe_start?({op, _, _})
        when op in @value_constructors or op in @simple_operators or op in @math_operators or op in @binary_operators,
