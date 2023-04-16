@@ -132,7 +132,7 @@ defmodule Styler.Style.PipesTest do
     end
   end
 
-  describe "run on single pipe + start issues" do
+  describe "single pipe + start issues" do
     test "anon functio is finen" do
       assert_style("""
       fn
@@ -159,9 +159,17 @@ defmodule Styler.Style.PipesTest do
     end
   end
 
-  describe "run on single pipe issues" do
+  describe "single pipe issues" do
     test "fixes single pipe" do
       assert_style("a |> f()", "f(a)")
+    end
+
+    test "recognizes `==` as a valid pipe start" do
+      assert_style("(bar() == 1) |> foo()", "foo(bar() == 1)")
+    end
+
+    test "handles 1-arity functions written without parens" do
+      assert_style("x |> bar", "bar(x)")
     end
 
     test "fixes single pipe in function head" do

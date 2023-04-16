@@ -31,7 +31,7 @@ defmodule Styler.Style.Pipes do
   def run({{:|>, _, [lhs, {fun, meta, args}]}, _} = zipper, ctx) do
     if valid_pipe_start?(lhs) do
       # `a |> f(b, c)` => `f(a, b, c)`
-      {:cont, Zipper.replace(zipper, {fun, meta, [lhs | args]}), ctx}
+      {:cont, Zipper.replace(zipper, {fun, meta, [lhs | args || []]}), ctx}
     else
       zipper = fix_start(zipper)
       {maybe_block, _, _} = lhs
@@ -170,7 +170,7 @@ defmodule Styler.Style.Pipes do
   # most of these values were lifted directly from credo's pipe_chain_start.ex
   @value_constructors ~w(% %{} .. <<>> @ {} & fn)a
   @simple_operators ~w(++ -- && ||)a
-  @math_operators ~w(- * + / > < <= >=)a
+  @math_operators ~w(- * + / > < <= >= ==)a
   @binary_operators ~w(<> <- ||| &&& <<< >>> <<~ ~>> <~ ~> <~> <|> ^^^ ~~~)a
   defp valid_pipe_start?({op, _, _})
        when op in @value_constructors or op in @simple_operators or op in @math_operators or op in @binary_operators,
