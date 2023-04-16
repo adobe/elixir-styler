@@ -66,12 +66,13 @@ defmodule Styler.StyleCase do
       |> Zipper.traverse_while(%{comments: comments, file: "test"}, &style.run/2)
 
     styled_ast = Zipper.root(zipper)
+
     try do
       styled_code = Styler.quoted_to_string(styled_ast, comments)
       {styled_ast, styled_code, comments}
     rescue
       exception ->
-        IO.inspect styled_ast, label: [IO.ANSI.red(), "**Style created invalid ast:**", IO.ANSI.light_red()]
+        IO.inspect(styled_ast, label: [IO.ANSI.red(), "**Style created invalid ast:**", IO.ANSI.light_red()])
         reraise exception, __STACKTRACE__
     end
   end

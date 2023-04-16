@@ -165,7 +165,7 @@ defmodule Styler.Style.PipesTest do
     end
 
     test "recognizes `==` as a valid pipe star" do
-      assert_style "(bar() == 1) |> foo()", "foo(bar() == 1)"
+      assert_style("(bar() == 1) |> foo()", "foo(bar() == 1)")
     end
 
     test "handles 1-arity functions written without parens" do

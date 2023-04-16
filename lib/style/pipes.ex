@@ -26,11 +26,11 @@ defmodule Styler.Style.Pipes do
   @blocks ~w(case if with cond for unless)a
 
   # we're in a multi-pipe, so only need to fix pipe_start
-  def run({{:|>, _, [{:|>, _, _} | _]}, _} = zipper, ctx), do: ({:cont, zipper |> check_start() |> Zipper.next(), ctx})
+  def run({{:|>, _, [{:|>, _, _} | _]}, _} = zipper, ctx), do: {:cont, zipper |> check_start() |> Zipper.next(), ctx}
   # this is a single pipe, since valid pipelines are consumed by the previous head
   def run({{:|>, _, [lhs, {fun, meta, args}]}, _} = zipper, ctx) do
     if valid_pipe_start?(lhs) do
-      replacement = {fun, meta, [lhs | (args || [])]}
+      replacement = {fun, meta, [lhs | args || []]}
       # `a |> f(b, c)` => `f(a, b, c)`
       {:cont, Zipper.replace(zipper, replacement), ctx}
     else
