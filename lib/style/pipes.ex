@@ -30,9 +30,8 @@ defmodule Styler.Style.Pipes do
   # this is a single pipe, since valid pipelines are consumed by the previous head
   def run({{:|>, _, [lhs, {fun, meta, args}]}, _} = zipper, ctx) do
     if valid_pipe_start?(lhs) do
-      replacement = {fun, meta, [lhs | args || []]}
       # `a |> f(b, c)` => `f(a, b, c)`
-      {:cont, Zipper.replace(zipper, replacement), ctx}
+      {:cont, Zipper.replace(zipper, {fun, meta, [lhs | args || []]}), ctx}
     else
       zipper = fix_start(zipper)
       {maybe_block, _, _} = lhs
