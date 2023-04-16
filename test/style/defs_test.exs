@@ -12,6 +12,44 @@ defmodule Styler.Style.DefsTest do
   use Styler.StyleCase, style: Styler.Style.Defs, async: true
 
   describe "run" do
+    test "removes newlines from keyword-format defs" do
+      assert_style(
+        """
+        def bar(a)
+        def foo(a
+          \\\\ nil
+        )
+
+        def foo(a),
+          do: a
+
+        def foo(a), do: a
+
+        def foo(b) do
+          b
+        end
+
+        def foo(a), do: a
+
+        def foo(a), do: a
+
+        """,
+        """
+        def bar(a)
+        def foo(a \\\\ nil)
+        def foo(a), do: a
+        def foo(a), do: a
+
+        def foo(b) do
+          b
+        end
+
+        def foo(a), do: a
+        def foo(a), do: a
+        """
+      )
+    end
+
     test "function with do keyword" do
       assert_style(
         """

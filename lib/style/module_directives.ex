@@ -202,10 +202,8 @@ defmodule Styler.Style.ModuleDirectives do
     do: Enum.map(right, fn {_, meta, segments} -> {directive, meta, [{:__aliases__, [], module ++ segments}]} end)
 
   defp expand_directive(other), do: [other]
-
   defp reset_newlines([]), do: []
   defp reset_newlines(directives), do: reset_newlines(directives, [])
-
   defp reset_newlines([directive], acc), do: Enum.reverse([set_newlines(directive, 2) | acc])
   defp reset_newlines([directive | rest], acc), do: reset_newlines(rest, [set_newlines(directive, 1) | acc])
 

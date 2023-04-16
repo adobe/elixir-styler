@@ -51,13 +51,10 @@ defmodule Styler.Style.Simple do
   end
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
-
   defp delimit(token), do: token |> String.to_charlist() |> remove_underscores([]) |> add_underscores([])
-
   defp remove_underscores([?_ | rest], acc), do: remove_underscores(rest, acc)
   defp remove_underscores([digit | rest], acc), do: remove_underscores(rest, [digit | acc])
   defp remove_underscores([], reversed_list), do: reversed_list
-
   defp add_underscores([a, b, c, d | rest], acc), do: add_underscores([d | rest], [?_, c, b, a | acc])
   defp add_underscores(reversed_list, acc), do: reversed_list |> Enum.reverse(acc) |> to_string()
 end

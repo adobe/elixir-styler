@@ -196,7 +196,6 @@ defmodule Styler.Zipper do
   without moving.
   """
   def insert_child({tree, meta}, child), do: {do_insert_child(tree, child), meta}
-
   defp do_insert_child({form, meta, args}, child) when is_list(args), do: {form, meta, [child | args]}
   defp do_insert_child(list, child) when is_list(list), do: [child | list]
   defp do_insert_child({left, right}, child), do: {:{}, [], [child, left, right]}
@@ -206,7 +205,6 @@ defmodule Styler.Zipper do
   without moving.
   """
   def append_child({tree, meta}, child), do: {do_append_child(tree, child), meta}
-
   defp do_append_child({form, meta, args}, child) when is_list(args), do: {form, meta, args ++ [child]}
   defp do_append_child(list, child) when is_list(list), do: list ++ [child]
   defp do_append_child({left, right}, child), do: {:{}, [], [left, right, child]}
