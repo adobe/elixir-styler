@@ -164,7 +164,7 @@ defmodule Styler.Style.PipesTest do
       assert_style("a |> f()", "f(a)")
     end
 
-    test "recognizes `==` as a valid pipe star" do
+    test "recognizes `==` as a valid pipe start" do
       assert_style("(bar() == 1) |> foo()", "foo(bar() == 1)")
     end
 
