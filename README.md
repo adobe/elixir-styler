@@ -51,16 +51,16 @@ You can find the currently-enabled styles in the `Mix.Tasks.Style` module, insid
 
 | `Credo.Check`                                        | `Styler.Style`                       | Style notes              |
 |------------------------------------------------------|--------------------------------------|--------------------------|
-| `Credo.Check.Consistency.MultiAliasImportRequireUse` | `Styler.Style.ModuleDirectives`      | always expands `A.{B, C}`
-| `Credo.Check.Readability.AliasOrder`                 | `Styler.Style.ModuleDirectives`      |
-| `Credo.Check.Readability.BlockPipe`                  | `Styler.Style.Pipes`                 |
-| `Credo.Check.Readability.LargeNumbers`               | `Styler.Style.Simple`                | fixes bad underscores, ie: `100_00`
-| `Credo.Check.Readability.ModuleDoc`                  | `Styler.Style.ModuleDirectives`      | adds `@moduledoc false`
-| `Credo.Check.Readability.MultiAlias`                 | `Styler.Style.ModuleDirectives`      |
-| `Credo.Check.Readability.SinglePipe`                 | `Styler.Style.Pipes`                 |
-| `Credo.Check.Readability.StrictModuleLayout`         | `Styler.Style.ModuleDirectives`      | potentially destructive! (see moduledoc)
-| `Credo.Check.Readability.UnnecessaryAliasExpansion`  | `Styler.Style.ModuleDirectives`      |
-| `Credo.Check.Refactor.PipeChainStart`                | `Styler.Style.Pipes`                 |
+| `Credo.Check.Consistency.MultiAliasImportRequireUse` | `Styler.Style.ModuleDirectives`      | always expands `A.{B, C}` |
+| `Credo.Check.Readability.AliasOrder`                 | `Styler.Style.ModuleDirectives`      | |
+| `Credo.Check.Readability.BlockPipe`                  | `Styler.Style.Pipes`                 | |
+| `Credo.Check.Readability.LargeNumbers`               | `Styler.Style.Simple`                | fixes bad underscores, ie: `100_00` |
+| `Credo.Check.Readability.ModuleDoc`                  | `Styler.Style.ModuleDirectives`      | adds `@moduledoc false` |
+| `Credo.Check.Readability.MultiAlias`                 | `Styler.Style.ModuleDirectives`      | |
+| `Credo.Check.Readability.SinglePipe`                 | `Styler.Style.Pipes`                 | |
+| `Credo.Check.Readability.StrictModuleLayout`         | `Styler.Style.ModuleDirectives`      | potentially destructive! (see moduledoc) |
+| `Credo.Check.Readability.UnnecessaryAliasExpansion`  | `Styler.Style.ModuleDirectives`      | |
+| `Credo.Check.Refactor.PipeChainStart`                | `Styler.Style.Pipes`                 | |
 
 If you're using Credo and Styler, we recommend disabling these rules in Credo to save on unnecessary checks in CI.
 
