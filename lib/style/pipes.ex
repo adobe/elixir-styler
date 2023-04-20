@@ -33,32 +33,46 @@ defmodule Styler.Style.Pipes do
   def run({{:|>, _, _} = pipe, zmeta} = zipper, ctx) do
     {{:|>, pipe_meta, [lhs, rhs]}, _} = start_zipper = find_pipe_start({pipe, nil})
 
+    # Fix invalid starts
     zipper =
       if valid_pipe_start?(lhs) do
         zipper
       else
         {lhs_rewrite, new_assignment} = extract_start(lhs)
 
-        {pipe, _} =
+        {pipe, nil} =
           start_zipper
           |> Zipper.replace({:|>, pipe_meta, [lhs_rewrite, rhs]})
           |> Zipper.top()
 
         if new_assignment do
+          # It's important to note that with this branch, we're no longer
+          # focused on the pipe! We'll return to it in a future iteration of traverse_while
           {pipe, zmeta}
           |> find_valid_assignment_location()
           |> Zipper.insert_left(new_assignment)
+          |> Zipper.left()
         else
           {pipe, zmeta}
         end
       end
 
+    # Optimize and collapse the pipe
     zipper =
-      zipper
-      |> Zipper.traverse(&optimize/1)
-      |> collapse_single_pipe()
+      case Zipper.traverse(zipper, &optimize/1) do
+        {{:|>, _, [{:|>, _, _}, _]}, _} = chain_zipper ->
+          find_pipe_start(chain_zipper)
 
-    {:cont, find_pipe_start(zipper), ctx}
+        {{:|>, _, [lhs, {fun, meta, args}]}, _} = single_pipe_zipper ->
+          # Set the lhs to be on the same line as the pipe - keeps the formatter from making a multiline invocation
+          lhs = Macro.update_meta(lhs, &Keyword.replace(&1, :line, meta[:line]))
+          Zipper.replace(single_pipe_zipper, {fun, meta, [lhs | args || []]})
+
+        above_the_pipe_zipper ->
+          above_the_pipe_zipper
+      end
+
+    {:cont, zipper, ctx}
   end
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
@@ -94,16 +108,6 @@ defmodule Styler.Style.Pipes do
   # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
   defp extract_start({fun, meta, [arg | args]}), do: {{:|>, [], [arg, {fun, meta, args}]}, nil}
 
-  defp collapse_single_pipe({{:|>, _, [{:|>, _, _} | _]}, _} = zipper), do: zipper
-  # `a |> f(b, c)` => `f(a, b, c)`
-  defp collapse_single_pipe({{:|>, _, [lhs, {fun, meta, args}]}, _} = zipper) do
-    # Set the lhs to be on the same line as the pipe - keeps the formatter from making a multiline invocation
-    lhs = Macro.update_meta(lhs, &Keyword.replace(&1, :line, meta[:line]))
-    Zipper.replace(zipper, {fun, meta, [lhs | args || []]})
-  end
-
-  defp collapse_single_pipe(zipper), do: zipper
-
   # `a |> Enum.filter(b) |> Enum.count()` => `a |> Enum.count(b)`
   defp optimize(
          {{:|>, _,
@@ -115,6 +119,7 @@ defmodule Styler.Style.Pipes do
     Zipper.replace(zipper, {:|>, [], [lhs, {count, [], [filterer]}]})
   end
 
+  # `Enum.map |> Enum.join`  =>  `Enum.map_join`
   defp optimize(
          {{:|>, _,
            [
@@ -143,8 +148,6 @@ defmodule Styler.Style.Pipes do
   # for 3, we're done - wherever it is we are, our parent already supports us inserting a sibling node
   defp find_valid_assignment_location(zipper) do
     case Zipper.up(zipper) do
-      # still trying to find our way up the pipe, keep walking...
-      {{:|>, _, _}, _} = parent -> find_valid_assignment_location(parent)
       # the parent of this pipe is an assignment like
       #
       #   baz =
