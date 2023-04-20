@@ -81,8 +81,7 @@ defmodule Styler.Style.Pipes do
   defp find_pipe_start(zipper) do
     Zipper.find(zipper, fn
       {:|>, _, [{:|>, _, _}, _]} -> false
-      # Possibly not a pipe after all our rewrites
-      _ -> true
+      {:|>, _, [_, _]} -> true
     end)
   end
 
