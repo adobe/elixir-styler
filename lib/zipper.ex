@@ -319,7 +319,7 @@ defmodule Styler.Zipper do
   end
 
   def traverse_while({tree, meta}, fun) do
-    {updated, _meta} = do_traverse({tree, nil}, fun)
+    {updated, _meta} = do_traverse_while({tree, nil}, fun)
     {updated, meta}
   end
 
