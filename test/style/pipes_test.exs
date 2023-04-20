@@ -193,6 +193,31 @@ defmodule Styler.Style.PipesTest do
         bar(foo, baz, bop, boom)
         """
       )
+
+      assert_style(
+        """
+        foo
+        |> bar(baz)
+        """,
+        """
+        bar(foo, baz)
+        """
+      )
+
+      assert_style(
+        """
+        if true do false end
+        |> foo(bar)
+        """,
+        """
+        if_result =
+          if true do
+            false
+          end
+
+        foo(if_result, bar)
+        """
+      )
     end
 
     test "extracts blocks successfully" do

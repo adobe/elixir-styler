@@ -30,6 +30,8 @@ defmodule Styler.Style.Pipes do
   # this is a single pipe, since valid pipelines are consumed by the previous head
   def run({{:|>, _, [lhs, {fun, meta, args}]}, _} = zipper, ctx) do
     if valid_pipe_start?(lhs) do
+      # Set the lhs to be on the same line as the pipe - keeps the formatter from making a multiline invocation
+      lhs = Macro.update_meta(lhs, &Keyword.replace(&1, :line, meta[:line]))
       # `a |> f(b, c)` => `f(a, b, c)`
       {:cont, Zipper.replace(zipper, {fun, meta, [lhs | args || []]}), ctx}
     else
