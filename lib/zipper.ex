@@ -346,7 +346,7 @@ defmodule Styler.Zipper do
   end
 
   def traverse_while({tree, meta}, acc, fun) do
-    {{updated, _meta}, acc} = do_traverse({tree, nil}, acc, fun)
+    {{updated, _meta}, acc} = do_traverse_while({tree, nil}, acc, fun)
     {{updated, meta}, acc}
   end
 
@@ -366,10 +366,8 @@ defmodule Styler.Zipper do
   `:next`.
   """
   @spec find(zipper, direction :: :prev | :next, predicate :: (tree -> any)) :: zipper | nil
-  def find(zipper, direction \\ :next, predicate)
-  def find(nil, _direction, _predicate), do: nil
-
-  def find({tree, _} = zipper, direction, predicate) when direction in [:next, :prev] and is_function(predicate) do
+  def find({tree, _} = zipper, direction \\ :next, predicate)
+      when direction in [:next, :prev] and is_function(predicate) do
     if predicate.(tree) do
       zipper
     else

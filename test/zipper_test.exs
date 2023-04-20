@@ -363,6 +363,16 @@ defmodule StylerTest.ZipperTest do
     test "traverses until end while always skip" do
       assert {_, nil} = [1] |> Zipper.zip() |> Zipper.traverse_while(fn z -> {:skip, z} end)
     end
+
+    test "handles a zipper that isn't at the top" do
+      zipper = {{:node, [], [:a, :b]}, :pre_existing_meta}
+
+      assert {{{:node, [], [:a, :b]}, :pre_existing_meta}, :yay} =
+               Zipper.traverse_while(zipper, :boo, fn
+                 {:b, _} = zipper, :boo -> {:halt, zipper, :yay}
+                 zipper, boo -> {:cont, zipper, boo}
+               end)
+    end
   end
 
   describe "traverse_while/3" do
