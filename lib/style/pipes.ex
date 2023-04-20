@@ -25,87 +25,86 @@ defmodule Styler.Style.Pipes do
 
   @blocks ~w(case if with cond for unless)a
 
-  # we're in a multi-pipe, so only need to fix pipe_start
-  def run({{:|>, _, [{:|>, _, _} | _]}, _} = zipper, ctx), do: {:cont, zipper |> check_start() |> Zipper.next(), ctx}
-  # this is a single pipe, since valid pipelines are consumed by the previous head
-  def run({{:|>, _, [lhs, {fun, meta, args}]}, _} = zipper, ctx) do
-    if valid_pipe_start?(lhs) do
-      # Set the lhs to be on the same line as the pipe - keeps the formatter from making a multiline invocation
-      lhs = Macro.update_meta(lhs, &Keyword.replace(&1, :line, meta[:line]))
-      # `a |> f(b, c)` => `f(a, b, c)`
-      {:cont, Zipper.replace(zipper, {fun, meta, [lhs | args || []]}), ctx}
-    else
-      zipper = fix_start(zipper)
-      {maybe_block, _, _} = lhs
+  def run({{:|>, _, _}, _} = zipper, ctx) do
+    {zipper, new_assignment} =
+      Zipper.traverse_while(zipper, nil, fn
+        {{:|>, _, [{:|>, _, _}, _]}, _} = zipper, _ ->
+          {:cont, zipper, nil}
 
-      if maybe_block in @blocks do
-        # extracting a block means this is now `if_result |> single_pipe(a, b)`
-        # recursing will give us `single_pipe(if_result, a, b)`
-        run(zipper, ctx)
+        {{:|>, pipe_meta, [lhs, rhs]}, _} = zipper, _ ->
+          if valid_pipe_start?(lhs) do
+            {:halt, zipper, nil}
+          else
+            {lhs_rewrite, new_assignment} =
+              case lhs do
+                # `block do ... end |> ...`
+                # =======================>
+                # block_result =
+                #   block do
+                #     ...
+                #   end
+                #
+                # block_result
+                # |> ...
+                {block, _, _} when block in @blocks ->
+                  variable = {:"#{block}_result", [], nil}
+                  new_assignment = {:=, [], [variable, lhs]}
+                  {variable, new_assignment}
+
+                # `Module.foo(a, ...) |> ...` => `a |> Module.foo(...) |> ...`
+                {{:., dot_meta, dot_args}, args_meta, [arg | args]} ->
+                  {{:|>, args_meta, [arg, {{:., [], dot_args}, dot_meta, args}]}, nil}
+
+                # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
+                {fun, meta, [arg | args]} ->
+                  {{:|>, [], [arg, {fun, meta, args}]}, nil}
+              end
+
+            {:halt, Zipper.replace(zipper, {:|>, pipe_meta, [lhs_rewrite, rhs]}), new_assignment}
+          end
+      end)
+
+    # We can't insert the sibling within the traverse_while because the traversal context is reset, so it wouldn't
+    # be able to go all the way up to the parent level. now that we have full context again we'll do the insertion
+    zipper =
+      if new_assignment do
+        zipper
+        |> find_valid_assignment_location()
+        |> Zipper.insert_left(new_assignment)
       else
-        # fixing the start when it was a function call added another pipe to the chain, and so it's no longer
-        # a single pipe
-        {:cont, zipper, ctx}
+        zipper
       end
-    end
+
+    zipper =
+      zipper
+      |> Zipper.traverse(&optimize/1)
+      |> collapse_single_pipe()
+      |> Zipper.find(&(not match?({:|>, _, [{:|>, _, _}, _]}, &1)))
+
+    {:cont, zipper, ctx}
   end
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
 
-  # walking down a pipeline.
-  # for reference, `a |> b() |> c()` is encoded `{:|>, [{:|>, _, [a, b]}, c]}`
-  # that is, the outermost ast is the last step of the chain, and the innermost pipe is the first step of the chain
-  defp check_start({{:|>, _, [{:|>, _, _} | _]}, _} = zipper), do: zipper |> Zipper.next() |> check_start()
-  # we found the pipe starting expression!
-  defp check_start({{:|>, _, [lhs, _]}, _} = zip), do: if(valid_pipe_start?(lhs), do: zip, else: fix_start(zip))
-  defp check_start(zipper), do: zipper
-
-  # this rewrites pipes that begin with blocks to save the result of the block expression into its own (non-hygienic!)
-  # variable, and then use that variable as the start of the pipe. the variable is named after the type of block:
-  # `case_result` or `if_result`
-  #
-  # before:
-  #
-  #   case ... do
-  #     ...
-  #   end
-  #   |> a()
-  #   |> b()
-  #
-  # after:
-  #
-  #   case_result =
-  #     case ... do
-  #       ...
-  #     end
-  #
-  #   case_result
-  #   |> a()
-  #   |> b()
-  defp fix_start({{:|>, pipe_meta, [{block, _, _} = expression, rhs]}, _} = zipper) when block in @blocks do
-    variable = {:"#{block}_result", [], nil}
-
-    zipper
-    |> Zipper.replace({:|>, pipe_meta, [variable, rhs]})
-    |> find_valid_assignment_location()
-    |> Zipper.insert_left({:=, [], [variable, expression]})
+  defp collapse_single_pipe({{:|>, _, [{:|>, _, _} | _]}, _} = zipper), do: zipper
+  # `a |> f(b, c)` => `f(a, b, c)`
+  defp collapse_single_pipe({{:|>, _, [lhs, {fun, meta, args}]}, _} = zipper) do
+    # Set the lhs to be on the same line as the pipe - keeps the formatter from making a multiline invocation
+    lhs = Macro.update_meta(lhs, &Keyword.replace(&1, :line, meta[:line]))
+    Zipper.replace(zipper, {fun, meta, [lhs | args || []]})
   end
 
-  # this rewrites other invalid pipe starts: `Module.foo(...) |> ...` and `foo(...) |> ....`
-  defp fix_start({{:|>, pipe_meta, [lhs, rhs]}, _} = zipper) do
-    lhs_rewrite =
-      case lhs do
-        # `Module.foo(a, ...)` => `a |> Module.foo(...)`
-        {{:., dot_meta, dot_args}, args_meta, [arg | args]} ->
-          {:|>, args_meta, [arg, {{:., [], dot_args}, dot_meta, args}]}
-
-        # `foo(a, ...)` => `a |> foo(...)`
-        {atom, meta, [arg | args]} ->
-          {:|>, [], [arg, {atom, meta, args}]}
-      end
-
-    zipper |> Zipper.replace({:|>, pipe_meta, [lhs_rewrite, rhs]}) |> Zipper.next()
+  defp optimize(
+         {{:|>, _,
+           [
+             {:|>, meta, [lhs, {{:., _, [{:__aliases__, _, [:Enum]}, :filter]}, _, [fun]}]},
+             {{:., _, [{:__aliases__, _, [:Enum]}, :count]} = count, count_meta, []}
+           ]}, _} = zipper
+       ) do
+    Zipper.replace(zipper, {:|>, meta, [lhs, {count, count_meta, [fun]}]})
   end
+
+  defp optimize(zipper), do: zipper
 
   # this really needs a better name.
   # essentially what we're doing is walking up the tree in search of a parent where it would be syntactically valid

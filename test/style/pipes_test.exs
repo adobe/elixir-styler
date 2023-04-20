@@ -11,6 +11,57 @@
 defmodule Styler.Style.PipesTest do
   use Styler.StyleCase, style: Styler.Style.Pipes, async: true
 
+  describe "optimizations" do
+    test "filter/count" do
+      assert_style(
+        """
+        a
+        |> Enum.filter(fn x -> !! x end)
+        |> Enum.count()
+        |> IO.puts()
+        """,
+        """
+        a
+        |> Enum.count(fn x -> !!x end)
+        |> IO.puts()
+        """
+      )
+
+      assert_style(
+        """
+        a
+        |> Enum.filter(fn x -> !! x end)
+        |> Enum.count()
+        """,
+        """
+        Enum.count(a, fn x -> !!x end)
+        """
+      )
+
+      assert_style(
+        """
+        if true do
+          []
+        else
+          [a, b, c]
+        end
+        |> Enum.filter(fun)
+        |> Enum.count()
+        """,
+        """
+        if_result =
+          if true do
+            []
+          else
+            [a, b, c]
+          end
+
+        Enum.count(if_result, fun)
+        """
+      )
+    end
+  end
+
   describe "block starts" do
     test "rewrites fors" do
       assert_style(
@@ -156,6 +207,45 @@ defmodule Styler.Style.PipesTest do
 
       a |> b() |> c()
       """)
+    end
+  end
+
+  describe "nested pipes" do
+    test "nested pipes" do
+      assert_style(
+        """
+        a
+        |> e(fn x ->
+          with({:ok, value} <- efoo(x), do: value)
+          |> ebar()
+          |> ebaz()
+        end)
+        |> b(fn x ->
+          with({:ok, value} <- foo(x), do: value)
+          |> bar()
+          |> baz()
+        end)
+        |> c
+        """,
+        """
+        a
+        |> e(fn x ->
+          with_result = with({:ok, value} <- efoo(x), do: value)
+
+          with_result
+          |> ebar()
+          |> ebaz()
+        end)
+        |> b(fn x ->
+          with_result = with({:ok, value} <- foo(x), do: value)
+
+          with_result
+          |> bar()
+          |> baz()
+        end)
+        |> c
+        """
+      )
     end
   end
 
