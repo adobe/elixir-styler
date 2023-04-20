@@ -16,13 +16,13 @@ defmodule Styler.Style.PipesTest do
       assert_style(
         """
         a
-        |> Enum.filter(fn x -> !! x end)
+        |> Enum.filter(fun)
         |> Enum.count()
         |> IO.puts()
         """,
         """
         a
-        |> Enum.count(fn x -> !!x end)
+        |> Enum.count(fun)
         |> IO.puts()
         """
       )
@@ -30,11 +30,11 @@ defmodule Styler.Style.PipesTest do
       assert_style(
         """
         a
-        |> Enum.filter(fn x -> !! x end)
+        |> Enum.filter(fun)
         |> Enum.count()
         """,
         """
-        Enum.count(a, fn x -> !!x end)
+        Enum.count(a, fun)
         """
       )
 
@@ -64,12 +64,12 @@ defmodule Styler.Style.PipesTest do
     test "map/join" do
       assert_style(
         """
-        ["a", "b", "c"]
-        |> Enum.map(&String.upcase/1)
-        |> Enum.join(", ")
+        a
+        |> Enum.map(b)
+        |> Enum.join("|")
         """,
         """
-        Enum.map_join(["a", "b", "c"], ", ", &String.upcase/1)
+        Enum.map_join(a, "|", b)
         """
       )
     end
@@ -77,26 +77,26 @@ defmodule Styler.Style.PipesTest do
     test "map/into" do
       assert_style(
         """
-        [:a, :b, :c]
-        |> Enum.map(&({&1, to_string(&1)}))
+        a
+        |> Enum.map(b)
         |> Enum.into(%{})
         """,
-        "Map.new([:a, :b, :c], &{&1, to_string(&1)})"
+        "Map.new(a, b)"
       )
 
       assert_style(
         """
-        [:a, :b, :c]
-        |> Enum.map(&({&1, to_string(&1)}))
+        a
+        |> Enum.map(b)
         |> Enum.into(Map.new())
         """,
-        "Map.new([:a, :b, :c], &{&1, to_string(&1)})"
+        "Map.new(a, b)"
       )
 
       assert_style("""
-      [:a, :b, :c]
-      |> Enum.map(&{&1, to_string(&1)})
-      |> Enum.into(%{}, & &1)
+      a
+      |> Enum.map(b)
+      |> Enum.into(%{}, c)
       """)
     end
   end
