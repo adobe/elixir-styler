@@ -37,7 +37,7 @@ defmodule Styler.Style.Pipes do
       if valid_pipe_start?(lhs) do
         zipper
       else
-        {lhs_rewrite, new_assignment} = fix_start(lhs)
+        {lhs_rewrite, new_assignment} = extract_start(lhs)
 
         {pipe, _} =
           start_zipper
@@ -80,19 +80,19 @@ defmodule Styler.Style.Pipes do
   #
   # block_result
   # |> ...
-  defp fix_start({block, _, _} = lhs) when block in @blocks do
+  defp extract_start({block, _, _} = lhs) when block in @blocks do
     variable = {:"#{block}_result", [], nil}
     new_assignment = {:=, [], [variable, lhs]}
     {variable, new_assignment}
   end
 
   # `Module.foo(a, ...) |> ...` => `a |> Module.foo(...) |> ...`
-  defp fix_start({{:., dot_meta, dot_args}, args_meta, [arg | args]}) do
+  defp extract_start({{:., dot_meta, dot_args}, args_meta, [arg | args]}) do
     {{:|>, args_meta, [arg, {{:., [], dot_args}, dot_meta, args}]}, nil}
   end
 
   # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
-  defp fix_start({fun, meta, [arg | args]}), do: {{:|>, [], [arg, {fun, meta, args}]}, nil}
+  defp extract_start({fun, meta, [arg | args]}), do: {{:|>, [], [arg, {fun, meta, args}]}, nil}
 
   defp collapse_single_pipe({{:|>, _, [{:|>, _, _} | _]}, _} = zipper), do: zipper
   # `a |> f(b, c)` => `f(a, b, c)`
