@@ -17,6 +17,11 @@ defmodule Styler.Style.Pipes do
     * Credo.Check.Readability.BlockPipe
     * Credo.Check.Readability.SinglePipe
     * Credo.Check.Refactor.PipeChainStart, excluded_functions: ["from"]
+
+  The following two rules are only corrected within pipe chains; nested functions aren't fixed
+
+    * Credo.Check.Refactor.FilterCount
+    * Credo.Check.Refactor.MapJoin
   """
 
   @behaviour Styler.Style
@@ -94,14 +99,29 @@ defmodule Styler.Style.Pipes do
     Zipper.replace(zipper, {fun, meta, [lhs | args || []]})
   end
 
+  # `a |> Enum.filter(b) |> Enum.count()` => `a |> Enum.count(b)`
   defp optimize(
          {{:|>, _,
            [
-             {:|>, meta, [lhs, {{:., _, [{:__aliases__, _, [:Enum]}, :filter]}, _, [fun]}]},
-             {{:., _, [{:__aliases__, _, [:Enum]}, :count]} = count, count_meta, []}
+             {:|>, _, [lhs, {{:., _, [{:__aliases__, _, [:Enum]}, :filter]}, _, [fun]}]},
+             {{:., _, [{:__aliases__, _, [:Enum]}, :count]} = count, _, []}
            ]}, _} = zipper
        ) do
-    Zipper.replace(zipper, {:|>, meta, [lhs, {count, count_meta, [fun]}]})
+    Zipper.replace(zipper, {:|>, [], [lhs, {count, [], [fun]}]})
+  end
+
+  defp optimize(
+         {{:|>, _,
+           [
+             {:|>, _, [lhs, {{:., _, [{:__aliases__, _, [:Enum]}, :map]}, _, [mapper]}]},
+             {{:., _, [{:__aliases__, _, [:Enum]}, :join]}, _, [joiner]}
+           ]}, _} = zipper
+       ) do
+    # Delete line info to keep things shrunk on the rewrite
+    joiner = Macro.update_meta(joiner, &Keyword.delete(&1, :line))
+    mapper = Macro.update_meta(mapper, &Keyword.delete(&1, :line))
+    rhs = {{:., [], [{:__aliases__, [], [:Enum]}, :map_join]}, [], [joiner, mapper]}
+    Zipper.replace(zipper, {:|>, [], [lhs, rhs]})
   end
 
   defp optimize(zipper), do: zipper

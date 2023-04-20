@@ -60,6 +60,17 @@ defmodule Styler.Style.PipesTest do
         """
       )
     end
+
+    test "map/join" do
+      assert_style """
+      ["a", "b", "c"]
+      |> Enum.map(&String.upcase/1)
+      |> Enum.join(", ")
+      """,
+      """
+      Enum.map_join(["a", "b", "c"], ", ", &String.upcase/1)
+      """
+    end
   end
 
   describe "block starts" do
