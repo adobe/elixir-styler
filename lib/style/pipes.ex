@@ -30,66 +30,69 @@ defmodule Styler.Style.Pipes do
 
   @blocks ~w(case if with cond for unless)a
 
-  def run({{:|>, _, _}, _} = zipper, ctx) do
-    {zipper, new_assignment} =
-      Zipper.traverse_while(zipper, nil, fn
-        {{:|>, _, [{:|>, _, _}, _]}, _} = zipper, _ ->
-          {:cont, zipper, nil}
+  def run({{:|>, _, _} = pipe, zmeta} = zipper, ctx) do
+    {{:|>, pipe_meta, [lhs, rhs]}, _} = start_zipper = find_pipe_start({pipe, nil})
 
-        {{:|>, pipe_meta, [lhs, rhs]}, _} = zipper, _ ->
-          if valid_pipe_start?(lhs) do
-            {:halt, zipper, nil}
-          else
-            {lhs_rewrite, new_assignment} =
-              case lhs do
-                # `block do ... end |> ...`
-                # =======================>
-                # block_result =
-                #   block do
-                #     ...
-                #   end
-                #
-                # block_result
-                # |> ...
-                {block, _, _} when block in @blocks ->
-                  variable = {:"#{block}_result", [], nil}
-                  new_assignment = {:=, [], [variable, lhs]}
-                  {variable, new_assignment}
-
-                # `Module.foo(a, ...) |> ...` => `a |> Module.foo(...) |> ...`
-                {{:., dot_meta, dot_args}, args_meta, [arg | args]} ->
-                  {{:|>, args_meta, [arg, {{:., [], dot_args}, dot_meta, args}]}, nil}
-
-                # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
-                {fun, meta, [arg | args]} ->
-                  {{:|>, [], [arg, {fun, meta, args}]}, nil}
-              end
-
-            {:halt, Zipper.replace(zipper, {:|>, pipe_meta, [lhs_rewrite, rhs]}), new_assignment}
-          end
-      end)
-
-    # We can't insert the sibling within the traverse_while because the traversal context is reset, so it wouldn't
-    # be able to go all the way up to the parent level. now that we have full context again we'll do the insertion
     zipper =
-      if new_assignment do
+      if valid_pipe_start?(lhs) do
         zipper
-        |> find_valid_assignment_location()
-        |> Zipper.insert_left(new_assignment)
       else
-        zipper
+        {lhs_rewrite, new_assignment} = fix_start(lhs)
+
+        {pipe, _} =
+          start_zipper
+          |> Zipper.replace({:|>, pipe_meta, [lhs_rewrite, rhs]})
+          |> Zipper.top()
+
+        if new_assignment do
+          {pipe, zmeta}
+          |> find_valid_assignment_location()
+          |> Zipper.insert_left(new_assignment)
+        else
+          {pipe, zmeta}
+        end
       end
 
     zipper =
       zipper
       |> Zipper.traverse(&optimize/1)
       |> collapse_single_pipe()
-      |> Zipper.find(&(not match?({:|>, _, [{:|>, _, _}, _]}, &1)))
 
-    {:cont, zipper, ctx}
+    {:cont, find_pipe_start(zipper), ctx}
   end
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
+
+  defp find_pipe_start(zipper) do
+    Zipper.find(zipper, fn
+      {:|>, _, [{:|>, _, _}, _]} -> false
+      # Possibly not a pipe after all our rewrites
+      _ -> true
+    end)
+  end
+
+  # `block do ... end |> ...`
+  # =======================>
+  # block_result =
+  #   block do
+  #     ...
+  #   end
+  #
+  # block_result
+  # |> ...
+  defp fix_start({block, _, _} = lhs) when block in @blocks do
+    variable = {:"#{block}_result", [], nil}
+    new_assignment = {:=, [], [variable, lhs]}
+    {variable, new_assignment}
+  end
+
+  # `Module.foo(a, ...) |> ...` => `a |> Module.foo(...) |> ...`
+  defp fix_start({{:., dot_meta, dot_args}, args_meta, [arg | args]}) do
+    {{:|>, args_meta, [arg, {{:., [], dot_args}, dot_meta, args}]}, nil}
+  end
+
+  # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
+  defp fix_start({fun, meta, [arg | args]}), do: {{:|>, [], [arg, {fun, meta, args}]}, nil}
 
   defp collapse_single_pipe({{:|>, _, [{:|>, _, _} | _]}, _} = zipper), do: zipper
   # `a |> f(b, c)` => `f(a, b, c)`
@@ -99,15 +102,17 @@ defmodule Styler.Style.Pipes do
     Zipper.replace(zipper, {fun, meta, [lhs | args || []]})
   end
 
+  defp collapse_single_pipe(zipper), do: zipper
+
   # `a |> Enum.filter(b) |> Enum.count()` => `a |> Enum.count(b)`
   defp optimize(
          {{:|>, _,
            [
-             {:|>, _, [lhs, {{:., _, [{:__aliases__, _, [:Enum]}, :filter]}, _, [fun]}]},
+             {:|>, _, [lhs, {{:., _, [{:__aliases__, _, [:Enum]}, :filter]}, _, [filterer]}]},
              {{:., _, [{:__aliases__, _, [:Enum]}, :count]} = count, _, []}
            ]}, _} = zipper
        ) do
-    Zipper.replace(zipper, {:|>, [], [lhs, {count, [], [fun]}]})
+    Zipper.replace(zipper, {:|>, [], [lhs, {count, [], [filterer]}]})
   end
 
   defp optimize(

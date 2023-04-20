@@ -74,6 +74,27 @@ defmodule Styler.Style.PipesTest do
   end
 
   describe "block starts" do
+    test "variable assignment of a block" do
+      assert_style """
+      x =
+        case y do
+          :ok -> :ok
+        end
+        |> bar()
+        |> baz()
+      """,
+      """
+      case_result =
+        case y do
+          :ok -> :ok
+        end
+
+      x =
+        case_result
+        |> bar()
+        |> baz()
+      """
+    end
     test "rewrites fors" do
       assert_style(
         """
