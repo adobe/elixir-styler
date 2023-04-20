@@ -2,6 +2,10 @@
 
 ## main
 
+### Fixes
+
+* `Pipes` tries even harder to keep single-pipe rewrites of invocations on one line
+
 ## v0.3.1
 
 ### Fixes
