@@ -2,6 +2,13 @@
 
 ## main
 
+### Improvements
+
+* `Pipes` rewrites some two-step processes into one, fixing these credo issues in pipe chains:
+    * `Credo.Check.Refactor.FilterCount`
+    * `Credo.Check.Refactor.MapJoin`
+    * `Credo.Check.Refactor.MapInto`
+
 ### Fixes
 
 * `Pipes` tries even harder to keep single-pipe rewrites of invocations on one line

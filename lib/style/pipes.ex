@@ -22,6 +22,7 @@ defmodule Styler.Style.Pipes do
 
     * Credo.Check.Refactor.FilterCount
     * Credo.Check.Refactor.MapJoin
+    * Credo.Check.Refactor.MapInto
   """
 
   @behaviour Styler.Style
@@ -119,7 +120,7 @@ defmodule Styler.Style.Pipes do
     Zipper.replace(zipper, {:|>, [], [lhs, {count, [], [filterer]}]})
   end
 
-  # `Enum.map |> Enum.join`  =>  `Enum.map_join`
+  # `Enum.map |> Enum.join` => `Enum.map_join`
   defp optimize(
          {{:|>, _,
            [
@@ -134,7 +135,27 @@ defmodule Styler.Style.Pipes do
     Zipper.replace(zipper, {:|>, [], [lhs, rhs]})
   end
 
+  # `Enum.map |> Enum.into` => `Map.new`
+  defp optimize(
+         {{:|>, _,
+           [
+             {:|>, _, [lhs, {{:., _, [{:__aliases__, _, [:Enum]}, :map]}, _, [mapper]}]},
+             {{:., _, [{:__aliases__, _, [:Enum]}, :into]}, _, [collectable]}
+           ]}, _} = zipper
+       ) do
+    rhs =
+      if empty_map?(collectable),
+        do: {{:., [], [{:__aliases__, [], [:Map]}, :new]}, [], [mapper]},
+        else: {{:., [], [{:__aliases__, [], [:Enum]}, :into]}, [], [collectable, mapper]}
+
+    Zipper.replace(zipper, {:|>, [], [lhs, rhs]})
+  end
+
   defp optimize(zipper), do: zipper
+
+  defp empty_map?({:%{}, _, []}), do: true
+  defp empty_map?({{:., _, [{:__aliases__, _, [:Map]}, :new]}, _, []}), do: true
+  defp empty_map?(_), do: false
 
   # this really needs a better name.
   # essentially what we're doing is walking up the tree in search of a parent where it would be syntactically valid

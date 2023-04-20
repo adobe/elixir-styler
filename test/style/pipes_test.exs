@@ -73,6 +73,32 @@ defmodule Styler.Style.PipesTest do
         """
       )
     end
+
+    test "map/into" do
+      assert_style(
+        """
+        [:a, :b, :c]
+        |> Enum.map(&({&1, to_string(&1)}))
+        |> Enum.into(%{})
+        """,
+        "Map.new([:a, :b, :c], &{&1, to_string(&1)})"
+      )
+
+      assert_style(
+        """
+        [:a, :b, :c]
+        |> Enum.map(&({&1, to_string(&1)}))
+        |> Enum.into(Map.new())
+        """,
+        "Map.new([:a, :b, :c], &{&1, to_string(&1)})"
+      )
+
+      assert_style("""
+      [:a, :b, :c]
+      |> Enum.map(&{&1, to_string(&1)})
+      |> Enum.into(%{}, & &1)
+      """)
+    end
   end
 
   describe "block starts" do
