@@ -203,12 +203,12 @@ defmodule Styler.Style.ModuleDirectivesTest do
 
   describe "strange parents!" do
     test "anon function" do
-      assert_style "fn -> alias A.{C, B} end", """
+      assert_style("fn -> alias A.{C, B} end", """
       fn ->
         alias A.B
         alias A.C
       end
-      """
+      """)
     end
 
     test "quote do with one child" do
