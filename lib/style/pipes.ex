@@ -27,6 +27,7 @@ defmodule Styler.Style.Pipes do
 
   @behaviour Styler.Style
 
+  alias Styler.Style
   alias Styler.Zipper
 
   @blocks ~w(case if with cond for unless)a
@@ -65,8 +66,7 @@ defmodule Styler.Style.Pipes do
           find_pipe_start(chain_zipper)
 
         {{:|>, _, [lhs, {fun, meta, args}]}, _} = single_pipe_zipper ->
-          # Set the lhs to be on the same line as the pipe - keeps the formatter from making a multiline invocation
-          lhs = Macro.update_meta(lhs, &Keyword.replace(&1, :line, meta[:line]))
+          lhs = Style.delete_line_meta(lhs)
           Zipper.replace(single_pipe_zipper, {fun, meta, [lhs | args || []]})
 
         above_the_pipe_zipper ->
@@ -128,8 +128,8 @@ defmodule Styler.Style.Pipes do
            ]}, _} = zipper
        ) do
     # Delete line info to keep things shrunk on the rewrite
-    joiner = Macro.update_meta(joiner, &Keyword.delete(&1, :line))
-    mapper = Macro.update_meta(mapper, &Keyword.delete(&1, :line))
+    joiner = Style.delete_line_meta(joiner)
+    mapper = Style.delete_line_meta(mapper)
     rhs = {{:., [], [{:__aliases__, [], [:Enum]}, :map_join]}, [], [joiner, mapper]}
     Zipper.replace(zipper, {:|>, [], [lhs, rhs]})
   end
@@ -142,6 +142,8 @@ defmodule Styler.Style.Pipes do
              {{:., _, [{:__aliases__, _, [:Enum]}, :into]}, _, [collectable]}
            ]}, _} = zipper
        ) do
+    mapper = Style.delete_line_meta(mapper)
+
     rhs =
       if empty_map?(collectable),
         do: {{:., [], [{:__aliases__, [], [:Map]}, :new]}, [], [mapper]},

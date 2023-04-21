@@ -98,6 +98,24 @@ defmodule Styler.Style.PipesTest do
       |> Enum.map(b)
       |> Enum.into(%{}, c)
       """)
+
+      assert_style(
+        """
+        a
+        |> Enum.map(b)
+        |> Enum.into(my_map)
+        """,
+        "Enum.into(a, my_map, b)"
+      )
+
+      assert_style(
+        """
+        a
+        |> Enum.map(b)
+        |> Enum.into(%{some: :existing_map})
+        """,
+        "Enum.into(a, %{some: :existing_map}, b)"
+      )
     end
   end
 
