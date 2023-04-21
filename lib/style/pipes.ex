@@ -51,7 +51,7 @@ defmodule Styler.Style.Pipes do
           # It's important to note that with this branch, we're no longer
           # focused on the pipe! We'll return to it in a future iteration of traverse_while
           {pipe, zmeta}
-          |> find_valid_assignment_location()
+          |> Style.ensure_block_parent()
           |> Zipper.insert_left(new_assignment)
           |> Zipper.left()
         else
@@ -157,60 +157,6 @@ defmodule Styler.Style.Pipes do
   defp empty_map?({:%{}, _, []}), do: true
   defp empty_map?({{:., _, [{:__aliases__, _, [:Map]}, :new]}, _, []}), do: true
   defp empty_map?(_), do: false
-
-  # this really needs a better name.
-  # essentially what we're doing is walking up the tree in search of a parent where it would be syntactically valid
-  # to insert a new "assignment" node (`x = y`)
-  # as we walk up the tree, our parent will be either
-  # 1. an invalid node for an assignment (still in the pipeline or in another assignment)
-  # 2. the start of the context (function def start)
-  # 3. something else!
-  # for 1, we keep going up
-  # for 2, we wrap ourselves in a new block parent (where we can insert a sibling node)
-  # for 3, we're done - wherever it is we are, our parent already supports us inserting a sibling node
-  defp find_valid_assignment_location(zipper) do
-    case Zipper.up(zipper) do
-      # the parent of this pipe is an assignment like
-      #
-      #   baz =
-      #     block do ... end
-      #     |> ...
-      #
-      # so we need to step up again and see what the assignment's parent is, with the goal of inserting our new
-      # assignment before the assignment built from the pipe chain, like:
-      #
-      #   block_result = block do ... end
-      #   baz =
-      #     block_result
-      #     |> ...
-      {{:=, _, _}, _} = parent -> find_valid_assignment_location(parent)
-      # we're in a function which is an immediate pipeline, like:
-      #
-      # def fun do
-      #   block do end
-      #   |> f()
-      # end
-      {{{:__block__, _, _}, {:|>, _, _}}, _} -> wrap_in_block(zipper)
-      # similar to the function definition, except it's an anonymous function this time
-      #
-      # fn ->
-      #   case do end
-      #   |> b()
-      # end
-      {{:->, _, [_, {:|>, _, _} | _]}, _} -> wrap_in_block(zipper)
-      # a snippet or script where the problem block has no parent
-      nil -> wrap_in_block(zipper)
-      # since its parent isn't one of the problem AST above, the current zipper must be a valid place to insert the node
-      _ -> zipper
-    end
-  end
-
-  # give it a block parent, then step back to the pipe - we can insert next to it now that it's in a block
-  defp wrap_in_block({node, _} = zipper) do
-    zipper
-    |> Zipper.replace({:__block__, [], [node]})
-    |> Zipper.next()
-  end
 
   # literal wrapper
   defp valid_pipe_start?({:__block__, _, _}), do: true

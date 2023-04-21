@@ -65,6 +65,7 @@ defmodule Styler.Style.ModuleDirectives do
   """
   @behaviour Styler.Style
 
+  alias Styler.Style
   alias Styler.Zipper
 
   @directives ~w(alias import require use)a
@@ -109,19 +110,8 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  def run({{d, _, _} = directive, _} = zipper, ctx) when d in @directives do
-    parent =
-      case Zipper.up(zipper) do
-        nil ->
-          Zipper.replace(zipper, {:__block__, [], [directive]})
-
-        {{{:__block__, _, [:do]}, _only_child}, _} ->
-          Zipper.replace(zipper, {:__block__, [], [directive]})
-
-        parent ->
-          parent
-      end
-
+  def run({{directive, _, _}, _} = zipper, ctx) when directive in @directives do
+    parent = zipper |> Style.ensure_block_parent() |> Zipper.up()
     {:skip, organize_directives(parent), ctx}
   end
 

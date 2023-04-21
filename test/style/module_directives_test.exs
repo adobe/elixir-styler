@@ -201,7 +201,16 @@ defmodule Styler.Style.ModuleDirectivesTest do
     end
   end
 
-  describe "quote blocks" do
+  describe "strange parents!" do
+    test "anon function" do
+      assert_style("fn -> alias A.{C, B} end", """
+      fn ->
+        alias A.B
+        alias A.C
+      end
+      """)
+    end
+
     test "quote do with one child" do
       assert_style(
         """
