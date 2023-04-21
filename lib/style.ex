@@ -32,6 +32,36 @@ defmodule Styler.Style do
   @callback run(Zipper.zipper(), context()) :: {Zipper.command(), Zipper.zipper(), context()}
 
   @doc """
+  Ensure the parent node can have multiple children.
+
+  If a context-changing node (a `do end` block or an `->` arrow block) is encountered
+  the child is wrapped in a `:__block__`
+
+  Other nodes (pipes, assignments) can only have a fixed number of children. This function
+  will recursively traverse up the zipper until it's found the parents of those nodes.
+  """
+  def ensure_block_parent(zipper) do
+    case Zipper.up(zipper) do
+      # Pipes and assignments have exactly two children - keep going up
+      {{:|>, _, _}, _} = parent -> ensure_block_parent(parent)
+      {{:=, _, _}, _} = parent -> ensure_block_parent(parent)
+      # the current zipper is an only-child of an arrow ala `true -> :ok`
+      # we need to change the body of the arrow to be a `:__block__` so our `:ok` can have siblings
+      {{:->, _, _}, _} -> wrap_in_block(zipper)
+      # parent is an only-child of a `do` block
+      {{_, _}, _} -> wrap_in_block(zipper)
+      # a snippet or script where the zipper is a single child with no parent above it
+      nil -> wrap_in_block(zipper)
+      # since its parent isn't one of the problem AST above, the current zipper's parent can have multiple children, so we're done
+      # could be `:def`, `:__block__`, ...
+      _ -> zipper
+    end
+  end
+
+  # give it a block parent, then step back to the child - we can insert next to it now that it's in a block
+  defp wrap_in_block(zipper), do: zipper |> Zipper.update(&{:__block__, [], [&1]}) |> Zipper.down()
+
+  @doc """
   Set the line of all comments with `line` in `range_start..range_end` to instead have line `range_start`
   """
   def displace_comments(comments, range) do
