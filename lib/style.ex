@@ -34,7 +34,11 @@ defmodule Styler.Style do
   @doc """
   Ensure the parent node can have multiple children.
 
-  If a context-changing node is encountered (a `do end` block or an `->` arrow block) the child is wrapped in a `:__block__`
+  If a context-changing node (a `do end` block or an `->` arrow block) is encountered
+  the child is wrapped in a `:__block__`
+
+  Other nodes (pipes, assignments) can only have a fixed number of children. This function
+  will recursively traverse up the zipper until it's found the parents of those nodes.
   """
   def ensure_block_parent(zipper) do
     case Zipper.up(zipper) do
