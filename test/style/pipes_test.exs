@@ -116,6 +116,21 @@ defmodule Styler.Style.PipesTest do
         """,
         "Enum.into(a, %{some: :existing_map}, b)"
       )
+
+      assert_style(
+        """
+        a_multiline_mapper
+        |> Enum.map(fn %{gets: shrunk, down: to_a_more_reasonable} ->
+          {shrunk, to_a_more_reasonable}
+        end)
+        |> Enum.into(size)
+        """,
+        """
+        Enum.into(a_multiline_mapper, size, fn %{gets: shrunk, down: to_a_more_reasonable} ->
+          {shrunk, to_a_more_reasonable}
+        end)
+        """
+      )
     end
   end
 

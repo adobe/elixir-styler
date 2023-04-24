@@ -152,7 +152,7 @@ defmodule Styler.Style.Pipes do
     rhs =
       if empty_map?(collectable),
         do: {{:., [], [{:__aliases__, [], [:Map]}, :new]}, [], [mapper]},
-        else: {into, [], [collectable, mapper]}
+        else: {into, [], [Style.delete_line_meta(collectable), mapper]}
 
     {:|>, [], [lhs, rhs]}
   end
