@@ -34,8 +34,19 @@ defmodule Styler.Style.Pipes do
 
   def run({{:|>, _, _}, _} = zipper, ctx) do
     case fix_pipe_start(zipper) do
-      {{:|>, _, _}, _} = zipper -> {:cont, optimize_and_collapse(zipper), ctx}
-      non_pipe -> {:cont, non_pipe, ctx}
+      {{:|>, _, _}, _} = zipper ->
+        case Zipper.traverse(zipper, fn {node, meta} -> {optimize(node), meta} end) do
+          {{:|>, _, [{:|>, _, _}, _]}, _} = chain_zipper ->
+            {:cont, find_pipe_start(chain_zipper), ctx}
+
+          {{:|>, _, [lhs, {fun, meta, args}]}, _} = single_pipe_zipper ->
+            lhs = Style.delete_line_meta(lhs)
+            function_call_zipper = Zipper.replace(single_pipe_zipper, {fun, meta, [lhs | args || []]})
+            {:cont, function_call_zipper, ctx}
+        end
+
+      non_pipe ->
+        {:cont, non_pipe, ctx}
     end
   end
 
@@ -64,17 +75,6 @@ defmodule Styler.Style.Pipes do
       else
         {pipe, zmeta}
       end
-    end
-  end
-
-  defp optimize_and_collapse({{:|>, _, _}, _} = zipper) do
-    case Zipper.traverse(zipper, fn {node, meta} -> {optimize(node), meta} end) do
-      {{:|>, _, [{:|>, _, _}, _]}, _} = chain_zipper ->
-        find_pipe_start(chain_zipper)
-
-      {{:|>, _, [lhs, {fun, meta, args}]}, _} = single_pipe_zipper ->
-        lhs = Style.delete_line_meta(lhs)
-        Zipper.replace(single_pipe_zipper, {fun, meta, [lhs | args || []]})
     end
   end
 
