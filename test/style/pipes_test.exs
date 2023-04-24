@@ -93,12 +93,6 @@ defmodule Styler.Style.PipesTest do
         "Map.new(a, b)"
       )
 
-      assert_style("""
-      a
-      |> Enum.map(b)
-      |> Enum.into(%{}, c)
-      """)
-
       assert_style(
         """
         a
@@ -129,6 +123,42 @@ defmodule Styler.Style.PipesTest do
         Enum.into(a_multiline_mapper, size, fn %{gets: shrunk, down: to_a_more_reasonable} ->
           {shrunk, to_a_more_reasonable}
         end)
+        """
+      )
+    end
+
+    test "into a new map" do
+      assert_style("a |> Enum.into(foo) |> b()")
+      assert_style("a |> Enum.into(%{}) |> b()", "a |> Map.new() |> b()")
+      assert_style("a |> Enum.into(Map.new) |> b()", "a |> Map.new() |> b()")
+
+      assert_style("a |> Enum.into(foo, mapper) |> b()")
+      assert_style("a |> Enum.into(%{}, mapper) |> b()", "a |> Map.new(mapper) |> b()")
+      assert_style("a |> Enum.into(Map.new, mapper) |> b()", "a |> Map.new(mapper) |> b()")
+
+      assert_style(
+        """
+        a
+        |> Enum.map(b)
+        |> Enum.into(%{}, c)
+        """,
+        """
+        a
+        |> Enum.map(b)
+        |> Map.new(c)
+        """
+      )
+
+      assert_style(
+        """
+        a
+        |> Enum.map(b)
+        |> Enum.into(Map.new, c)
+        """,
+        """
+        a
+        |> Enum.map(b)
+        |> Map.new(c)
         """
       )
     end
