@@ -2,9 +2,14 @@
 
 ## main
 
+## V0.4.1
+
+* `Pipes` rewrites `|> Enum.into(%{}[, mapper])` and `Enum.into(Map.new()[, mapper])` to `Map.new/1,2` calls
+
 ## v0.4.0
 
 ### Improvements
+
 
 * `Pipes` rewrites some two-step processes into one, fixing these credo issues in pipe chains:
     * `Credo.Check.Refactor.FilterCount`

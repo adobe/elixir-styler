@@ -157,6 +157,16 @@ defmodule Styler.Style.Pipes do
     {:|>, [], [lhs, rhs]}
   end
 
+  defp optimize({:|>, meta, [lhs, {{:., dm, [{_, _, [:Enum]}, :into]}, _, [collectable]}]} = node) do
+    if empty_map?(collectable), do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, [], [:Map]}, :new]}, [], []}]}, else: node
+  end
+
+  defp optimize({:|>, meta, [lhs, {{:., dm, [{_, _, [:Enum]}, :into]}, _, [collectable, mapper]}]} = node) do
+    if empty_map?(collectable),
+      do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, [], [:Map]}, :new]}, [], [Style.delete_line_meta(mapper)]}]},
+      else: node
+  end
+
   defp optimize(node), do: node
 
   defp empty_map?({:%{}, _, []}), do: true
