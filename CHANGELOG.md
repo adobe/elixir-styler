@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.4.0
+
 ### Improvements
 
 * `Pipes` rewrites some two-step processes into one, fixing these credo issues in pipe chains:
@@ -11,7 +13,7 @@
 
 ### Fixes
 
-* `ModuleDirectives` handles even weirder places to hide your aliases (anon functions, in this case)
+* `ModuleDirectives` handles even weirder places to hide your aliases (anonymous functions, in this case)
 * `Pipes` tries even harder to keep single-pipe rewrites of invocations on one line
 
 ## v0.3.1
