@@ -100,11 +100,6 @@ defmodule Styler.Style.Pipes do
     {variable, new_assignment}
   end
 
-  # `Module.foo(a, ...) |> ...` => `a |> Module.foo(...) |> ...`
-  defp extract_start({{:., dot_meta, dot_args}, args_meta, [arg | args]}) do
-    {{:|>, args_meta, [arg, {{:., [], dot_args}, dot_meta, args}]}, nil}
-  end
-
   # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
   defp extract_start({fun, meta, [arg | args]}), do: {{:|>, [], [arg, {fun, meta, args}]}, nil}
 
