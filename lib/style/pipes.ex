@@ -32,56 +32,56 @@ defmodule Styler.Style.Pipes do
 
   @blocks ~w(case if with cond for unless)a
 
-  def run({{:|>, _, _} = pipe, zmeta} = zipper, ctx) do
-    {{:|>, pipe_meta, [lhs, rhs]}, _} = start_zipper = find_pipe_start({pipe, nil})
-
-    # Fix invalid starts
-    zipper =
-      if valid_pipe_start?(lhs) do
-        zipper
-      else
-        {lhs_rewrite, new_assignment} = extract_start(lhs)
-
-        {pipe, nil} =
-          start_zipper
-          |> Zipper.replace({:|>, pipe_meta, [lhs_rewrite, rhs]})
-          |> Zipper.top()
-
-        if new_assignment do
-          # It's important to note that with this branch, we're no longer
-          # focused on the pipe! We'll return to it in a future iteration of traverse_while
-          {pipe, zmeta}
-          |> Style.ensure_block_parent()
-          |> Zipper.insert_left(new_assignment)
-          |> Zipper.left()
-        else
-          {pipe, zmeta}
-        end
-      end
-
-    # Optimize and collapse the pipe
-    zipper =
-      case Zipper.traverse(zipper, &optimize/1) do
-        {{:|>, _, [{:|>, _, _}, _]}, _} = chain_zipper ->
-          find_pipe_start(chain_zipper)
-
-        {{:|>, _, [lhs, {fun, meta, args}]}, _} = single_pipe_zipper ->
-          lhs = Style.delete_line_meta(lhs)
-          Zipper.replace(single_pipe_zipper, {fun, meta, [lhs | args || []]})
-
-        above_the_pipe_zipper ->
-          above_the_pipe_zipper
-      end
-
-    {:cont, zipper, ctx}
+  def run({{:|>, _, _}, _} = zipper, ctx) do
+    case fix_pipe_start(zipper) do
+      {{:|>, _, _}, _} = zipper -> {:cont, optimize_and_collapse(zipper), ctx}
+      non_pipe -> {:cont, non_pipe, ctx}
+    end
   end
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
 
+  defp fix_pipe_start({pipe, zmeta} = zipper) do
+    {{:|>, pipe_meta, [lhs, rhs]}, _} = start_zipper = find_pipe_start({pipe, nil})
+
+    if valid_pipe_start?(lhs) do
+      zipper
+    else
+      {lhs_rewrite, new_assignment} = extract_start(lhs)
+
+      {pipe, nil} =
+        start_zipper
+        |> Zipper.replace({:|>, pipe_meta, [lhs_rewrite, rhs]})
+        |> Zipper.top()
+
+      if new_assignment do
+        # It's important to note that with this branch, we're no longer
+        # focused on the pipe! We'll return to it in a future iteration of traverse_while
+        {pipe, zmeta}
+        |> Style.ensure_block_parent()
+        |> Zipper.insert_left(new_assignment)
+        |> Zipper.left()
+      else
+        {pipe, zmeta}
+      end
+    end
+  end
+
+  defp optimize_and_collapse({{:|>, _, _}, _} = zipper) do
+    case Zipper.traverse(zipper, fn {node, meta} -> {optimize(node), meta} end) do
+      {{:|>, _, [{:|>, _, _}, _]}, _} = chain_zipper ->
+        find_pipe_start(chain_zipper)
+
+      {{:|>, _, [lhs, {fun, meta, args}]}, _} = single_pipe_zipper ->
+        lhs = Style.delete_line_meta(lhs)
+        Zipper.replace(single_pipe_zipper, {fun, meta, [lhs | args || []]})
+    end
+  end
+
   defp find_pipe_start(zipper) do
     Zipper.find(zipper, fn
       {:|>, _, [{:|>, _, _}, _]} -> false
-      {:|>, _, [_, _]} -> true
+      {:|>, _, _} -> true
     end)
   end
 
@@ -101,56 +101,66 @@ defmodule Styler.Style.Pipes do
   end
 
   # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
-  defp extract_start({fun, meta, [arg | args]}), do: {{:|>, [], [arg, {fun, meta, args}]}, nil}
-
-  # `a |> Enum.filter(b) |> Enum.count()` => `a |> Enum.count(b)`
-  defp optimize(
-         {{:|>, _,
-           [
-             {:|>, _, [lhs, {{:., _, [{:__aliases__, _, [:Enum]}, :filter]}, _, [filterer]}]},
-             {{:., _, [{:__aliases__, _, [:Enum]}, :count]} = count, _, []}
-           ]}, _} = zipper
-       ) do
-    Zipper.replace(zipper, {:|>, [], [lhs, {count, [], [filterer]}]})
+  defp extract_start({fun, meta, [arg | args]}) do
+    {{:|>, [], [arg, {fun, meta, args}]}, nil}
   end
 
-  # `Enum.map |> Enum.join` => `Enum.map_join`
+  # `pipe_chain(a, b, c)` generates the ast for `a |> b |> c`
+  # the intention is to make it a little easier to see what the optimize functions are matching on =)
+  defmacrop pipe_chain(a, b, c) do
+    quote do: {:|>, _, [{:|>, _, [unquote(a), unquote(b)]}, unquote(c)]}
+  end
+
+  # `lhs |> Enum.filter(filterer) |> Enum.count()` => `lhs |> Enum.count(count)`
   defp optimize(
-         {{:|>, _,
-           [
-             {:|>, _, [lhs, {{:., _, [{:__aliases__, _, [:Enum]}, :map]}, _, [mapper]}]},
-             {{:., _, [{:__aliases__, _, [:Enum]}, :join]}, _, [joiner]}
-           ]}, _} = zipper
+         pipe_chain(
+           lhs,
+           {{:., _, [{_, _, [:Enum]}, :filter]}, _, [filterer]},
+           {{:., _, [{_, _, [:Enum]}, :count]} = count, _, []}
+         )
+       ) do
+    {:|>, [], [lhs, {count, [], [filterer]}]}
+  end
+
+  # `lhs |> Enum.map(mapper) |> Enum.join(joiner)` => `lhs |> Enum.map_join(joiner, mapper)`
+  defp optimize(
+         pipe_chain(
+           lhs,
+           {{:., _, [{_, _, [:Enum]}, :map]}, _, [mapper]},
+           {{:., _, [{_, _, [:Enum]}, :join]}, _, [joiner]}
+         )
        ) do
     # Delete line info to keep things shrunk on the rewrite
     joiner = Style.delete_line_meta(joiner)
     mapper = Style.delete_line_meta(mapper)
     rhs = {{:., [], [{:__aliases__, [], [:Enum]}, :map_join]}, [], [joiner, mapper]}
-    Zipper.replace(zipper, {:|>, [], [lhs, rhs]})
+    {:|>, [], [lhs, rhs]}
   end
 
-  # `Enum.map |> Enum.into` => `Map.new`
+  # `lhs |> Enum.map(mapper) |> Enum.into(empty_map)` => `lhs |> Map.new(mapper)
+  # or
+  # `lhs |> Enum.map(mapper) |> Enum.into(collectable)` => `lhs |> Enum.into(collectable, mapper)
   defp optimize(
-         {{:|>, _,
-           [
-             {:|>, _, [lhs, {{:., _, [{:__aliases__, _, [:Enum]}, :map]}, _, [mapper]}]},
-             {{:., _, [{:__aliases__, _, [:Enum]}, :into]}, _, [collectable]}
-           ]}, _} = zipper
+         pipe_chain(
+           lhs,
+           {{:., _, [{_, _, [:Enum]}, :map]}, _, [mapper]},
+           {{:., _, [{_, _, [:Enum]}, :into]} = into, _, [collectable]}
+         )
        ) do
     mapper = Style.delete_line_meta(mapper)
 
     rhs =
       if empty_map?(collectable),
         do: {{:., [], [{:__aliases__, [], [:Map]}, :new]}, [], [mapper]},
-        else: {{:., [], [{:__aliases__, [], [:Enum]}, :into]}, [], [collectable, mapper]}
+        else: {into, [], [collectable, mapper]}
 
-    Zipper.replace(zipper, {:|>, [], [lhs, rhs]})
+    {:|>, [], [lhs, rhs]}
   end
 
-  defp optimize(zipper), do: zipper
+  defp optimize(node), do: node
 
   defp empty_map?({:%{}, _, []}), do: true
-  defp empty_map?({{:., _, [{:__aliases__, _, [:Map]}, :new]}, _, []}), do: true
+  defp empty_map?({{:., _, [{_, _, [:Map]}, :new]}, _, []}), do: true
   defp empty_map?(_), do: false
 
   # literal wrapper
