@@ -2,6 +2,13 @@
 
 ## main
 
+### Improvements
+
+* `Pipes` rewrites some two-step processes into one, fixing these credo issues in pipe chains:
+    * `Credo.Check.Refactor.FilterCount`
+    * `Credo.Check.Refactor.MapJoin`
+    * `Credo.Check.Refactor.MapInto`
+
 ### Fixes
 
 * `ModuleDirectives` handles even weirder places to hide your aliases (anon functions, in this case)

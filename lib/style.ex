@@ -32,6 +32,31 @@ defmodule Styler.Style do
   @callback run(Zipper.zipper(), context()) :: {Zipper.command(), Zipper.zipper(), context()}
 
   @doc """
+  Deletes `:line` from the node's meta
+
+  If you expected `{:foo, foo_meta, [bar, baz, bop]` to give you a a single line like
+
+    foo(bar, baz, bop)
+
+  but instead got
+
+    foo(
+      bar,
+      baz,
+      bop
+    )
+
+  then it's likely that at least one of `bar`, `baz`, and/or `bop` have `:line` meta that's confusing the formatter
+  and causing the multilining.
+
+  This function fixes that problem.
+
+    {:foo, foo_meta, Enum.map([bar, baz, bop], &Styler.Style.delete_line_meta/1)}
+    # => foo(bar, baz, bop)
+  """
+  def delete_line_meta(ast_node), do: Macro.update_meta(ast_node, &Keyword.delete(&1, :line))
+
+  @doc """
   Ensure the parent node can have multiple children.
 
   If a context-changing node (a `do end` block or an `->` arrow block) is encountered

@@ -61,6 +61,9 @@ You can find the currently-enabled styles in the `Mix.Tasks.Style` module, insid
 | `Credo.Check.Readability.StrictModuleLayout`         | `Styler.Style.ModuleDirectives`      | potentially destructive! (see moduledoc) |
 | `Credo.Check.Readability.UnnecessaryAliasExpansion`  | `Styler.Style.ModuleDirectives`      | |
 | `Credo.Check.Refactor.PipeChainStart`                | `Styler.Style.Pipes`                 | |
+| `Credo.Check.Refactor.FilterCount`                | `Styler.Style.Pipes`                 | (in pipes only) |
+| `Credo.Check.Refactor.MapJoin`                | `Styler.Style.Pipes`                 | (in pipes only) |
+| `Credo.Check.Refactor.MapInto`                | `Styler.Style.Pipes`                 | (in pipes only) |
 
 If you're using Credo and Styler, we recommend disabling these rules in Credo to save on unnecessary checks in CI.
 

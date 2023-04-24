@@ -11,7 +11,154 @@
 defmodule Styler.Style.PipesTest do
   use Styler.StyleCase, style: Styler.Style.Pipes, async: true
 
+  describe "optimizations" do
+    test "filter/count" do
+      assert_style(
+        """
+        a
+        |> Enum.filter(fun)
+        |> Enum.count()
+        |> IO.puts()
+        """,
+        """
+        a
+        |> Enum.count(fun)
+        |> IO.puts()
+        """
+      )
+
+      assert_style(
+        """
+        a
+        |> Enum.filter(fun)
+        |> Enum.count()
+        """,
+        """
+        Enum.count(a, fun)
+        """
+      )
+
+      assert_style(
+        """
+        if true do
+          []
+        else
+          [a, b, c]
+        end
+        |> Enum.filter(fun)
+        |> Enum.count()
+        """,
+        """
+        if_result =
+          if true do
+            []
+          else
+            [a, b, c]
+          end
+
+        Enum.count(if_result, fun)
+        """
+      )
+    end
+
+    test "map/join" do
+      assert_style(
+        """
+        a
+        |> Enum.map(b)
+        |> Enum.join("|")
+        """,
+        """
+        Enum.map_join(a, "|", b)
+        """
+      )
+    end
+
+    test "map/into" do
+      assert_style(
+        """
+        a
+        |> Enum.map(b)
+        |> Enum.into(%{})
+        """,
+        "Map.new(a, b)"
+      )
+
+      assert_style(
+        """
+        a
+        |> Enum.map(b)
+        |> Enum.into(Map.new())
+        """,
+        "Map.new(a, b)"
+      )
+
+      assert_style("""
+      a
+      |> Enum.map(b)
+      |> Enum.into(%{}, c)
+      """)
+
+      assert_style(
+        """
+        a
+        |> Enum.map(b)
+        |> Enum.into(my_map)
+        """,
+        "Enum.into(a, my_map, b)"
+      )
+
+      assert_style(
+        """
+        a
+        |> Enum.map(b)
+        |> Enum.into(%{some: :existing_map})
+        """,
+        "Enum.into(a, %{some: :existing_map}, b)"
+      )
+
+      assert_style(
+        """
+        a_multiline_mapper
+        |> Enum.map(fn %{gets: shrunk, down: to_a_more_reasonable} ->
+          {shrunk, to_a_more_reasonable}
+        end)
+        |> Enum.into(size)
+        """,
+        """
+        Enum.into(a_multiline_mapper, size, fn %{gets: shrunk, down: to_a_more_reasonable} ->
+          {shrunk, to_a_more_reasonable}
+        end)
+        """
+      )
+    end
+  end
+
   describe "block starts" do
+    test "variable assignment of a block" do
+      assert_style(
+        """
+        x =
+          case y do
+            :ok -> :ok |> IO.puts()
+          end
+          |> bar()
+          |> baz()
+        """,
+        """
+        case_result =
+          case y do
+            :ok -> IO.puts(:ok)
+          end
+
+        x =
+          case_result
+          |> bar()
+          |> baz()
+        """
+      )
+    end
+
     test "rewrites fors" do
       assert_style(
         """
@@ -156,6 +303,45 @@ defmodule Styler.Style.PipesTest do
 
       a |> b() |> c()
       """)
+    end
+  end
+
+  describe "nested pipes" do
+    test "nested pipes" do
+      assert_style(
+        """
+        a
+        |> e(fn x ->
+          with({:ok, value} <- efoo(x), do: value)
+          |> ebar()
+          |> ebaz()
+        end)
+        |> b(fn x ->
+          with({:ok, value} <- foo(x), do: value)
+          |> bar()
+          |> baz()
+        end)
+        |> c
+        """,
+        """
+        a
+        |> e(fn x ->
+          with_result = with({:ok, value} <- efoo(x), do: value)
+
+          with_result
+          |> ebar()
+          |> ebaz()
+        end)
+        |> b(fn x ->
+          with_result = with({:ok, value} <- foo(x), do: value)
+
+          with_result
+          |> bar()
+          |> baz()
+        end)
+        |> c
+        """
+      )
     end
   end
 

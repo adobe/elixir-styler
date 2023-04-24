@@ -17,6 +17,12 @@ defmodule Styler.Style.Pipes do
     * Credo.Check.Readability.BlockPipe
     * Credo.Check.Readability.SinglePipe
     * Credo.Check.Refactor.PipeChainStart, excluded_functions: ["from"]
+
+  The following two rules are only corrected within pipe chains; nested functions aren't fixed
+
+    * Credo.Check.Refactor.FilterCount
+    * Credo.Check.Refactor.MapJoin
+    * Credo.Check.Refactor.MapInto
   """
 
   @behaviour Styler.Style
@@ -26,87 +32,136 @@ defmodule Styler.Style.Pipes do
 
   @blocks ~w(case if with cond for unless)a
 
-  # we're in a multi-pipe, so only need to fix pipe_start
-  def run({{:|>, _, [{:|>, _, _} | _]}, _} = zipper, ctx), do: {:cont, zipper |> check_start() |> Zipper.next(), ctx}
-  # this is a single pipe, since valid pipelines are consumed by the previous head
-  def run({{:|>, _, [lhs, {fun, meta, args}]}, _} = zipper, ctx) do
-    if valid_pipe_start?(lhs) do
-      # Set the lhs to be on the same line as the pipe - keeps the formatter from making a multiline invocation
-      lhs = Macro.update_meta(lhs, &Keyword.replace(&1, :line, meta[:line]))
-      # `a |> f(b, c)` => `f(a, b, c)`
-      {:cont, Zipper.replace(zipper, {fun, meta, [lhs | args || []]}), ctx}
-    else
-      zipper = fix_start(zipper)
-      {maybe_block, _, _} = lhs
+  def run({{:|>, _, _}, _} = zipper, ctx) do
+    case fix_pipe_start(zipper) do
+      {{:|>, _, _}, _} = zipper ->
+        case Zipper.traverse(zipper, fn {node, meta} -> {optimize(node), meta} end) do
+          {{:|>, _, [{:|>, _, _}, _]}, _} = chain_zipper ->
+            {:cont, find_pipe_start(chain_zipper), ctx}
 
-      if maybe_block in @blocks do
-        # extracting a block means this is now `if_result |> single_pipe(a, b)`
-        # recursing will give us `single_pipe(if_result, a, b)`
-        run(zipper, ctx)
-      else
-        # fixing the start when it was a function call added another pipe to the chain, and so it's no longer
-        # a single pipe
-        {:cont, zipper, ctx}
-      end
+          {{:|>, _, [lhs, {fun, meta, args}]}, _} = single_pipe_zipper ->
+            lhs = Style.delete_line_meta(lhs)
+            function_call_zipper = Zipper.replace(single_pipe_zipper, {fun, meta, [lhs | args || []]})
+            {:cont, function_call_zipper, ctx}
+        end
+
+      non_pipe ->
+        {:cont, non_pipe, ctx}
     end
   end
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
 
-  # walking down a pipeline.
-  # for reference, `a |> b() |> c()` is encoded `{:|>, [{:|>, _, [a, b]}, c]}`
-  # that is, the outermost ast is the last step of the chain, and the innermost pipe is the first step of the chain
-  defp check_start({{:|>, _, [{:|>, _, _} | _]}, _} = zipper), do: zipper |> Zipper.next() |> check_start()
-  # we found the pipe starting expression!
-  defp check_start({{:|>, _, [lhs, _]}, _} = zip), do: if(valid_pipe_start?(lhs), do: zip, else: fix_start(zip))
-  defp check_start(zipper), do: zipper
+  defp fix_pipe_start({pipe, zmeta} = zipper) do
+    {{:|>, pipe_meta, [lhs, rhs]}, _} = start_zipper = find_pipe_start({pipe, nil})
 
-  # this rewrites pipes that begin with blocks to save the result of the block expression into its own (non-hygienic!)
-  # variable, and then use that variable as the start of the pipe. the variable is named after the type of block:
-  # `case_result` or `if_result`
-  #
-  # before:
-  #
-  #   case ... do
+    if valid_pipe_start?(lhs) do
+      zipper
+    else
+      {lhs_rewrite, new_assignment} = extract_start(lhs)
+
+      {pipe, nil} =
+        start_zipper
+        |> Zipper.replace({:|>, pipe_meta, [lhs_rewrite, rhs]})
+        |> Zipper.top()
+
+      if new_assignment do
+        # It's important to note that with this branch, we're no longer
+        # focused on the pipe! We'll return to it in a future iteration of traverse_while
+        {pipe, zmeta}
+        |> Style.ensure_block_parent()
+        |> Zipper.insert_left(new_assignment)
+        |> Zipper.left()
+      else
+        {pipe, zmeta}
+      end
+    end
+  end
+
+  defp find_pipe_start(zipper) do
+    Zipper.find(zipper, fn
+      {:|>, _, [{:|>, _, _}, _]} -> false
+      {:|>, _, _} -> true
+    end)
+  end
+
+  # `block do ... end |> ...`
+  # =======================>
+  # block_result =
+  #   block do
   #     ...
   #   end
-  #   |> a()
-  #   |> b()
   #
-  # after:
-  #
-  #   case_result =
-  #     case ... do
-  #       ...
-  #     end
-  #
-  #   case_result
-  #   |> a()
-  #   |> b()
-  defp fix_start({{:|>, pipe_meta, [{block, _, _} = expression, rhs]}, _} = zipper) when block in @blocks do
+  # block_result
+  # |> ...
+  defp extract_start({block, _, _} = lhs) when block in @blocks do
     variable = {:"#{block}_result", [], nil}
-
-    zipper
-    |> Zipper.replace({:|>, pipe_meta, [variable, rhs]})
-    |> Style.ensure_block_parent()
-    |> Zipper.insert_left({:=, [], [variable, expression]})
+    new_assignment = {:=, [], [variable, lhs]}
+    {variable, new_assignment}
   end
 
-  # this rewrites other invalid pipe starts: `Module.foo(...) |> ...` and `foo(...) |> ....`
-  defp fix_start({{:|>, pipe_meta, [lhs, rhs]}, _} = zipper) do
-    lhs_rewrite =
-      case lhs do
-        # `Module.foo(a, ...)` => `a |> Module.foo(...)`
-        {{:., dot_meta, dot_args}, args_meta, [arg | args]} ->
-          {:|>, args_meta, [arg, {{:., [], dot_args}, dot_meta, args}]}
-
-        # `foo(a, ...)` => `a |> foo(...)`
-        {atom, meta, [arg | args]} ->
-          {:|>, [], [arg, {atom, meta, args}]}
-      end
-
-    zipper |> Zipper.replace({:|>, pipe_meta, [lhs_rewrite, rhs]}) |> Zipper.next()
+  # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
+  defp extract_start({fun, meta, [arg | args]}) do
+    {{:|>, [], [arg, {fun, meta, args}]}, nil}
   end
+
+  # `pipe_chain(a, b, c)` generates the ast for `a |> b |> c`
+  # the intention is to make it a little easier to see what the optimize functions are matching on =)
+  defmacrop pipe_chain(a, b, c) do
+    quote do: {:|>, _, [{:|>, _, [unquote(a), unquote(b)]}, unquote(c)]}
+  end
+
+  # `lhs |> Enum.filter(filterer) |> Enum.count()` => `lhs |> Enum.count(count)`
+  defp optimize(
+         pipe_chain(
+           lhs,
+           {{:., _, [{_, _, [:Enum]}, :filter]}, _, [filterer]},
+           {{:., _, [{_, _, [:Enum]}, :count]} = count, _, []}
+         )
+       ) do
+    {:|>, [], [lhs, {count, [], [filterer]}]}
+  end
+
+  # `lhs |> Enum.map(mapper) |> Enum.join(joiner)` => `lhs |> Enum.map_join(joiner, mapper)`
+  defp optimize(
+         pipe_chain(
+           lhs,
+           {{:., _, [{_, _, [:Enum]}, :map]}, _, [mapper]},
+           {{:., _, [{_, _, [:Enum]}, :join]}, _, [joiner]}
+         )
+       ) do
+    # Delete line info to keep things shrunk on the rewrite
+    joiner = Style.delete_line_meta(joiner)
+    mapper = Style.delete_line_meta(mapper)
+    rhs = {{:., [], [{:__aliases__, [], [:Enum]}, :map_join]}, [], [joiner, mapper]}
+    {:|>, [], [lhs, rhs]}
+  end
+
+  # `lhs |> Enum.map(mapper) |> Enum.into(empty_map)` => `lhs |> Map.new(mapper)
+  # or
+  # `lhs |> Enum.map(mapper) |> Enum.into(collectable)` => `lhs |> Enum.into(collectable, mapper)
+  defp optimize(
+         pipe_chain(
+           lhs,
+           {{:., _, [{_, _, [:Enum]}, :map]}, _, [mapper]},
+           {{:., _, [{_, _, [:Enum]}, :into]} = into, _, [collectable]}
+         )
+       ) do
+    mapper = Style.delete_line_meta(mapper)
+
+    rhs =
+      if empty_map?(collectable),
+        do: {{:., [], [{:__aliases__, [], [:Map]}, :new]}, [], [mapper]},
+        else: {into, [], [Style.delete_line_meta(collectable), mapper]}
+
+    {:|>, [], [lhs, rhs]}
+  end
+
+  defp optimize(node), do: node
+
+  defp empty_map?({:%{}, _, []}), do: true
+  defp empty_map?({{:., _, [{_, _, [:Map]}, :new]}, _, []}), do: true
+  defp empty_map?(_), do: false
 
   # literal wrapper
   defp valid_pipe_start?({:__block__, _, _}), do: true
