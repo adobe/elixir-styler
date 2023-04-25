@@ -10,7 +10,7 @@ you what's wrong, it just rewrites the code for you to fit its style rules.
 ```elixir
 def deps do
   [
-    {:styler, "~> 0.4", only: [:dev, :test], runtime: false},
+    {:styler, "~> 0.5", only: [:dev, :test], runtime: false},
   ]
 end
 ```
