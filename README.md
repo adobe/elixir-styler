@@ -1,13 +1,11 @@
 # Styler
 
-Styler is an AST-rewriting tool. Think of it as a combination of `mix format` and `mix credo`, except instead of telling
-you what's wrong, it just rewrites the code for you to fit its style rules. Hence, `mix style`!
-
-Styler is configuration-free. Like `mix format`, it runs based on the `inputs` from `.formatter.exs` and has opinions rather than configuration.
+Styler is an Elixir formatter plugin that's combination of `mix format` and `mix credo`, except instead of telling
+you what's wrong, it just rewrites the code for you to fit its style rules.
 
 ## Installation
 
-Add `:styler` as a dependency to your project's `mix.exs`:
+1. Add `:styler` as a dependency to your project's `mix.exs`:
 
 ```elixir
 def deps do
@@ -17,37 +15,36 @@ def deps do
 end
 ```
 
-## Usage
-
-```bash
-$ mix style
-```
-
-This will rewrite your code according to the Styles of `Styler` and format it.
-
-Run `mix help style` for more details on arguments and flags.
-
-### Replacing `mix format`
-
-As stated above, `Styler` takes a cue from Elixir's Formatter and offers no configuration. Instead, it harnesses the same `.formatter.exs` file as Formatter to know which files within your project it should style.
-
-`Styler` wraps up its work by running its rewrites through the Formatter - in fact, it's meant to be a complete stand-in for  `mix format`. You can alias it as `format` to quickly standardize its use across your project and save yourself the work of having to update existing formatter-related CI scripts and documentation.
+2. Add `Styler` as a plugin to your `.formatter.exs` file
 
 ```elixir
-def aliases do
-  [
-    # `mix format` will now actually run `mix style` behind the scenes
-    # saving you from updating your existing CI scripts etc!
-    format: "style"
-  ]
-end
+[
+  plugins: [Styler],
+  line_length: 100_000
+]
 ```
+
+## Usage
+
+`Styler` is just a `mix format` plugin, so now your files will be styled whenever they're formatted.
+
+```bash
+$ mix format
+```
+
+Expect the initial styling of an existing codebase to take a while as it styles existing files and writes them to disk. Future runs will be just as fast as you're use to though.
 
 ## Styles
 
 You can find the currently-enabled styles in the `Mix.Tasks.Style` module, inside of its `@styles` module attribute. Each Style's moduledoc will tell you more about what it rewrites.
 
-## Credo Rules Styler Replaces
+### Examples
+
+The best place to get an idea of what sorts of changes `Styler` makes is by looking at its tests!
+
+Someday we'll announce Styler to the world, and hopefully by then we have some examples written into this here README :)
+
+### Credo Rules Styler Replaces
 
 | `Credo.Check`                                        | `Styler.Style`                       | Style notes              |
 |------------------------------------------------------|--------------------------------------|--------------------------|
@@ -86,7 +83,3 @@ Similarly, this project originated from one-off scripts doing large scale rewrit
 effort to enable particular Credo rules for that codebase. Credo's tests and implementations were referenced for implementing
 Styles that took the work the rest of the way. Thanks to Credo & the Elixir community at large for coalescing around
 many of these Elixir style credos.
-
-### Elixir's Formatter
-
-The low-hassle, (almost) no-config design of `mix format` greatly influenced the implementation of `mix style`.

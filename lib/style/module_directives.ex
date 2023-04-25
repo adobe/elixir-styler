@@ -47,13 +47,13 @@ defmodule Styler.Style.ModuleDirectives do
   be moved below the `use` clause, meaning `@pi` is undefined when invoked.
 
     ```elixir
-    # before `mix style`
+    # before
     defmodule Approximation do
       @pi 3.14
       use Math, pi: @pi
     end
 
-    # after `mix style`
+    # after
     defmodule Approximation do
       @moduledoc false
       use Math, pi: @pi

@@ -9,7 +9,41 @@
 # governing permissions and limitations under the License.
 
 defmodule Styler do
-  @moduledoc false
+  @moduledoc """
+  Styler is a formatter plugin with stronger opinions on code organization, multi-line defs and other code-style matters.
+  """
+  @behaviour Mix.Tasks.Format
+
+  alias Styler.StyleError
+  alias Styler.Zipper
+
+  @styles [
+    Styler.Style.ModuleDirectives,
+    Styler.Style.Pipes,
+    Styler.Style.Simple,
+    Styler.Style.Defs
+  ]
+
+  @impl Mix.Tasks.Format
+  def features(_opts), do: [sigils: [], extensions: [".ex", ".exs"]]
+
+  @impl Mix.Tasks.Format
+  def format(input, formatter_opts) do
+    file = formatter_opts[:file]
+    {ast, comments} = string_to_quoted_with_comments(input, to_string(file))
+
+    {{ast, nil}, %{comments: comments}} =
+      Enum.reduce(@styles, {Zipper.zip(ast), %{comments: comments, file: file}}, fn style, {zipper, context} ->
+        try do
+          Zipper.traverse_while(zipper, context, &style.run/2)
+        rescue
+          exception -> reraise StyleError, [exception: exception, style: style, file: file], __STACKTRACE__
+        end
+      end)
+
+    styled = quoted_to_string(ast, comments, formatter_opts)
+    IO.iodata_to_binary([styled, ?\n])
+  end
 
   @doc """
   Wraps `Code.string_to_quoted_with_comments` with our desired options
