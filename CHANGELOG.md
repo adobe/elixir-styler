@@ -2,6 +2,12 @@
 
 ## main
 
+### Breaking Change! Wooo!
+
+* `Styler` now implements `Mix.Task.Format`, meaning it is now a formatter plugin.
+  See the README for new installation & usage instructions
+* `mix style` has been removed
+
 ## V0.4.1
 
 ### Improvements
