@@ -2,13 +2,18 @@
 
 ## main
 
+## v0.5.0
+
+### Improvements
+
+* `Styler` now implements `Mix.Task.Format`, meaning it is now an Elixir formatter plugin.
+See the README for new installation & usage instructions
+
 ### Breaking Change! Wooo!
 
-* `Styler` now implements `Mix.Task.Format`, meaning it is now a formatter plugin.
-  See the README for new installation & usage instructions
-* `mix style` has been removed
+* the `mix style` task has been removed
 
-## V0.4.1
+## v0.4.1
 
 ### Improvements
 
