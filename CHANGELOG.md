@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.5.1
+
+### Improvements
+
+* Sped up styling just a little bit
+
 ## v0.5.0
 
 ### Improvements
