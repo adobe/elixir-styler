@@ -68,7 +68,7 @@ defmodule Styler.StyleCase do
     styled_ast = Zipper.root(zipper)
 
     try do
-      styled_code = Styler.quoted_to_string(styled_ast, comments)
+      styled_code = styled_ast |> Styler.quoted_to_string(comments) |> String.trim_trailing("\n")
       {styled_ast, styled_code, comments}
     rescue
       exception ->

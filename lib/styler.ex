@@ -41,8 +41,7 @@ defmodule Styler do
         end
       end)
 
-    styled = quoted_to_string(ast, comments, formatter_opts)
-    IO.iodata_to_binary([styled, ?\n])
+    quoted_to_string(ast, comments, formatter_opts)
   end
 
   @doc """
@@ -67,9 +66,11 @@ defmodule Styler do
     opts = [{:comments, comments}, {:escape, false} | formatter_opts]
     {line_length, opts} = Keyword.pop(opts, :line_length, 122)
 
-    ast
-    |> Code.quoted_to_algebra(opts)
-    |> Inspect.Algebra.format(line_length)
-    |> IO.iodata_to_binary()
+    formatted =
+      ast
+      |> Code.quoted_to_algebra(opts)
+      |> Inspect.Algebra.format(line_length)
+
+    IO.iodata_to_binary([formatted, ?\n])
   end
 end
