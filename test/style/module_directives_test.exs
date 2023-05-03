@@ -21,6 +21,15 @@ defmodule Styler.Style.ModuleDirectivesTest do
       """)
     end
 
+    test "handles dynamically generated modules" do
+      assert_style("""
+      Enum.each(testing_list, fn test_item ->
+        defmodule test_item do
+        end
+      end)
+      """)
+    end
+
     test "module with single child" do
       assert_style(
         """

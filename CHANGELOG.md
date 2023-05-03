@@ -2,6 +2,10 @@
 
 ## main
 
+### Fixes
+
+* `ModuleDirectives`: hande dynamic module names
+
 ## v0.5.1
 
 ### Improvements

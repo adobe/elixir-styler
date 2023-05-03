@@ -71,18 +71,15 @@ defmodule Styler.Style.ModuleDirectives do
   @directives ~w(alias import require use)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a
 
-  # module names ending with these suffixes will not have a default moduledoc appended
-  @dont_moduledoc ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
   def run({{:defmodule, _, children}, _} = zipper, ctx) do
-    [{:__aliases__, _, aliases}, [{{:__block__, do_meta, [:do]}, _module_body}]] = children
+    [name, [{{:__block__, do_meta, [:do]}, _body}]] = children
 
     if do_meta[:format] == :keyword do
       {:skip, zipper, ctx}
     else
-      name = aliases |> List.last() |> to_string()
-      add_moduledoc? = not String.ends_with?(name, @dont_moduledoc)
+      add_moduledoc? = add_moduledoc?(name)
       # Move the zipper's focus to the module's body
       body_zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
 
@@ -116,6 +113,15 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
+
+  defp add_moduledoc?({:__aliases__, _, aliases}) do
+    name = aliases |> List.last() |> to_string()
+    # module names ending with these suffixes will not have a default moduledoc appended
+    not String.ends_with?(name, ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON))
+  end
+
+  # a dynamic module name, like `defmodule my_variable do ... end`
+  defp add_moduledoc?(_), do: false
 
   defp organize_directives(parent, add_moduledoc? \\ false) do
     {directives, nondirectives} =
