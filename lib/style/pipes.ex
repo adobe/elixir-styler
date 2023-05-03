@@ -39,8 +39,9 @@ defmodule Styler.Style.Pipes do
           {{:|>, _, [{:|>, _, _}, _]}, _} = chain_zipper ->
             {:cont, find_pipe_start(chain_zipper), ctx}
 
-          {{:|>, _, [lhs, {fun, meta, args}]}, _} = single_pipe_zipper ->
-            lhs = Style.delete_line_meta(lhs)
+          {{:|>, _, [lhs, rhs]}, _} = single_pipe_zipper ->
+            lhs = Style.drop_line_meta(lhs)
+            {fun, meta, args} = Style.drop_line_meta(rhs)
             function_call_zipper = Zipper.replace(single_pipe_zipper, {fun, meta, [lhs | args || []]})
             {:cont, function_call_zipper, ctx}
         end
@@ -131,8 +132,8 @@ defmodule Styler.Style.Pipes do
          )
        ) do
     # Delete line info to keep things shrunk on the rewrite
-    joiner = Style.delete_line_meta(joiner)
-    mapper = Style.delete_line_meta(mapper)
+    joiner = Style.drop_line_meta(joiner)
+    mapper = Style.drop_line_meta(mapper)
     rhs = {{:., [], [{:__aliases__, [], [:Enum]}, :map_join]}, [], [joiner, mapper]}
     {:|>, [], [lhs, rhs]}
   end
@@ -147,12 +148,12 @@ defmodule Styler.Style.Pipes do
            {{:., _, [{_, _, [:Enum]}, :into]} = into, _, [collectable]}
          )
        ) do
-    mapper = Style.delete_line_meta(mapper)
+    mapper = Style.drop_line_meta(mapper)
 
     rhs =
       if empty_map?(collectable),
         do: {{:., [], [{:__aliases__, [], [:Map]}, :new]}, [], [mapper]},
-        else: {into, [], [Style.delete_line_meta(collectable), mapper]}
+        else: {into, [], [Style.drop_line_meta(collectable), mapper]}
 
     {:|>, [], [lhs, rhs]}
   end
@@ -163,7 +164,7 @@ defmodule Styler.Style.Pipes do
 
   defp optimize({:|>, meta, [lhs, {{:., dm, [{_, _, [:Enum]}, :into]}, _, [collectable, mapper]}]} = node) do
     if empty_map?(collectable),
-      do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, [], [:Map]}, :new]}, [], [Style.delete_line_meta(mapper)]}]},
+      do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, [], [:Map]}, :new]}, [], [Style.drop_line_meta(mapper)]}]},
       else: node
   end
 

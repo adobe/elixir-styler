@@ -52,7 +52,7 @@ defmodule Styler.Style.Defs do
       {:skip, zipper, ctx}
     else
       comments = Style.displace_comments(ctx.comments, first_line..last_line)
-      node = {def, meta, [flatten_head(head, meta[:line])]}
+      node = {def, meta, [Style.drop_line_meta(head)]}
       {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
     end
   end
@@ -99,8 +99,8 @@ defmodule Styler.Style.Defs do
           |> Keyword.replace_lazy(:do, &Keyword.update!(&1, :line, set_to_def_line))
           |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, move_up))
 
-        head = flatten_head(head, def_line)
-        body = update_all_meta(body, shift_lines(move_up))
+        head = Style.drop_line_meta(head)
+        body = Style.update_all_meta(body, shift_lines(move_up))
         node = {def, def_meta, [head, body]}
 
         comments =
@@ -113,8 +113,8 @@ defmodule Styler.Style.Defs do
 
       true ->
         # We're working on a Keyword def do:
-        head = flatten_head(head, def_line)
-        body = update_all_meta(body, collapse_lines(set_to_def_line))
+        head = Style.drop_line_meta(head)
+        body = Style.update_all_meta(body, collapse_lines(set_to_def_line))
         node = {def, def_meta, [head, body]}
 
         comments = Style.displace_comments(ctx.comments, def_line..end_line)
@@ -141,25 +141,5 @@ defmodule Styler.Style.Defs do
       |> Keyword.replace_lazy(:line, line_mover)
       |> Keyword.replace_lazy(:closing, &Keyword.replace_lazy(&1, :line, line_mover))
     end
-  end
-
-  defp flatten_head(head, line) do
-    update_all_meta(head, fn meta ->
-      meta
-      |> Keyword.replace(:line, line)
-      |> Keyword.replace(:closing, line: line)
-      |> Keyword.replace(:last, line: line)
-      |> Keyword.delete(:newlines)
-    end)
-  end
-
-  defp update_all_meta(node, meta_fun) do
-    node
-    |> Zipper.zip()
-    |> Zipper.traverse(fn
-      {{node, meta, children}, _} = zipper -> Zipper.replace(zipper, {node, meta_fun.(meta), children})
-      zipper -> zipper
-    end)
-    |> Zipper.root()
   end
 end
