@@ -6,6 +6,7 @@
 
 * `Pipes`:
    * include the infix operator `in` as a valid pipe start
+   * include the prefix operator `^` as a valid pipe start for ecto query chains
    * keep rewrites tinier, once and for all (we hope!)
 
 ## v0.5.2
