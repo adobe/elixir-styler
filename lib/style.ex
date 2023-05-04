@@ -57,7 +57,7 @@ defmodule Styler.Style do
   def drop_line_meta(ast_node), do: update_all_meta(ast_node, &Keyword.drop(&1, [:line, :newlines]))
 
   @doc "Sets `:line`, `:closing`, and `:last` to all be on `line` and deletes `:newlines`"
-  def set_to_line(ast_node, line) do
+  def set_line_meta_to_line(ast_node, line) do
     update_all_meta(ast_node, fn meta ->
       meta
       |> Keyword.replace(:line, line)
