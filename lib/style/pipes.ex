@@ -179,6 +179,8 @@ defmodule Styler.Style.Pipes do
   defp valid_pipe_start?({:unquote, _, _}), do: true
   # ecto
   defp valid_pipe_start?({:from, _, _}), do: true
+  defp valid_pipe_start?({{:., _, [{_, _, [:Query]}, :from]}, _, _}), do: true
+  defp valid_pipe_start?({{:., _, [{_, _, [:Ecto, :Query]}, :from]}, _, _}), do: true
   # most of these values were lifted directly from credo's pipe_chain_start.ex
   @value_constructors ~w(% %{} .. <<>> @ {} & fn)a
   @simple_operators ~w(++ -- && ||)a
