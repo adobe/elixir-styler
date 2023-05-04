@@ -276,10 +276,26 @@ defmodule Styler.Style.PipesTest do
 
       assert_style(
         """
+        def halt(exec, halt_message) do
+          %__MODULE__{exec | halted: true}
+          |> put_halt_message(halt_message)
+        end
+        """,
+        """
+        def halt(exec, halt_message) do
+          put_halt_message(%__MODULE__{exec | halted: true}, halt_message)
+        end
+        """
+      )
+
+      assert_style(
+        """
         if true do
           false
         end
-        |> foo(bar)
+        |> foo(
+          bar
+        )
         """,
         """
         if_result =
@@ -430,12 +446,14 @@ defmodule Styler.Style.PipesTest do
         """
         a_multiline_mapper
         |> Enum.map(fn %{gets: shrunk, down: to_a_more_reasonable} ->
+          IO.puts "woo!"
           {shrunk, to_a_more_reasonable}
         end)
         |> Enum.into(size)
         """,
         """
         Enum.into(a_multiline_mapper, size, fn %{gets: shrunk, down: to_a_more_reasonable} ->
+          IO.puts("woo!")
           {shrunk, to_a_more_reasonable}
         end)
         """

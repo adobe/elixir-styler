@@ -32,7 +32,7 @@ defmodule Styler.Style do
   @callback run(Zipper.zipper(), context()) :: {Zipper.command(), Zipper.zipper(), context()}
 
   @doc """
-  Deletes `:line` from the node's meta
+  Deletes `:line` and `newlines` from the node's meta
 
   If you expected `{:foo, foo_meta, [bar, baz, bop]` to give you a a single line like
 
@@ -51,10 +51,29 @@ defmodule Styler.Style do
 
   This function fixes that problem.
 
-    {:foo, foo_meta, Enum.map([bar, baz, bop], &Styler.Style.delete_line_meta/1)}
+    {:foo, foo_meta, Enum.map([bar, baz, bop], &Styler.Style.drop_line_meta/1)}
     # => foo(bar, baz, bop)
   """
-  def delete_line_meta(ast_node), do: Macro.update_meta(ast_node, &Keyword.delete(&1, :line))
+  def drop_line_meta(ast_node), do: update_all_meta(ast_node, &Keyword.drop(&1, [:line, :newlines]))
+
+  @doc "Sets `:line`, `:closing`, and `:last` to all be on `line` and deletes `:newlines`"
+  def set_line_meta_to_line(ast_node, line) do
+    update_all_meta(ast_node, fn meta ->
+      meta
+      |> Keyword.replace(:line, line)
+      |> Keyword.replace(:closing, line: line)
+      |> Keyword.replace(:last, line: line)
+      |> Keyword.delete(:newlines)
+    end)
+  end
+
+  @doc "Traverses an ast node, updating all nodes' meta with `meta_fun`"
+  def update_all_meta(node, meta_fun) do
+    node
+    |> Zipper.zip()
+    |> Zipper.traverse(fn zipper -> Zipper.update(zipper, &Macro.update_meta(&1, meta_fun)) end)
+    |> Zipper.root()
+  end
 
   @doc """
   Ensure the parent node can have multiple children.

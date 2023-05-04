@@ -4,7 +4,9 @@
 
 ### Fixes
 
-* `Pipes`: include the infix operator `in` as a valid pipe start
+* `Pipes`:
+   * include the infix operator `in` as a valid pipe start
+   * keep rewrites tinier, once and for all (we hope!)
 
 ## v0.5.2
 
