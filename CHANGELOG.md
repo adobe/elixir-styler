@@ -2,16 +2,17 @@
 
 ## main
 
+## v0.6.0
+
 ### Features
 
 * `mix style`: brought back to life for folks who want to incrementally introduce Styler
 
 ### Fixes
 
-* `Pipes`:
-   * include the infix operator `in` as a valid pipe start
-   * include the prefix operator `^` as a valid pipe start for ecto query chains
-   * keep rewrites tinier, once and for all (we hope!)
+* `Styler.Style.Pipes`:
+   * include `x in y` and `^foo` (for ecto) as a valid pipe starts
+   * work even harder to keep rewrites on one line
 
 ## v0.5.2
 
