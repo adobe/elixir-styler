@@ -5,7 +5,7 @@ you what's wrong, it just rewrites the code for you to fit its style rules.
 
 ## Installation
 
-1. Add `:styler` as a dependency to your project's `mix.exs`:
+Add `:styler` as a dependency to your project's `mix.exs`:
 
 ```elixir
 def deps do
@@ -15,32 +15,66 @@ def deps do
 end
 ```
 
-2. Add `Styler` as a plugin to your `.formatter.exs` file
+## Usage
+
+### As a Formatter plugin
+
+Add `Styler` as a plugin to your `.formatter.exs` file
 
 ```elixir
 [
-  plugins: [Styler],
-  line_length: 100_000
+  plugins: [Styler]
 ]
 ```
 
-## Usage
+And that's it! Now when you run `mix format` you'll also get the benefits of Styler's *definitely-always-right* style fixes.
 
-`Styler` is just a `mix format` plugin, so now your files will be styled whenever they're formatted.
+### As a Mix Task
+
+We recommend using `Styler` as a plugin, but it comes with a task for other use cases as well.
 
 ```bash
-$ mix format
+$ mix style
 ```
 
-Expect the initial styling of an existing codebase to take a while as it styles existing files and writes them to disk. Future runs will be just as fast as you're use to though.
+The task can helpful for slowly converting a codebase directory-by-directory. It also allows you to use `mix archive.install`
+to easily test run `Styler` on a project without modifying its dependencies:
+
+```bash
+$ mix archive.install hex styler
+```
+
+`mix style` is designed to take the same basic options as `mix format`.
+
+See `mix help style` for more.
+
+### Configuration
+
+There isn't any! This is intentional.
+
+Styler's @adobe's internal Style Guide Enforcer - allowing exceptions to the styles goes against that ethos. Happily, it's open source and thus yours to do with as you will =)
+
+### Your first Styling
+
+Expect the first run to take some time as `Styler` rewrites violations of styles. Afterwards, it shouldn't take much longer
+than a normal mix format.
+
+Additionally, two sad situations may happen on your first run:
+
+* **module compilation breaks** if a reference to an alias is moved to be before the alias's declaration (part of the `StrictModuleLayout` credo rule)
+    - there's nothing for it but to manually fix things, typically by writing out the entire module name where it's referenced before its alias
+* **comments get put weird places**
+    - sorry! only our `def`-shortening style is currently aware of comments. that means that they can get a little out of sorts when other rules move things around.
+    - manually put them back where you want them, and they shouldn't be moved again
+    - feel free to open or +1 an issue in the hopes that we get around to handling this
 
 ## Styles
 
-You can find the currently-enabled styles in the `Mix.Tasks.Style` module, inside of its `@styles` module attribute. Each Style's moduledoc will tell you more about what it rewrites.
+You can find the currently-enabled styles in the `Styler` module, inside of its `@styles` module attribute. Each Style's moduledoc will tell you more about what it rewrites.
 
 ### Examples
 
-The best place to get an idea of what sorts of changes `Styler` makes is by looking at its tests!
+The best place to get an idea of what sorts of changes `Styler` makes is by looking at the tests for each `Style`.
 
 Someday we'll announce Styler to the world, and hopefully by then we have some examples written into this here README :)
 
@@ -62,7 +96,7 @@ Someday we'll announce Styler to the world, and hopefully by then we have some e
 | `Credo.Check.Refactor.MapJoin`                | `Styler.Style.Pipes`                 | (in pipes only) |
 | `Credo.Check.Refactor.MapInto`                | `Styler.Style.Pipes`                 | (in pipes only) |
 
-If you're using Credo and Styler, we recommend disabling these rules in Credo to save on unnecessary checks in CI.
+If you're using Credo and Styler, **we recommend disabling these rules in `.credo.exs`** to save on unnecessary checks in CI.
 
 ## Thanks & Inspiration
 
