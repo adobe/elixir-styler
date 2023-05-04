@@ -176,7 +176,7 @@ defmodule Styler.Style.Pipes do
 
   # most of these values were lifted directly from credoa's pipe_chain_start.ex
   @literal ~w(__block__ __aliases__ unquote)a
-  @value_constructors ~w(% %{} .. <<>> @ {} & fn from)a
+  @value_constructors ~w(% %{} .. <<>> @ {} ^ & fn from)a
   @infix_ops ~w(++ -- && || in - * + / > < <= >= ==)a
   @binary_ops ~w(<> <- ||| &&& <<< >>> <<~ ~>> <~ ~> <~> <|> ^^^ ~~~)a
   @valid_starts @literal ++ @value_constructors ++ @infix_ops ++ @binary_ops

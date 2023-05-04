@@ -331,7 +331,7 @@ defmodule Styler.Style.PipesTest do
       assert_style("Module.foo() |> bar() |> baz()")
     end
 
-    test "allows ecto's from" do
+    test "ecto funtimes" do
       for from <- ~w(from Query.from Ecto.Query.from) do
         assert_style("""
         #{from}(foo in Bar, where: foo.bool)
@@ -339,6 +339,8 @@ defmodule Styler.Style.PipesTest do
         |> Repo.all()
         """)
       end
+
+      assert_style("^foo |> Ecto.Query.bar() |> Ecto.Query.baz()")
     end
   end
 
