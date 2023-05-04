@@ -32,7 +32,7 @@ defmodule Styler.Style do
   @callback run(Zipper.zipper(), context()) :: {Zipper.command(), Zipper.zipper(), context()}
 
   @doc """
-  Deletes `:line` from the node's meta
+  Deletes `:line` and `newlines` from the node's meta
 
   If you expected `{:foo, foo_meta, [bar, baz, bop]` to give you a a single line like
 
@@ -55,7 +55,18 @@ defmodule Styler.Style do
     # => foo(bar, baz, bop)
   """
   def drop_line_meta(ast_node) do
-    update_all_meta(ast_node, &Keyword.drop(&1, [:line, :closing, :last, :newlines]))
+    update_all_meta(ast_node, &Keyword.drop(&1, [:line, :newlines]))
+  end
+
+  @doc "Sets `:line`, `:closing`, and `:last` to all be on `line` and deletes `:newlines`"
+  def set_to_line(ast_node, line) do
+    update_all_meta(ast_node, fn meta ->
+      meta
+      |> Keyword.replace(:line, line)
+      |> Keyword.replace(:closing, line: line)
+      |> Keyword.replace(:last, line: line)
+      |> Keyword.delete(:newlines)
+    end)
   end
 
   @doc "Traverses an ast node, updating all nodes' meta with `meta_fun`"

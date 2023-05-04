@@ -52,7 +52,7 @@ defmodule Styler.Style.Defs do
       {:skip, zipper, ctx}
     else
       comments = Style.displace_comments(ctx.comments, first_line..last_line)
-      node = {def, meta, [Style.drop_line_meta(head)]}
+      node = {def, meta, [Style.set_to_line(head, meta[:line])]}
       {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
     end
   end
@@ -99,7 +99,7 @@ defmodule Styler.Style.Defs do
           |> Keyword.replace_lazy(:do, &Keyword.update!(&1, :line, set_to_def_line))
           |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, move_up))
 
-        head = Style.drop_line_meta(head)
+        head = Style.set_to_line(head, def_line)
         body = Style.update_all_meta(body, shift_lines(move_up))
         node = {def, def_meta, [head, body]}
 
@@ -113,7 +113,7 @@ defmodule Styler.Style.Defs do
 
       true ->
         # We're working on a Keyword def do:
-        head = Style.drop_line_meta(head)
+        head = Style.set_to_line(head, def_line)
         body = Style.update_all_meta(body, collapse_lines(set_to_def_line))
         node = {def, def_meta, [head, body]}
 
