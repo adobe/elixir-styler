@@ -473,11 +473,13 @@ defmodule Styler.Style.PipesTest do
     end
 
     test "allows ecto's from" do
-      assert_style("""
-      from(foo in Bar, where: foo.bool)
-      |> some_query_helper()
-      |> Repo.all()
-      """)
+      for from <- ~w(from Query.from Ecto.Query.from) do
+        assert_style("""
+        #{from}(foo in Bar, where: foo.bool)
+        |> some_query_helper()
+        |> Repo.all()
+        """)
+      end
     end
 
     test "extracts >0 arity functions" do
