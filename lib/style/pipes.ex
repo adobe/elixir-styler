@@ -174,35 +174,30 @@ defmodule Styler.Style.Pipes do
   defp empty_map?({{:., _, [{_, _, [:Map]}, :new]}, _, []}), do: true
   defp empty_map?(_), do: false
 
-  # literal wrapper
-  defp valid_pipe_start?({:__block__, _, _}), do: true
-  defp valid_pipe_start?({:__aliases__, _, _}), do: true
-  defp valid_pipe_start?({:unquote, _, _}), do: true
-  # ecto
-  defp valid_pipe_start?({:from, _, _}), do: true
-  # most of these values were lifted directly from credo's pipe_chain_start.ex
-  @value_constructors ~w(% %{} .. <<>> @ {} & fn)a
-  @simple_operators ~w(++ -- && ||)a
-  @math_operators ~w(- * + / > < <= >= ==)a
-  @binary_operators ~w(<> <- ||| &&& <<< >>> <<~ ~>> <~ ~> <~> <|> ^^^ ~~~)a
-  defp valid_pipe_start?({op, _, _})
-       when op in @value_constructors or op in @simple_operators or op in @math_operators or op in @binary_operators,
-       do: true
+  # most of these values were lifted directly from credoa's pipe_chain_start.ex
+  @literal ~w(__block__ __aliases__ unquote)a
+  @value_constructors ~w(% %{} .. <<>> @ {} & fn from)a
+  @infix_ops ~w(++ -- && || in - * + / > < <= >= ==)a
+  @binary_ops ~w(<> <- ||| &&& <<< >>> <<~ ~>> <~ ~> <~> <|> ^^^ ~~~)a
+  @valid_starts @literal ++ @value_constructors ++ @infix_ops ++ @binary_ops
 
-  # variable
-  defp valid_pipe_start?({atom, _, nil}) when is_atom(atom), do: true
-  # 0-arity function_call()
-  defp valid_pipe_start?({atom, _, []}) when is_atom(atom), do: true
-  # function_call(with, args) or sigils. sigils are allowed, function w/ args is not
-  defp valid_pipe_start?({atom, _, [_ | _]}) when is_atom(atom), do: String.match?("#{atom}", ~r/^sigil_[a-zA-Z]$/)
-  # map[:access]
-  defp valid_pipe_start?({{:., _, [Access, :get]}, _, _}), do: true
-  # Module.function_call()
+  defp valid_pipe_start?({op, _, _}) when op in @valid_starts, do: true
+  # 0-arity Module.function_call()
   defp valid_pipe_start?({{:., _, _}, _, []}), do: true
-  # '__#{val}__' are compiled to List.to_charlist("__#{val}__")
-  # we want to consider these charlists a valid pipe chain start
-  defp valid_pipe_start?({{:., _, [List, :to_charlist]}, _, [[_ | _]]}), do: true
-  # Module.function_call(with, parameters)
+  # Exempt ecto's `from`
+  defp valid_pipe_start?({{:., _, [{_, _, [:Query]}, :from]}, _, _}), do: true
+  defp valid_pipe_start?({{:., _, [{_, _, [:Ecto, :Query]}, :from]}, _, _}), do: true
+  # map[:foo]
+  defp valid_pipe_start?({{:., _, [Access, :get]}, _, _}), do: true
+  # 'char#{list} interpolation'
+  defp valid_pipe_start?({{:., _, [List, :to_charlist]}, _, _}), do: true
+  # n-arity Module.function_call(...args)
   defp valid_pipe_start?({{:., _, _}, _, _}), do: false
+  # variable
+  defp valid_pipe_start?({variable, _, nil}) when is_atom(variable), do: true
+  # 0-arity function_call()
+  defp valid_pipe_start?({fun, _, []}) when is_atom(fun), do: true
+  # function_call(with, args) or sigils. sigils are allowed, function w/ args is not
+  defp valid_pipe_start?({fun, _, _args}) when is_atom(fun), do: String.match?("#{fun}", ~r/^sigil_[a-zA-Z]$/)
   defp valid_pipe_start?(_), do: true
 end

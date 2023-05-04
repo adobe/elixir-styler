@@ -4,7 +4,14 @@
 
 ### Fixes
 
+* `Pipes`: include the infix operator `in` as a valid pipe start
+
+## v0.5.2
+
+### Fixes
+
 * `ModuleDirectives`: hande dynamic module names
+* `Pipes`: include `Ecto.Query.from` and `Query.from` as valid pipe starts
 
 ## v0.5.1
 
