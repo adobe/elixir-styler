@@ -54,9 +54,7 @@ defmodule Styler.Style do
     {:foo, foo_meta, Enum.map([bar, baz, bop], &Styler.Style.drop_line_meta/1)}
     # => foo(bar, baz, bop)
   """
-  def drop_line_meta(ast_node) do
-    update_all_meta(ast_node, &Keyword.drop(&1, [:line, :newlines]))
-  end
+  def drop_line_meta(ast_node), do: update_all_meta(ast_node, &Keyword.drop(&1, [:line, :newlines]))
 
   @doc "Sets `:line`, `:closing`, and `:last` to all be on `line` and deletes `:newlines`"
   def set_to_line(ast_node, line) do
