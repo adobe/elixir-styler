@@ -11,6 +11,321 @@
 defmodule Styler.Style.PipesTest do
   use Styler.StyleCase, style: Styler.Style.Pipes, async: true
 
+  describe "big picture" do
+    test "doesn't modify valid pipe" do
+      assert_style("""
+      a()
+      |> b()
+      |> c()
+
+      a |> b() |> c()
+      """)
+    end
+
+    test "extracts >0 arity functions" do
+      assert_style(
+        """
+        M.f(a, b)
+        |> g()
+        |> h()
+        """,
+        """
+        a
+        |> M.f(b)
+        |> g()
+        |> h()
+        """
+      )
+    end
+
+    test "fixes nested pipes" do
+      assert_style(
+        """
+        a
+        |> e(fn x ->
+          with({:ok, value} <- efoo(x), do: value)
+          |> ebar()
+          |> ebaz()
+        end)
+        |> b(fn x ->
+          with({:ok, value} <- foo(x), do: value)
+          |> bar()
+          |> baz()
+        end)
+        |> c
+        """,
+        """
+        a
+        |> e(fn x ->
+          with_result = with({:ok, value} <- efoo(x), do: value)
+
+          with_result
+          |> ebar()
+          |> ebaz()
+        end)
+        |> b(fn x ->
+          with_result = with({:ok, value} <- foo(x), do: value)
+
+          with_result
+          |> bar()
+          |> baz()
+        end)
+        |> c
+        """
+      )
+    end
+  end
+
+  describe "block pipe starts" do
+    test "variable assignment of a block" do
+      assert_style(
+        """
+        x =
+          case y do
+            :ok -> :ok |> IO.puts()
+          end
+          |> bar()
+          |> baz()
+        """,
+        """
+        case_result =
+          case y do
+            :ok -> IO.puts(:ok)
+          end
+
+        x =
+          case_result
+          |> bar()
+          |> baz()
+        """
+      )
+    end
+
+    test "rewrites fors" do
+      assert_style(
+        """
+        for(a <- as, do: a)
+        |> bar()
+        |> baz()
+        """,
+        """
+        for_result = for(a <- as, do: a)
+
+        for_result
+        |> bar()
+        |> baz()
+        """
+      )
+    end
+
+    test "rewrites unless" do
+      assert_style(
+        """
+        unless foo do
+          bar
+        end
+        |> wee()
+        """,
+        """
+        unless_result =
+          unless foo do
+            bar
+          end
+
+        wee(unless_result)
+        """
+      )
+    end
+
+    test "rewrites with" do
+      assert_style(
+        """
+        with({:ok, value} <- foo(), do: value)
+        |> bar()
+        |> baz()
+        """,
+        """
+        with_result = with({:ok, value} <- foo(), do: value)
+
+        with_result
+        |> bar()
+        |> baz()
+        """
+      )
+    end
+
+    test "rewrites conds" do
+      assert_style(
+        """
+        cond do
+          x -> :ok
+          true -> :error
+        end
+        |> bar()
+        |> baz()
+        """,
+        """
+        cond_result =
+          cond do
+            x -> :ok
+            true -> :error
+          end
+
+        cond_result
+        |> bar()
+        |> baz()
+        """
+      )
+    end
+
+    test "rewrites case" do
+      assert_style(
+        """
+        case x do
+          x -> x
+        end
+        |> foo()
+        """,
+        """
+        case_result =
+          case x do
+            x -> x
+          end
+
+        foo(case_result)
+        """
+      )
+
+      assert_style(
+        """
+        def foo do
+          case x do
+            x -> x
+          end
+          |> foo()
+        end
+        """,
+        """
+        def foo do
+          case_result =
+            case x do
+              x -> x
+            end
+
+          foo(case_result)
+        end
+        """
+      )
+    end
+
+    test "rewrites if" do
+      assert_style(
+        """
+        def foo do
+          if true do
+            nil
+          end
+          |> a()
+          |> b()
+        end
+        """,
+        """
+        def foo do
+          if_result =
+            if true do
+              nil
+            end
+
+          if_result
+          |> a()
+          |> b()
+        end
+        """
+      )
+    end
+  end
+
+  describe "single pipe issues" do
+    test "fixes simple single pipes" do
+      assert_style("b(a) |> c()", "a |> b() |> c()")
+      assert_style("a |> f()", "f(a)")
+      assert_style("x |> bar", "bar(x)")
+      assert_style("def a, do: b |> c()", "def a, do: c(b)")
+    end
+
+    test "keeps invocation on a single line" do
+      assert_style(
+        """
+        foo
+        |> bar(baz, bop, boom)
+        """,
+        """
+        bar(foo, baz, bop, boom)
+        """
+      )
+
+      assert_style(
+        """
+        foo
+        |> bar(baz)
+        """,
+        """
+        bar(foo, baz)
+        """
+      )
+
+      assert_style(
+        """
+        if true do
+          false
+        end
+        |> foo(bar)
+        """,
+        """
+        if_result =
+          if true do
+            false
+          end
+
+        foo(if_result, bar)
+        """
+      )
+    end
+  end
+
+  describe "valid pipe starts" do
+    test "allows fn" do
+      assert_style("""
+      fn
+        :ok -> :ok
+        :error -> :error
+      end
+      |> b()
+      |> c()
+      """)
+    end
+
+    test "recognizes infix ops as valid pipe starts" do
+      assert_style("(bar() == 1) |> foo()", "foo(bar() == 1)")
+      assert_style("(x in 1..100) |> foo()", "foo(x in 1..100)")
+    end
+
+    test "0 arity is just fine!" do
+      assert_style("foo() |> bar() |> baz()")
+      assert_style("Module.foo() |> bar() |> baz()")
+    end
+
+    test "allows ecto's from" do
+      for from <- ~w(from Query.from Ecto.Query.from) do
+        assert_style("""
+        #{from}(foo in Bar, where: foo.bool)
+        |> some_query_helper()
+        |> Repo.all()
+        """)
+      end
+    end
+  end
+
   describe "optimizations" do
     test "filter/count" do
       assert_style(
@@ -159,345 +474,6 @@ defmodule Styler.Style.PipesTest do
         a
         |> Enum.map(b)
         |> Map.new(c)
-        """
-      )
-    end
-  end
-
-  describe "block starts" do
-    test "variable assignment of a block" do
-      assert_style(
-        """
-        x =
-          case y do
-            :ok -> :ok |> IO.puts()
-          end
-          |> bar()
-          |> baz()
-        """,
-        """
-        case_result =
-          case y do
-            :ok -> IO.puts(:ok)
-          end
-
-        x =
-          case_result
-          |> bar()
-          |> baz()
-        """
-      )
-    end
-
-    test "rewrites fors" do
-      assert_style(
-        """
-        for(a <- as, do: a)
-        |> bar()
-        |> baz()
-        """,
-        """
-        for_result = for(a <- as, do: a)
-
-        for_result
-        |> bar()
-        |> baz()
-        """
-      )
-    end
-
-    test "rewrites unless" do
-      assert_style(
-        """
-        unless foo do
-          bar
-        end
-        |> wee()
-        """,
-        """
-        unless_result =
-          unless foo do
-            bar
-          end
-
-        wee(unless_result)
-        """
-      )
-    end
-
-    test "rewrites blocks" do
-      assert_style(
-        """
-        with({:ok, value} <- foo(), do: value)
-        |> bar()
-        |> baz()
-        """,
-        """
-        with_result = with({:ok, value} <- foo(), do: value)
-
-        with_result
-        |> bar()
-        |> baz()
-        """
-      )
-    end
-
-    test "rewrites conds" do
-      assert_style(
-        """
-        cond do
-          x -> :ok
-          true -> :error
-        end
-        |> bar()
-        |> baz()
-        """,
-        """
-        cond_result =
-          cond do
-            x -> :ok
-            true -> :error
-          end
-
-        cond_result
-        |> bar()
-        |> baz()
-        """
-      )
-    end
-
-    test "rewrites case at root" do
-      assert_style(
-        """
-        case x do
-          x -> x
-        end
-        |> foo()
-        """,
-        """
-        case_result =
-          case x do
-            x -> x
-          end
-
-        foo(case_result)
-        """
-      )
-    end
-
-    test "single pipe of case w/ parent" do
-      assert_style(
-        """
-        def foo do
-          case x do
-            x -> x
-          end
-          |> foo()
-        end
-        """,
-        """
-        def foo do
-          case_result =
-            case x do
-              x -> x
-            end
-
-          foo(case_result)
-        end
-        """
-      )
-    end
-  end
-
-  describe "single pipe + start issues" do
-    test "anon functio is finen" do
-      assert_style("""
-      fn
-        :ok -> :ok
-        :error -> :error
-      end
-      |> b()
-      |> c()
-      """)
-    end
-
-    test "handles that weird single pipe but with function call" do
-      assert_style("b(a) |> c()", "a |> b() |> c()")
-    end
-
-    test "doesn't modify valid pipe" do
-      assert_style("""
-      a()
-      |> b()
-      |> c()
-
-      a |> b() |> c()
-      """)
-    end
-  end
-
-  describe "nested pipes" do
-    test "nested pipes" do
-      assert_style(
-        """
-        a
-        |> e(fn x ->
-          with({:ok, value} <- efoo(x), do: value)
-          |> ebar()
-          |> ebaz()
-        end)
-        |> b(fn x ->
-          with({:ok, value} <- foo(x), do: value)
-          |> bar()
-          |> baz()
-        end)
-        |> c
-        """,
-        """
-        a
-        |> e(fn x ->
-          with_result = with({:ok, value} <- efoo(x), do: value)
-
-          with_result
-          |> ebar()
-          |> ebaz()
-        end)
-        |> b(fn x ->
-          with_result = with({:ok, value} <- foo(x), do: value)
-
-          with_result
-          |> bar()
-          |> baz()
-        end)
-        |> c
-        """
-      )
-    end
-  end
-
-  describe "single pipe issues" do
-    test "fixes single pipe" do
-      assert_style("a |> f()", "f(a)")
-    end
-
-    test "handles 1-arity functions written without parens" do
-      assert_style("x |> bar", "bar(x)")
-    end
-
-    test "fixes single pipe in function head" do
-      assert_style(
-        """
-        def a, do: b |> c()
-        """,
-        """
-        def a, do: c(b)
-        """
-      )
-    end
-
-    test "keeps invocation on a single line" do
-      assert_style(
-        """
-        foo
-        |> bar(baz, bop, boom)
-        """,
-        """
-        bar(foo, baz, bop, boom)
-        """
-      )
-
-      assert_style(
-        """
-        foo
-        |> bar(baz)
-        """,
-        """
-        bar(foo, baz)
-        """
-      )
-
-      assert_style(
-        """
-        if true do false end
-        |> foo(bar)
-        """,
-        """
-        if_result =
-          if true do
-            false
-          end
-
-        foo(if_result, bar)
-        """
-      )
-    end
-
-    test "extracts blocks successfully" do
-      assert_style(
-        """
-        def foo do
-          if true do
-            nil
-          end
-          |> a()
-          |> b()
-        end
-        """,
-        """
-        def foo do
-          if_result =
-            if true do
-              nil
-            end
-
-          if_result
-          |> a()
-          |> b()
-        end
-        """
-      )
-    end
-  end
-
-  describe "run on pipe chain start issues" do
-    test "recognizes `==` as a valid pipe start" do
-      assert_style("(bar() == 1) |> foo()", "foo(bar() == 1)")
-    end
-
-    test "recognizes in as a valid pipe start" do
-      assert_style("(x in 1..100) |> foo()", "foo(x in 1..100)")
-    end
-
-    test "allows 0-arity function calls" do
-      assert_style("""
-      foo()
-      |> bar()
-      |> baz()
-      """)
-    end
-
-    test "allows ecto's from" do
-      for from <- ~w(from Query.from Ecto.Query.from) do
-        assert_style("""
-        #{from}(foo in Bar, where: foo.bool)
-        |> some_query_helper()
-        |> Repo.all()
-        """)
-      end
-    end
-
-    test "extracts >0 arity functions" do
-      assert_style(
-        """
-        M.f(a, b)
-        |> g()
-        |> h()
-        """,
-        """
-        a
-        |> M.f(b)
-        |> g()
-        |> h()
         """
       )
     end
