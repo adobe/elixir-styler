@@ -37,26 +37,17 @@ defmodule Styler.Zipper do
   @type command :: :cont | :skip | :halt
 
   @doc """
-  Returns true if the node is a branch.
-  """
-  @spec branch?(tree) :: boolean
-  def branch?({_, _, args}) when is_list(args), do: true
-  def branch?({_, _}), do: true
-  def branch?(list) when is_list(list), do: true
-  def branch?(_), do: false
-
-  @doc """
   Returns a list of children of the node.
   """
-  @spec children(tree) :: [tree]
-  def children({form, _, args}) when is_atom(form) and is_list(args), do: args
-  def children({form, _, args}) when is_list(args), do: [form | args]
-  def children({left, right}), do: [left, right]
-  def children(list) when is_list(list), do: list
-  def children(_), do: []
+  @spec children(zipper) :: [tree]
+  def children({{form, _, args}, _}) when is_atom(form) and is_list(args), do: args
+  def children({{form, _, args}, _}) when is_list(args), do: [form | args]
+  def children({{left, right}, _}), do: [left, right]
+  def children({list, _}) when is_list(list), do: list
+  def children({_, _}), do: []
 
   @doc """
-  Returns a new branch node, given an existing node and new children.
+  Returns a new node, given an existing node and new children.
   """
   @spec replace_children(tree, [tree]) :: tree
   def replace_children({form, meta, _}, children) when is_atom(form), do: {form, meta, children}
@@ -95,10 +86,10 @@ defmodule Styler.Zipper do
   nil if no there's no children.
   """
   @spec down(zipper) :: zipper | nil
-  def down({tree, meta}) do
-    case children(tree) do
+  def down(zipper) do
+    case children(zipper) do
       [] -> nil
-      [first | rest] -> {first, %{ptree: {tree, meta}, l: [], r: rest}}
+      [first | rest] -> {first, %{ptree: zipper, l: [], r: rest}}
     end
   end
 

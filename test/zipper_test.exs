@@ -21,27 +21,17 @@ defmodule StylerTest.ZipperTest do
     end
   end
 
-  describe "branch?/1" do
-    test "correctly identifies branch nodes" do
-      assert Zipper.branch?(42) == false
-      assert Zipper.branch?(:foo) == false
-      assert Zipper.branch?([1, 2, 3]) == true
-      assert Zipper.branch?({:left, :right}) == true
-      assert Zipper.branch?({:foo, [], []}) == true
-    end
-  end
-
   describe "children/1" do
     test "returns the children for a node" do
-      assert Zipper.children([1, 2, 3]) == [1, 2, 3]
-      assert Zipper.children({:foo, [], [1, 2]}) == [1, 2]
+      assert [1, 2, 3] |> Zipper.zip() |> Zipper.children() == [1, 2, 3]
+      assert {:foo, [], [1, 2]} |> Zipper.zip() |> Zipper.children() == [1, 2]
 
-      assert Zipper.children({{:., [], [:left, :right]}, [], [:arg]}) == [
+      assert {{:., [], [:left, :right]}, [], [:arg]} |> Zipper.zip() |> Zipper.children() == [
                {:., [], [:left, :right]},
                :arg
              ]
 
-      assert Zipper.children({:left, :right}) == [:left, :right]
+      assert {:left, :right} |> Zipper.zip() |> Zipper.children() == [:left, :right]
     end
   end
 

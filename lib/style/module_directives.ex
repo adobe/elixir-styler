@@ -126,7 +126,6 @@ defmodule Styler.Style.ModuleDirectives do
   defp organize_directives(parent, add_moduledoc? \\ false) do
     {directives, nondirectives} =
       parent
-      |> Zipper.node()
       |> Zipper.children()
       |> Enum.split_with(fn
         {:@, _, [{attr, _, _}]} -> attr in @attr_directives
