@@ -2,6 +2,10 @@
 
 ## main
 
+### Features
+
+* `mix style`: brought back to life for folks who want to incrementally introduce Styler
+
 ### Fixes
 
 * `Pipes`:
