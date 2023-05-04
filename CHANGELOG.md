@@ -2,6 +2,10 @@
 
 ## main
 
+### Fixes
+
+* `Pipes`: include the infix operator `in` as a valid pipe start
+
 ## v0.5.2
 
 ### Fixes

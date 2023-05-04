@@ -380,10 +380,6 @@ defmodule Styler.Style.PipesTest do
       assert_style("a |> f()", "f(a)")
     end
 
-    test "recognizes `==` as a valid pipe start" do
-      assert_style("(bar() == 1) |> foo()", "foo(bar() == 1)")
-    end
-
     test "handles 1-arity functions written without parens" do
       assert_style("x |> bar", "bar(x)")
     end
@@ -464,6 +460,14 @@ defmodule Styler.Style.PipesTest do
   end
 
   describe "run on pipe chain start issues" do
+    test "recognizes `==` as a valid pipe start" do
+      assert_style("(bar() == 1) |> foo()", "foo(bar() == 1)")
+    end
+
+    test "recognizes in as a valid pipe start" do
+      assert_style("(x in 1..100) |> foo()", "foo(x in 1..100)")
+    end
+
     test "allows 0-arity function calls" do
       assert_style("""
       foo()
