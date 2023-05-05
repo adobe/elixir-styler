@@ -279,6 +279,18 @@ defmodule Styler.Style.ModuleDirectivesTest do
       end
     end
 
+    test "expands __MODULE__" do
+      assert_style(
+        """
+        alias __MODULE__.{B.D, A}
+        """,
+        """
+        alias __MODULE__.A
+        alias __MODULE__.B.D
+        """
+      )
+    end
+
     test "expands use but does not sort it" do
       assert_style(
         """
