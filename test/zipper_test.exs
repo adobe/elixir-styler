@@ -544,7 +544,7 @@ defmodule StylerTest.ZipperTest do
       assert zipper |> Zipper.find(:prev, fn x -> x == 2 end) |> Zipper.node() == 2
     end
 
-    test "retruns nil if nothing was found in direction :prev" do
+    test "returns nil if nothing was found in direction :prev" do
       zipper =
         [1, [2, [3, 4], 5]]
         |> Zipper.zip()
