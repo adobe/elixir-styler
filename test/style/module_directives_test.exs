@@ -46,6 +46,22 @@ defmodule Styler.Style.ModuleDirectivesTest do
       )
     end
 
+    test "handles aliases using __MODULE__" do
+      assert_style(
+        """
+        defmodule ATest do
+          alias __MODULE_.{A, B}
+        end
+        """,
+        """
+        defmodule ATest do
+          alias __MODULE_.A
+          alias __MODULE_.B
+        end
+        """
+      )
+    end
+
     test "adds moduledoc" do
       assert_style(
         """
