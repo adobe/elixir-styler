@@ -2,6 +2,10 @@
 
 ## main
 
+### Fixes
+
+* `ModuleDirectives`: now expands `alias __MODULE__.{A, B}` (h/t [@adriankumpf](https://github.com/adriankumpf))
+
 ## v0.6.0
 
 ### Features
