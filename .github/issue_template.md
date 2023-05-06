@@ -2,6 +2,16 @@
 
 use `elixir --version`
 
-## Current Behaviour
+## Example Input
 
-## Expected Behaviour
+```elixir
+<a snippet causing problems>
+```
+
+## Current behaviour / Stacktrace
+
+## Expected Output
+
+```elixir
+<expected output>
+```
