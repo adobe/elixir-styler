@@ -93,7 +93,7 @@ defmodule Mix.Tasks.Style do
         do: IO.stream() |> Enum.to_list() |> IO.iodata_to_binary(),
         else: file |> File.read!() |> String.trim()
 
-    styled = Styler.format(input, formatter_opts)
+    styled = Styler.format(input, formatter_opts, on_error: :raise)
     changed? = input != styled
 
     cond do

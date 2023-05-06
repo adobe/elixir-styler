@@ -28,7 +28,8 @@ defmodule Styler do
   def features(_opts), do: [sigils: [], extensions: [".ex", ".exs"]]
 
   @impl Mix.Tasks.Format
-  def format(input, formatter_opts) do
+  def format(input, formatter_opts, opts \\ []) do
+    on_error = opts[:on_error] || :log
     file = formatter_opts[:file]
     {ast, comments} = string_to_quoted_with_comments(input, to_string(file))
 
@@ -37,7 +38,16 @@ defmodule Styler do
         try do
           Zipper.traverse_while(zipper, context, &style.run/2)
         rescue
-          exception -> reraise StyleError, [exception: exception, style: style, file: file], __STACKTRACE__
+          exception ->
+            exception = StyleError.exception(exception: exception, style: style, file: file)
+
+            if on_error == :log do
+              error = Exception.format(:error, exception, __STACKTRACE__)
+              Mix.shell().error("#{error}\n#{IO.ANSI.reset()}Skipping style and continuing on")
+              {zipper, context}
+            else
+              reraise exception, __STACKTRACE__
+            end
         end
       end)
 
