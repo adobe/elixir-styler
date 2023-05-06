@@ -15,6 +15,13 @@ defmodule Styler.StyleError do
   defexception [:exception, :style, :file]
 
   def message(%{exception: exception, style: style, file: file}) do
-    "Error running style #{style} on #{file}\n#{Exception.format_banner(:error, exception)}"
+    file = file && if file == :std, do: "stdin", else: Path.relative_to_cwd(file)
+    style = style |> Module.split() |> List.last()
+
+    """
+    Error running style #{style} on #{file}
+       Please consider opening an issue at: #{IO.ANSI.light_green()}https://github.com/adobe/elixir-styler/issues/new#{IO.ANSI.reset()}
+    #{IO.ANSI.default_color()}#{Exception.format(:error, exception)}
+    """
   end
 end
