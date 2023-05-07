@@ -2,8 +2,13 @@
 
 ## main
 
+### Improvements
+
+* Better error handling: `mix format` will still format files if a style fails
+
 ### Fixes
 
+* `mix style`: only run on `.ex` and `.exs` files
 * `ModuleDirectives`: now expands `alias __MODULE__.{A, B}` (h/t [@adriankumpf](https://github.com/adriankumpf))
 
 ## v0.6.0
