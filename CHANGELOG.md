@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.6.1
+
 ### Improvements
 
 * Better error handling: `mix format` will still format files if a style fails
