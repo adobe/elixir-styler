@@ -50,8 +50,11 @@ defmodule Mix.Tasks.Style do
 
     files
     |> Stream.flat_map(fn
-      "-" -> [:stdin]
-      path -> path |> Path.expand() |> Path.wildcard(match_dot: true)
+      "-" ->
+        [:stdin]
+
+      path ->
+        path |> Path.expand() |> Path.wildcard(match_dot: true) |> Enum.filter(&String.ends_with?(&1, [".ex", "exs"]))
     end)
     |> Task.async_stream(&style_file(&1, formatter_opts, check_styled?),
       ordered: false,
