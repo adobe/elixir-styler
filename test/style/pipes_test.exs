@@ -70,7 +70,7 @@ defmodule Styler.Style.PipesTest do
           |> bar()
           |> baz()
         end)
-        |> c
+        |> c()
         """
       )
     end
@@ -344,7 +344,11 @@ defmodule Styler.Style.PipesTest do
     end
   end
 
-  describe "optimizations" do
+  describe "simple rewrites" do
+    test "adds parens to 1-arity pipes" do
+      assert_style("a |> b |> c", "a |> b() |> c()")
+    end
+
     test "filter/count" do
       assert_style(
         """

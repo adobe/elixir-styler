@@ -15,6 +15,7 @@ defmodule Styler.Style.Pipes do
   Rewrites for the following Credo rules:
 
     * Credo.Check.Readability.BlockPipe
+    * Credo.Check.Readability.OneArityFunctionInPipe
     * Credo.Check.Readability.SinglePipe
     * Credo.Check.Refactor.PipeChainStart, excluded_functions: ["from"]
 
@@ -35,7 +36,7 @@ defmodule Styler.Style.Pipes do
   def run({{:|>, _, _}, _} = zipper, ctx) do
     case fix_pipe_start(zipper) do
       {{:|>, _, _}, _} = zipper ->
-        case Zipper.traverse(zipper, fn {node, meta} -> {optimize(node), meta} end) do
+        case Zipper.traverse(zipper, fn {node, meta} -> {fix_pipe(node), meta} end) do
           {{:|>, _, [{:|>, _, _}, _]}, _} = chain_zipper ->
             {:cont, find_pipe_start(chain_zipper), ctx}
 
@@ -107,13 +108,16 @@ defmodule Styler.Style.Pipes do
   end
 
   # `pipe_chain(a, b, c)` generates the ast for `a |> b |> c`
-  # the intention is to make it a little easier to see what the optimize functions are matching on =)
+  # the intention is to make it a little easier to see what the fix_pipe functions are matching on =)
   defmacrop pipe_chain(a, b, c) do
     quote do: {:|>, _, [{:|>, _, [unquote(a), unquote(b)]}, unquote(c)]}
   end
 
+  # a |> fun => a |> fun()
+  defp fix_pipe({:|>, meta, [lhs, {fun, fun_meta, nil}]}), do: {:|>, meta, [lhs, {fun, fun_meta, []}]}
+
   # `lhs |> Enum.filter(filterer) |> Enum.count()` => `lhs |> Enum.count(count)`
-  defp optimize(
+  defp fix_pipe(
          pipe_chain(
            lhs,
            {{:., _, [{_, _, [:Enum]}, :filter]}, _, [filterer]},
@@ -124,7 +128,7 @@ defmodule Styler.Style.Pipes do
   end
 
   # `lhs |> Enum.map(mapper) |> Enum.join(joiner)` => `lhs |> Enum.map_join(joiner, mapper)`
-  defp optimize(
+  defp fix_pipe(
          pipe_chain(
            lhs,
            {{:., _, [{_, _, [:Enum]}, :map]}, _, [mapper]},
@@ -141,7 +145,7 @@ defmodule Styler.Style.Pipes do
   # `lhs |> Enum.map(mapper) |> Enum.into(empty_map)` => `lhs |> Map.new(mapper)
   # or
   # `lhs |> Enum.map(mapper) |> Enum.into(collectable)` => `lhs |> Enum.into(collectable, mapper)
-  defp optimize(
+  defp fix_pipe(
          pipe_chain(
            lhs,
            {{:., _, [{_, _, [:Enum]}, :map]}, _, [mapper]},
@@ -158,17 +162,17 @@ defmodule Styler.Style.Pipes do
     {:|>, [], [lhs, rhs]}
   end
 
-  defp optimize({:|>, meta, [lhs, {{:., dm, [{_, _, [:Enum]}, :into]}, _, [collectable]}]} = node) do
+  defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, _, [:Enum]}, :into]}, _, [collectable]}]} = node) do
     if empty_map?(collectable), do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, [], [:Map]}, :new]}, [], []}]}, else: node
   end
 
-  defp optimize({:|>, meta, [lhs, {{:., dm, [{_, _, [:Enum]}, :into]}, _, [collectable, mapper]}]} = node) do
+  defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, _, [:Enum]}, :into]}, _, [collectable, mapper]}]} = node) do
     if empty_map?(collectable),
       do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, [], [:Map]}, :new]}, [], [Style.drop_line_meta(mapper)]}]},
       else: node
   end
 
-  defp optimize(node), do: node
+  defp fix_pipe(node), do: node
 
   defp empty_map?({:%{}, _, []}), do: true
   defp empty_map?({{:., _, [{_, _, [:Map]}, :new]}, _, []}), do: true

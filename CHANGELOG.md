@@ -2,6 +2,11 @@
 
 ## main
 
+### Improvements
+
+* `Styler.Style.Pipes`:
+  * Add parens to 1-arity pipe functions (`Credo.Check.Readability.OneArityFunctionInPipe`)
+
 ## v0.6.1
 
 ### Improvements

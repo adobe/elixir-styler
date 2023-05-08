@@ -88,13 +88,14 @@ Someday we'll announce Styler to the world, and hopefully by then we have some e
 | `Credo.Check.Readability.LargeNumbers`               | `Styler.Style.Simple`                | fixes bad underscores, ie: `100_00` |
 | `Credo.Check.Readability.ModuleDoc`                  | `Styler.Style.ModuleDirectives`      | adds `@moduledoc false` |
 | `Credo.Check.Readability.MultiAlias`                 | `Styler.Style.ModuleDirectives`      | |
+| `Credo.Check.Readability.OneArityFunctionInPipe` | `Styler.Style.Pipes`                 | |
 | `Credo.Check.Readability.SinglePipe`                 | `Styler.Style.Pipes`                 | |
 | `Credo.Check.Readability.StrictModuleLayout`         | `Styler.Style.ModuleDirectives`      | potentially destructive! (see moduledoc) |
 | `Credo.Check.Readability.UnnecessaryAliasExpansion`  | `Styler.Style.ModuleDirectives`      | |
-| `Credo.Check.Refactor.PipeChainStart`                | `Styler.Style.Pipes`                 | |
 | `Credo.Check.Refactor.FilterCount`                | `Styler.Style.Pipes`                 | (in pipes only) |
-| `Credo.Check.Refactor.MapJoin`                | `Styler.Style.Pipes`                 | (in pipes only) |
 | `Credo.Check.Refactor.MapInto`                | `Styler.Style.Pipes`                 | (in pipes only) |
+| `Credo.Check.Refactor.MapJoin`                | `Styler.Style.Pipes`                 | (in pipes only) |
+| `Credo.Check.Refactor.PipeChainStart`                | `Styler.Style.Pipes`                 | |
 
 If you're using Credo and Styler, **we recommend disabling these rules in `.credo.exs`** to save on unnecessary checks in CI.
 
