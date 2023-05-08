@@ -29,7 +29,7 @@
 
 ### Fixes
 
-* `ModuleDirectives`: hande dynamic module names
+* `ModuleDirectives`: handle dynamic module names
 * `Pipes`: include `Ecto.Query.from` and `Query.from` as valid pipe starts
 
 ## v0.5.1
