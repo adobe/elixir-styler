@@ -13,36 +13,22 @@ defmodule Styler.Style.SimpleTest do
 
   describe "numbers" do
     test "styles floats and integers with >4 digits" do
-      assert_style(
-        """
-        10000
-        1_0_0_0_0
-        -543213
-        123456789
-        55333.22
-        -123456728.0001
-        """,
-        """
-        10_000
-        10_000
-        -543_213
-        123_456_789
-        55_333.22
-        -123_456_728.0001
-        """
-      )
+      assert_style("10000", "10_000")
+      assert_style("1_0_0_0_0", "10_000")
+      assert_style("-543213", "-543_213")
+      assert_style("123456789", "123_456_789")
+      assert_style("55333.22", "55_333.22")
+      assert_style("-123456728.0001", "-123_456_728.0001")
     end
 
     test "stays away from small numbers, strings and science" do
-      assert_style("""
-      1234
-      9999
-      "10000"
-      0xFFFF
-      0x123456
-      0b1111_1111_1111_1111
-      0o777_7777
-      """)
+      assert_style("1234")
+      assert_style("9999")
+      assert_style(~s|"10000"|)
+      assert_style("0xFFFF")
+      assert_style("0x123456")
+      assert_style("0b1111_1111_1111_1111")
+      assert_style("0o777_7777")
     end
   end
 
