@@ -4,8 +4,11 @@
 
 ### Improvements
 
+* `Styler.Style.Simple`:
+    * Optimize `Enum.reverse(foo) ++ bar` to `Enum.reverse(foo, bar)`
 * `Styler.Style.Pipes`:
-  * Add parens to 1-arity pipe functions (`Credo.Check.Readability.OneArityFunctionInPipe`)
+    * Add parens to 1-arity pipe functions (`Credo.Check.Readability.OneArityFunctionInPipe`)
+    * Optimize `a |> Enum.reverse() |> Enum.concat(enum)` to `Enum.reverse(a, enum)`
 
 ## v0.6.1
 

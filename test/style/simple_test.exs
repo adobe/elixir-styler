@@ -45,4 +45,11 @@ defmodule Styler.Style.SimpleTest do
       """)
     end
   end
+
+  describe "Enum.reverse/1 and ++" do
+    test "optimizes into `Enum.reverse/2`" do
+      assert_style("Enum.reverse(foo) ++ bar", "Enum.reverse(foo, bar)")
+      assert_style("Enum.reverse(foo, bar) ++ bar")
+    end
+  end
 end

@@ -50,6 +50,11 @@ defmodule Styler.Style.Simple do
     {:skip, Zipper.replace(zipper, {:__block__, meta, [number]}), ctx}
   end
 
+  # `Enum.reverse(foo) ++ bar` => `Enum.reverse(foo, bar)`
+  def run({{:++, _, [{{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, r_meta, [lhs]}, rhs]}, _} = zipper, ctx) do
+    {:cont, Zipper.replace(zipper, {reverse, r_meta, [lhs, rhs]}), ctx}
+  end
+
   def run(zipper, ctx), do: {:cont, zipper, ctx}
 
   defp delimit(token), do: token |> String.to_charlist() |> remove_underscores([]) |> add_underscores([])

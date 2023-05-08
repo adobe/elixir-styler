@@ -116,6 +116,17 @@ defmodule Styler.Style.Pipes do
   # a |> fun => a |> fun()
   defp fix_pipe({:|>, meta, [lhs, {fun, fun_meta, nil}]}), do: {:|>, meta, [lhs, {fun, fun_meta, []}]}
 
+  # `lhs |> Enum.reverse() |> Enum.concat(enum)` => `lhs |> Enum.reverse(enum)`
+  defp fix_pipe(
+         pipe_chain(
+           lhs,
+           {{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, _, []},
+           {{:., _, [{_, _, [:Enum]}, :concat]}, _, [enum]}
+         )
+       ) do
+    {:|>, [], [lhs, {reverse, [], [enum]}]}
+  end
+
   # `lhs |> Enum.filter(filterer) |> Enum.count()` => `lhs |> Enum.count(count)`
   defp fix_pipe(
          pipe_chain(

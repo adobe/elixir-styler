@@ -349,6 +349,27 @@ defmodule Styler.Style.PipesTest do
       assert_style("a |> b |> c", "a |> b() |> c()")
     end
 
+    test "reverse/concat" do
+      assert_style("a |> Enum.reverse() |> Enum.concat()")
+      assert_style("a |> Enum.reverse(bar) |> Enum.concat()")
+      assert_style("a |> Enum.reverse(bar) |> Enum.concat(foo)")
+      assert_style("a |> Enum.reverse() |> Enum.concat(foo)", "Enum.reverse(a, foo)")
+
+      assert_style(
+        """
+        a
+        |> Enum.reverse()
+        |> Enum.concat([bar, baz])
+        |> Enum.sum()
+        """,
+        """
+        a
+        |> Enum.reverse([bar, baz])
+        |> Enum.sum()
+        """
+      )
+    end
+
     test "filter/count" do
       assert_style(
         """
