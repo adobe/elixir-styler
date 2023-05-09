@@ -78,20 +78,22 @@ You can find the currently-enabled styles in the `Styler` module, inside of its 
 
 If you're using Credo and Styler, **we recommend disabling these rules in `.credo.exs`** to save on unnecessary checks in CI.
 
- * `Credo.Check.Consistency.MultiAliasImportRequireUse` (always expands `A.{B, C}`)
- * `Credo.Check.Readability.AliasOrder`
- * `Credo.Check.Readability.BlockPipe`
- * `Credo.Check.Readability.LargeNumbers` (goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000`)
- * `Credo.Check.Readability.ModuleDoc` (adds `@moduledoc false`)
- * `Credo.Check.Readability.MultiAlias`
- * `Credo.Check.Readability.OneArityFunctionInPipe`
- * `Credo.Check.Readability.SinglePipe`
- * `Credo.Check.Readability.StrictModuleLayout` **potentially breaks compilation** (see moduledoc)
- * `Credo.Check.Readability.UnnecessaryAliasExpansion`
- * `Credo.Check.Refactor.FilterCount` (in pipes only)
- * `Credo.Check.Refactor.MapInto` (in pipes only)
- * `Credo.Check.Refactor.MapJoin` (in pipes only)
- * `Credo.Check.Refactor.PipeChainStart`
+| `Credo` credo | notes |
+|---------------|-------|
+| `Credo.Check.Consistency.MultiAliasImportRequireUse` | (always expands `A.{B, C}`) |
+| `Credo.Check.Readability.AliasOrder` | |
+| `Credo.Check.Readability.BlockPipe` | |
+| `Credo.Check.Readability.LargeNumbers` | (goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000`) |
+| `Credo.Check.Readability.ModuleDoc` | (adds `@moduledoc false`) |
+| `Credo.Check.Readability.MultiAlias` | |
+| `Credo.Check.Readability.OneArityFunctionInPipe` | |
+| `Credo.Check.Readability.SinglePipe` | |
+| `Credo.Check.Readability.StrictModuleLayout` | **potentially breaks compilation** (see notes above) |
+| `Credo.Check.Readability.UnnecessaryAliasExpansion` | |
+| `Credo.Check.Refactor.FilterCount` | (in pipes only) |
+| `Credo.Check.Refactor.MapInto` | (in pipes only) |
+| `Credo.Check.Refactor.MapJoin` | (in pipes only) |
+| `Credo.Check.Refactor.PipeChainStart` | |
 
 ## Thanks & Inspiration
 

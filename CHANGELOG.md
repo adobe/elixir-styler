@@ -7,6 +7,7 @@
 * `Styler.Style.Simple`:
     * Optimize `Enum.reverse(foo) ++ bar` to `Enum.reverse(foo, bar)`
 * `Styler.Style.Pipes`:
+    * Rewrite `|> (& ...).()` to `|> then(& ...)` (`Credo.Check.Readability.PipeIntoAnonymousFunctions`)
     * Add parens to 1-arity pipe functions (`Credo.Check.Readability.OneArityFunctionInPipe`)
     * Optimize `a |> Enum.reverse() |> Enum.concat(enum)` to `Enum.reverse(a, enum)`
 

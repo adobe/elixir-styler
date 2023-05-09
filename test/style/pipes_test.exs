@@ -345,6 +345,16 @@ defmodule Styler.Style.PipesTest do
   end
 
   describe "simple rewrites" do
+    test "rewrites anon fun def ahd invoke to use then" do
+      assert_style("a |> (& &1).()", "then(a, & &1)")
+      assert_style("a |> (& {&1, &2}).(b)", "(&{&1, &2}).(a, b)")
+      assert_style("a |> (& &1).() |> c", "a |> then(& &1) |> c()")
+
+      assert_style("a |> (fn x, y -> {x, y} end).() |> c", "a |> then(fn x, y -> {x, y} end) |> c()")
+      assert_style("a |> (fn x -> x end).()", "then(a, fn x -> x end)")
+      assert_style("a |> (fn x -> x end).() |> c", "a |> then(fn x -> x end) |> c()")
+    end
+
     test "adds parens to 1-arity pipes" do
       assert_style("a |> b |> c", "a |> b() |> c()")
     end
