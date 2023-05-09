@@ -17,6 +17,9 @@ end
 
 ## Usage
 
+We recommend using `Styler` as a formatter plugin, but it comes with a task for making it easy to try styling smaller
+portions of your project or for installing without modifying your dependencies (via mix's archive.install feature)
+
 ### As a Formatter plugin
 
 Add `Styler` as a plugin to your `.formatter.exs` file
@@ -30,8 +33,6 @@ Add `Styler` as a plugin to your `.formatter.exs` file
 And that's it! Now when you run `mix format` you'll also get the benefits of Styler's *definitely-always-right* style fixes.
 
 ### As a Mix Task
-
-We recommend using `Styler` as a plugin, but it comes with a task for other use cases as well.
 
 ```bash
 $ mix style
@@ -56,15 +57,16 @@ Styler's @adobe's internal Style Guide Enforcer - allowing exceptions to the sty
 
 ### Your first Styling
 
-Expect the first run to take some time as `Styler` rewrites violations of styles. Afterwards, it shouldn't take much longer
-than a normal mix format.
+**Speed**: Expect the first run to take some time as `Styler` rewrites violations of styles.
 
-Additionally, two sad situations may happen on your first run:
+Once styled the first time, future styling formats shouldn't take noticeably more time
+
+**Comments and compilation**: Additionally, two sad situations may happen on your first run:
 
 * **module compilation breaks** if a reference to an alias is moved to be before the alias's declaration (part of the `StrictModuleLayout` credo rule)
-    - there's nothing for it but to manually fix things, typically by writing out the entire module name where it's referenced before its alias
-* **comments get put weird places**
-    - sorry! only our `def`-shortening style is currently aware of comments. that means that they can get a little out of sorts when other rules move things around.
+    - write out aliases in full when using them before the `alias` block of a module
+    - similarly, write out constant values rather than module directives
+* **comments get put weird places** when module directives are moved
     - manually put them back where you want them, and they shouldn't be moved again
     - feel free to open or +1 an issue in the hopes that we get around to handling this
 
@@ -72,32 +74,24 @@ Additionally, two sad situations may happen on your first run:
 
 You can find the currently-enabled styles in the `Styler` module, inside of its `@styles` module attribute. Each Style's moduledoc will tell you more about what it rewrites.
 
-### Examples
-
-The best place to get an idea of what sorts of changes `Styler` makes is by looking at the tests for each `Style`.
-
-Someday we'll announce Styler to the world, and hopefully by then we have some examples written into this here README :)
-
 ### Credo Rules Styler Replaces
 
-| `Credo.Check`                                        | `Styler.Style`                       | Style notes              |
-|------------------------------------------------------|--------------------------------------|--------------------------|
-| `Credo.Check.Consistency.MultiAliasImportRequireUse` | `Styler.Style.ModuleDirectives`      | always expands `A.{B, C}` |
-| `Credo.Check.Readability.AliasOrder`                 | `Styler.Style.ModuleDirectives`      | |
-| `Credo.Check.Readability.BlockPipe`                  | `Styler.Style.Pipes`                 | |
-| `Credo.Check.Readability.LargeNumbers`               | `Styler.Style.Simple`                | fixes bad underscores, ie: `100_00` |
-| `Credo.Check.Readability.ModuleDoc`                  | `Styler.Style.ModuleDirectives`      | adds `@moduledoc false` |
-| `Credo.Check.Readability.MultiAlias`                 | `Styler.Style.ModuleDirectives`      | |
-| `Credo.Check.Readability.OneArityFunctionInPipe` | `Styler.Style.Pipes`                 | |
-| `Credo.Check.Readability.SinglePipe`                 | `Styler.Style.Pipes`                 | |
-| `Credo.Check.Readability.StrictModuleLayout`         | `Styler.Style.ModuleDirectives`      | potentially destructive! (see moduledoc) |
-| `Credo.Check.Readability.UnnecessaryAliasExpansion`  | `Styler.Style.ModuleDirectives`      | |
-| `Credo.Check.Refactor.FilterCount`                | `Styler.Style.Pipes`                 | (in pipes only) |
-| `Credo.Check.Refactor.MapInto`                | `Styler.Style.Pipes`                 | (in pipes only) |
-| `Credo.Check.Refactor.MapJoin`                | `Styler.Style.Pipes`                 | (in pipes only) |
-| `Credo.Check.Refactor.PipeChainStart`                | `Styler.Style.Pipes`                 | |
-
 If you're using Credo and Styler, **we recommend disabling these rules in `.credo.exs`** to save on unnecessary checks in CI.
+
+ * `Credo.Check.Consistency.MultiAliasImportRequireUse` (always expands `A.{B, C}`)
+ * `Credo.Check.Readability.AliasOrder`
+ * `Credo.Check.Readability.BlockPipe`
+ * `Credo.Check.Readability.LargeNumbers` (goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000`)
+ * `Credo.Check.Readability.ModuleDoc` (adds `@moduledoc false`)
+ * `Credo.Check.Readability.MultiAlias`
+ * `Credo.Check.Readability.OneArityFunctionInPipe`
+ * `Credo.Check.Readability.SinglePipe`
+ * `Credo.Check.Readability.StrictModuleLayout` **potentially breaks compilation** (see moduledoc)
+ * `Credo.Check.Readability.UnnecessaryAliasExpansion`
+ * `Credo.Check.Refactor.FilterCount` (in pipes only)
+ * `Credo.Check.Refactor.MapInto` (in pipes only)
+ * `Credo.Check.Refactor.MapJoin` (in pipes only)
+ * `Credo.Check.Refactor.PipeChainStart`
 
 ## Thanks & Inspiration
 
