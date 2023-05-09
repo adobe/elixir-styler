@@ -38,4 +38,73 @@ defmodule Styler.Style.SimpleTest do
       assert_style("Enum.reverse(foo, bar) ++ bar")
     end
   end
+
+  describe "case true false do" do
+    test "rewrites case true false to if else" do
+      assert_style(
+        """
+        case foo do
+          true -> :ok
+          false -> :error
+        end
+        """,
+        """
+        if foo do
+          :ok
+        else
+          :error
+        end
+        """
+      )
+
+      assert_style(
+        """
+        case foo do
+          false -> :error
+          true -> :ok
+        end
+        """,
+        """
+        if foo do
+          :ok
+        else
+          :error
+        end
+        """
+      )
+
+      assert_style(
+        """
+        case foo do
+          true -> :ok
+          false -> nil
+        end
+        """,
+        """
+        if foo do
+          :ok
+        end
+        """
+      )
+
+      assert_style(
+        """
+        case foo do
+          true -> :ok
+          false ->
+            Logger.warn("it's false")
+            nil
+        end
+        """,
+        """
+        if foo do
+          :ok
+        else
+          Logger.warn("it's false")
+          nil
+        end
+        """
+      )
+    end
+  end
 end

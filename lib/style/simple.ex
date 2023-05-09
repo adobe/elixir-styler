@@ -55,7 +55,36 @@ defmodule Styler.Style.Simple do
     {:cont, Zipper.replace(zipper, {reverse, r_meta, [lhs, rhs]}), ctx}
   end
 
+  def run(
+        {{:case, _,
+          [
+            head,
+            [{_, [{:->, _, [[{:__block__, _, [true]}], true_body]}, {:->, _, [[{:__block__, _, [false]}], false_body]}]}]
+          ]}, _} = zipper,
+        ctx
+      ) do
+    {:cont, Zipper.replace(zipper, if_ast(head, true_body, false_body)), ctx}
+  end
+
+  def run(
+        {{:case, _,
+          [
+            head,
+            [{_, [{:->, _, [[{:__block__, _, [false]}], false_body]}, {:->, _, [[{:__block__, _, [true]}], true_body]}]}]
+          ]}, _} = zipper,
+        ctx
+      ) do
+    {:cont, Zipper.replace(zipper, if_ast(head, true_body, false_body)), ctx}
+  end
+
   def run(zipper, ctx), do: {:cont, zipper, ctx}
+
+  # don't write an else clause if it's `false -> nil`
+  defp if_ast(head, true_body, {:__block__, _, [nil]}),
+    do: {:if, [do: []], [head, [{{:__block__, [], [:do]}, true_body}]]}
+
+  defp if_ast(head, true_body, false_body),
+    do: {:if, [do: [], end: []], [head, [{{:__block__, [], [:do]}, true_body}, {{:__block__, [], [:else]}, false_body}]]}
 
   defp delimit(token), do: token |> String.to_charlist() |> remove_underscores([]) |> add_underscores([])
 
