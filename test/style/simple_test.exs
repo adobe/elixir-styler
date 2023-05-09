@@ -60,6 +60,22 @@ defmodule Styler.Style.SimpleTest do
       assert_style(
         """
         case foo do
+          true -> :ok
+          _ -> :error
+        end
+        """,
+        """
+        if foo do
+          :ok
+        else
+          :error
+        end
+        """
+      )
+
+      assert_style(
+        """
+        case foo do
           false -> :error
           true -> :ok
         end
@@ -78,6 +94,20 @@ defmodule Styler.Style.SimpleTest do
         case foo do
           true -> :ok
           false -> nil
+        end
+        """,
+        """
+        if foo do
+          :ok
+        end
+        """
+      )
+
+      assert_style(
+        """
+        case foo do
+          true -> :ok
+          _ -> nil
         end
         """,
         """
