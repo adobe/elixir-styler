@@ -2,7 +2,9 @@
 
 ## main
 
-### Improvements
+## v0.7.0
+
+### Features
 
 * `Styler.Style.Simple`:
     * Optimize `Enum.reverse(foo) ++ bar` to `Enum.reverse(foo, bar)`
