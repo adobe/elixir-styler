@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.7.1
+
+### Features
+
+* Rewrite `case ... true / else ->` to be `if` statements
+
 ## v0.7.0
 
 ### Features
