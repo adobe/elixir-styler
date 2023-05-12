@@ -20,7 +20,7 @@ defmodule Styler do
   @styles [
     Styler.Style.ModuleDirectives,
     Styler.Style.Pipes,
-    Styler.Style.Simple,
+    Styler.Style.SingleNode,
     Styler.Style.Defs
   ]
 

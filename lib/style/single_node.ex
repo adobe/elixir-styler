@@ -8,7 +8,7 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 
-defmodule Styler.Style.Simple do
+defmodule Styler.Style.SingleNode do
   @moduledoc """
   Simple 1-1 rewrites all crammed into one module to make for more efficient traversals
 
@@ -16,14 +16,32 @@ defmodule Styler.Style.Simple do
 
   * Credo.Check.Readability.LargeNumbers
       Formatter handles large number (>5 digits) rewrites, but doesn't rewrite typos like `100_000_0`, so it's worthwhile to have styler do this
+  * Credo.Check.Readability.ParenthesesOnZeroArityDefs
+  * Credo.Check.Refactor.CaseTrivialMatches
   """
 
   @behaviour Styler.Style
 
-  alias Styler.Zipper
+  def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
+
+  defmacrop trivial_case(head, a, a_body, b, b_body) do
+    quote do
+      {:case, _,
+       [
+         unquote(head),
+         [
+           {_,
+            [
+              {:->, _, [[unquote(a)], unquote(a_body)]},
+              {:->, _, [[unquote(b)], unquote(b_body)]}
+            ]}
+         ]
+       ]}
+    end
+  end
 
   # `?-` isn't part of the number node - it's its parent - so all numbers are positive at this point
-  def run({{:__block__, meta, [number]}, _} = zipper, ctx) when is_number(number) and number >= 10_000 do
+  defp style({:__block__, meta, [number]}) when is_number(number) and number >= 10_000 do
     # Checking here rather than in the anon function due to compiler bug https://github.com/elixir-lang/elixir/issues/10485
     integer? = is_integer(number)
 
@@ -47,45 +65,26 @@ defmodule Styler.Style.Simple do
           "#{delimit(int_token)}.#{decimals}"
       end)
 
-    {:skip, Zipper.replace(zipper, {:__block__, meta, [number]}), ctx}
+    {:__block__, meta, [number]}
   end
+
+  # Remove parens from 0 arity funs (Credo.Check.Readability.ParenthesesOnZeroArityDefs)
+  defp style({def, dm, [{fun, funm, []} | rest]}) when def in ~w(def defp)a, do: {def, dm, [{fun, funm, nil} | rest]}
 
   # `Enum.reverse(foo) ++ bar` => `Enum.reverse(foo, bar)`
-  def run({{:++, _, [{{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, r_meta, [lhs]}, rhs]}, _} = zipper, ctx) do
-    {:cont, Zipper.replace(zipper, {reverse, r_meta, [lhs, rhs]}), ctx}
-  end
+  defp style({:++, _, [{{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, r_meta, [lhs]}, rhs]}),
+    do: {reverse, r_meta, [lhs, rhs]}
 
-  def run(
-        {{:case, _,
-          [
-            head,
-            [{_, [{:->, _, [[{:__block__, _, [true]}], do_body]}, {:->, _, [[{:__block__, _, [false]}], else_body]}]}]
-          ]}, _} = zipper,
-        ctx
-      ) do
-    {:cont, Zipper.replace(zipper, if_ast(head, do_body, else_body)), ctx}
-  end
+  defp style(trivial_case(head, {:__block__, _, [true]}, do_body, {:__block__, _, [false]}, else_body)),
+    do: if_ast(head, do_body, else_body)
 
-  def run(
-        {{:case, _, [head, [{_, [{:->, _, [[{:__block__, _, [true]}], do_body]}, {:->, _, [[{:_, _, _}], else_body]}]}]]},
-         _} = zipper,
-        ctx
-      ) do
-    {:cont, Zipper.replace(zipper, if_ast(head, do_body, else_body)), ctx}
-  end
+  defp style(trivial_case(head, {:__block__, _, [false]}, else_body, {:__block__, _, [true]}, do_body)),
+    do: if_ast(head, do_body, else_body)
 
-  def run(
-        {{:case, _,
-          [
-            head,
-            [{_, [{:->, _, [[{:__block__, _, [false]}], else_body]}, {:->, _, [[{:__block__, _, [true]}], do_body]}]}]
-          ]}, _} = zipper,
-        ctx
-      ) do
-    {:cont, Zipper.replace(zipper, if_ast(head, do_body, else_body)), ctx}
-  end
+  defp style(trivial_case(head, {:__block__, _, [true]}, do_body, {:_, _, _}, else_body)),
+    do: if_ast(head, do_body, else_body)
 
-  def run(zipper, ctx), do: {:cont, zipper, ctx}
+  defp style(node), do: node
 
   # don't write an else clause if it's `false -> nil`
   defp if_ast(head, do_body, {:__block__, _, [nil]}), do: {:if, [do: []], [head, [{{:__block__, [], [:do]}, do_body}]]}

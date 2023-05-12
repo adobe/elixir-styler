@@ -16,14 +16,12 @@ defmodule Styler.Style.Pipes do
 
     * Credo.Check.Readability.BlockPipe
     * Credo.Check.Readability.OneArityFunctionInPipe
+    * Credo.Check.Readability.PipeIntoAnonymousFunctions
     * Credo.Check.Readability.SinglePipe
-    * Credo.Check.Refactor.PipeChainStart, excluded_functions: ["from"]
-
-  The following two rules are only corrected within pipe chains; nested functions aren't fixed
-
     * Credo.Check.Refactor.FilterCount
-    * Credo.Check.Refactor.MapJoin
     * Credo.Check.Refactor.MapInto
+    * Credo.Check.Refactor.MapJoin
+    * Credo.Check.Refactor.PipeChainStart, excluded_functions: ["from"]
   """
 
   @behaviour Styler.Style
