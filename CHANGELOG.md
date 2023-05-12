@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.7.3
+
+### Features
+
+* Remove parens from 0-arity function definitions (`Credo.Check.Readability.ParenthesesOnZeroArityDefs`)
+
 ## v0.7.2
 
 ### Features
