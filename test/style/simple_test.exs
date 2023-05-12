@@ -8,8 +8,8 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 
-defmodule Styler.Style.SimpleTest do
-  use Styler.StyleCase, style: Styler.Style.Simple, async: true
+defmodule Styler.Style.SingleNodeTest do
+  use Styler.StyleCase, style: Styler.Style.SingleNode, async: true
 
   describe "0-arity paren removal" do
     test "removes parens" do
