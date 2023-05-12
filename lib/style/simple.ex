@@ -16,6 +16,8 @@ defmodule Styler.Style.Simple do
 
   * Credo.Check.Readability.LargeNumbers
       Formatter handles large number (>5 digits) rewrites, but doesn't rewrite typos like `100_000_0`, so it's worthwhile to have styler do this
+  * Credo.Check.Readability.ParenthesesOnZeroArityDefs
+  * Credo.Check.Refactor.CaseTrivialMatches
   """
 
   @behaviour Styler.Style
@@ -48,6 +50,10 @@ defmodule Styler.Style.Simple do
       end)
 
     {:skip, Zipper.replace(zipper, {:__block__, meta, [number]}), ctx}
+  end
+
+  def run({{def, dm, [{fun, funm, []} | rest]}, _} = zipper, ctx) when def in ~w(def defp)a do
+    {:cont, Zipper.replace(zipper, {def, dm, [{fun, funm, nil} | rest]}), ctx}
   end
 
   # `Enum.reverse(foo) ++ bar` => `Enum.reverse(foo, bar)`

@@ -80,20 +80,23 @@ If you're using Credo and Styler, **we recommend disabling these rules in `.cred
 
 | `Credo` credo | notes |
 |---------------|-------|
-| `Credo.Check.Consistency.MultiAliasImportRequireUse` | (always expands `A.{B, C}`) |
+| `Credo.Check.Consistency.MultiAliasImportRequireUse` | always expands `A.{B, C}` |
 | `Credo.Check.Readability.AliasOrder` | |
 | `Credo.Check.Readability.BlockPipe` | |
-| `Credo.Check.Readability.LargeNumbers` | (goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000`) |
-| `Credo.Check.Readability.ModuleDoc` | (adds `@moduledoc false`) |
+| `Credo.Check.Readability.PipeIntoAnonymousFunctions` | |
+| `Credo.Check.Readability.LargeNumbers` | goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000` |
+| `Credo.Check.Readability.ModuleDoc` | adds `@moduledoc false` |
 | `Credo.Check.Readability.MultiAlias` | |
 | `Credo.Check.Readability.OneArityFunctionInPipe` | |
+| `Credo.Check.Readability.ParenthesesOnZeroArityDefs` | removes parens |
 | `Credo.Check.Readability.SinglePipe` | |
 | `Credo.Check.Readability.StrictModuleLayout` | **potentially breaks compilation** (see notes above) |
 | `Credo.Check.Readability.UnnecessaryAliasExpansion` | |
-| `Credo.Check.Refactor.FilterCount` | (in pipes only) |
-| `Credo.Check.Refactor.MapInto` | (in pipes only) |
-| `Credo.Check.Refactor.MapJoin` | (in pipes only) |
-| `Credo.Check.Refactor.PipeChainStart` | |
+| `Credo.Check.Refactor.CaseTrivialMatches` | |
+| `Credo.Check.Refactor.FilterCount` | in pipes only |
+| `Credo.Check.Refactor.MapInto` | in pipes only |
+| `Credo.Check.Refactor.MapJoin` | in pipes only |
+| `Credo.Check.Refactor.PipeChainStart` | allows ecto's `from`|
 
 ## Thanks & Inspiration
 

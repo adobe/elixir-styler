@@ -11,6 +11,39 @@
 defmodule Styler.Style.SimpleTest do
   use Styler.StyleCase, style: Styler.Style.Simple, async: true
 
+  describe "0-arity paren removal" do
+    test "removes parens" do
+      assert_style("def foo(), do: :ok", "def foo, do: :ok")
+      assert_style("defp foo(), do: :ok", "defp foo, do: :ok")
+
+      assert_style(
+        """
+        def foo() do
+        :ok
+        end
+        """,
+        """
+        def foo do
+          :ok
+        end
+        """
+      )
+
+      assert_style(
+        """
+        defp foo() do
+        :ok
+        end
+        """,
+        """
+        defp foo do
+          :ok
+        end
+        """
+      )
+    end
+  end
+
   describe "numbers" do
     test "styles floats and integers with >4 digits" do
       assert_style("10000", "10_000")
