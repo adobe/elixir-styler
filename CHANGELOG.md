@@ -5,6 +5,7 @@
 ### Features
 
 * Implement `Credo.Check.Readability.PreferImplicitTry`
+* Implement `Credo.Check.Consistency.ParameterPatternMatching` for `def|defp|fn|case`
 
 ## v0.7.3
 
