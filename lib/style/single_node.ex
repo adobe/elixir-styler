@@ -18,6 +18,7 @@ defmodule Styler.Style.SingleNode do
       Formatter handles large number (>5 digits) rewrites, but doesn't rewrite typos like `100_000_0`, so it's worthwhile to have styler do this
   * Credo.Check.Readability.ParenthesesOnZeroArityDefs
   * Credo.Check.Refactor.CaseTrivialMatches
+  * Credo.Check.Readability.PreferImplicitTry
   """
 
   @behaviour Styler.Style
@@ -69,7 +70,12 @@ defmodule Styler.Style.SingleNode do
   end
 
   # Remove parens from 0 arity funs (Credo.Check.Readability.ParenthesesOnZeroArityDefs)
-  defp style({def, dm, [{fun, funm, []} | rest]}) when def in ~w(def defp)a, do: {def, dm, [{fun, funm, nil} | rest]}
+  defp style({def, dm, [{fun, funm, []} | rest]}) when def in ~w(def defp)a,
+    do: style({def, dm, [{fun, funm, nil} | rest]})
+
+  # `Credo.Check.Readability.PreferImplicitTry`
+  defp style({def, dm, [head, [{_, {:try, _, [try_children]}}]]}) when def in ~w(def defp)a,
+    do: {def, dm, [head, try_children]}
 
   # `Enum.reverse(foo) ++ bar` => `Enum.reverse(foo, bar)`
   defp style({:++, _, [{{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, r_meta, [lhs]}, rhs]}),

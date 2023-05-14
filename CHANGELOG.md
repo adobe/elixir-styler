@@ -2,6 +2,10 @@
 
 ## main
 
+### Features
+
+* Implement `Credo.Check.Readability.PreferImplicitTry`
+
 ## v0.7.3
 
 ### Features

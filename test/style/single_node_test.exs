@@ -44,6 +44,57 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
+  describe "implicit try" do
+    test "rewrites functions whose only child is a try" do
+      for def_style <- ~w(def defp) do
+        assert_style(
+          """
+          #{def_style} foo() do
+            try do
+              :ok
+            rescue
+              exception -> :excepted
+            catch
+              :a_throw -> :thrown
+            else
+              i_forgot -> i_forgot.this_could_happen
+            after
+              :done
+            end
+          end
+          """,
+          """
+          #{def_style} foo do
+            :ok
+          rescue
+            exception -> :excepted
+          catch
+            :a_throw -> :thrown
+          else
+            i_forgot -> i_forgot.this_could_happen
+          after
+            :done
+          end
+          """
+        )
+      end
+    end
+
+    test "doesnt rewrite when there are other things in the body" do
+      assert_style("""
+      def foo do
+        try do
+          :ok
+        rescue
+          exception -> :excepted
+        end
+
+        :after_try
+      end
+      """)
+    end
+  end
+
   describe "numbers" do
     test "styles floats and integers with >4 digits" do
       assert_style("10000", "10_000")

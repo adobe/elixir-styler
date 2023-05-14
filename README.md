@@ -10,7 +10,7 @@ Add `:styler` as a dependency to your project's `mix.exs`:
 ```elixir
 def deps do
   [
-    {:styler, "~> 0.5", only: [:dev, :test], runtime: false},
+    {:styler, "~> 0.7", only: [:dev, :test], runtime: false},
   ]
 end
 ```
@@ -83,12 +83,13 @@ If you're using Credo and Styler, **we recommend disabling these rules in `.cred
 | `Credo.Check.Consistency.MultiAliasImportRequireUse` | always expands `A.{B, C}` |
 | `Credo.Check.Readability.AliasOrder` | |
 | `Credo.Check.Readability.BlockPipe` | |
-| `Credo.Check.Readability.PipeIntoAnonymousFunctions` | |
 | `Credo.Check.Readability.LargeNumbers` | goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000` |
 | `Credo.Check.Readability.ModuleDoc` | adds `@moduledoc false` |
 | `Credo.Check.Readability.MultiAlias` | |
 | `Credo.Check.Readability.OneArityFunctionInPipe` | |
 | `Credo.Check.Readability.ParenthesesOnZeroArityDefs` | removes parens |
+| `Credo.Check.Readability.PipeIntoAnonymousFunctions` | |
+| `Credo.Check.Readability.PreferImplicitTry` | |
 | `Credo.Check.Readability.SinglePipe` | |
 | `Credo.Check.Readability.StrictModuleLayout` | **potentially breaks compilation** (see notes above) |
 | `Credo.Check.Readability.UnnecessaryAliasExpansion` | |
