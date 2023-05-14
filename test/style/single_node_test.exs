@@ -11,8 +11,8 @@
 defmodule Styler.Style.SingleNodeTest do
   use Styler.StyleCase, style: Styler.Style.SingleNode, async: true
 
-  describe "0-arity paren removal" do
-    test "removes parens" do
+  describe "def / defp" do
+    test "0-arity functions have parens removed" do
       assert_style("def foo(), do: :ok", "def foo, do: :ok")
       assert_style("defp foo(), do: :ok", "defp foo, do: :ok")
 
@@ -42,10 +42,8 @@ defmodule Styler.Style.SingleNodeTest do
         """
       )
     end
-  end
 
-  describe "implicit try" do
-    test "rewrites functions whose only child is a try" do
+    test "prefers implicit try" do
       for def_style <- ~w(def defp) do
         assert_style(
           """
@@ -95,6 +93,39 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
+  describe "RHS pattern matching" do
+    test "case statements" do
+      assert_style(
+        """
+        case foo do
+          bar = %{baz: baz? = true} -> :baz?
+          opts = [[a = %{}] | _] -> a
+        end
+        """,
+        """
+        case foo do
+          %{baz: true = baz?} = bar -> :baz?
+          [[%{} = a] | _] = opts -> a
+        end
+        """
+      )
+    end
+
+    test "defs" do
+      assert_style(
+        "def foo(bar = %{baz: baz? = true}, opts = [[a = %{}] | _]), do: :ok",
+        "def foo(%{baz: true = baz?} = bar, [[%{} = a] | _] = opts), do: :ok"
+      )
+    end
+
+    test "anon funs" do
+      assert_style(
+        "fn bar = %{baz: baz? = true}, opts = [[a = %{}] | _] -> :ok end",
+        "fn %{baz: true = baz?} = bar, [[%{} = a] | _] = opts -> :ok end"
+      )
+    end
+  end
+
   describe "numbers" do
     test "styles floats and integers with >4 digits" do
       assert_style("10000", "10_000")
@@ -123,7 +154,7 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
-  describe "case true false do" do
+  describe "case to if" do
     test "rewrites case true false to if else" do
       assert_style(
         """

@@ -81,6 +81,7 @@ If you're using Credo and Styler, **we recommend disabling these rules in `.cred
 | `Credo` credo | notes |
 |---------------|-------|
 | `Credo.Check.Consistency.MultiAliasImportRequireUse` | always expands `A.{B, C}` |
+| `Credo.Check.Consistency.ParameterPatternMatching` | also case statements, anon functions |
 | `Credo.Check.Readability.AliasOrder` | |
 | `Credo.Check.Readability.BlockPipe` | |
 | `Credo.Check.Readability.LargeNumbers` | goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000` |

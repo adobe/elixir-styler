@@ -14,14 +14,16 @@ defmodule Styler.Style.SingleNode do
 
   Credo Rules addressed:
 
+  * Credo.Check.Consistency.ParameterPatternMatching
   * Credo.Check.Readability.LargeNumbers
-      Formatter handles large number (>5 digits) rewrites, but doesn't rewrite typos like `100_000_0`, so it's worthwhile to have styler do this
   * Credo.Check.Readability.ParenthesesOnZeroArityDefs
-  * Credo.Check.Refactor.CaseTrivialMatches
   * Credo.Check.Readability.PreferImplicitTry
+  * Credo.Check.Refactor.CaseTrivialMatches
   """
 
   @behaviour Styler.Style
+
+  alias Styler.Zipper
 
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 
@@ -41,6 +43,9 @@ defmodule Styler.Style.SingleNode do
     end
   end
 
+  # Add / Correct `_` location in large numbers. Formatter handles large number (>5 digits) rewrites,
+  # but doesn't rewrite typos like `100_000_0`, so it's worthwhile to have Styler do this
+  #
   # `?-` isn't part of the number node - it's its parent - so all numbers are positive at this point
   defp style({:__block__, meta, [number]}) when is_number(number) and number >= 10_000 do
     # Checking here rather than in the anon function due to compiler bug https://github.com/elixir-lang/elixir/issues/10485
@@ -75,7 +80,12 @@ defmodule Styler.Style.SingleNode do
 
   # `Credo.Check.Readability.PreferImplicitTry`
   defp style({def, dm, [head, [{_, {:try, _, [try_children]}}]]}) when def in ~w(def defp)a,
-    do: {def, dm, [head, try_children]}
+    do: style({def, dm, [head, try_children]})
+
+  defp style({def, dm, [{fun, funm, params} | rest]}) when def in ~w(def defp)a,
+    do: {def, dm, [{fun, funm, put_matches_on_right(params)} | rest]}
+
+  defp style({:->, m, [match | rest]}), do: {:->, m, [put_matches_on_right(match) | rest]}
 
   # `Enum.reverse(foo) ++ bar` => `Enum.reverse(foo, bar)`
   defp style({:++, _, [{{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, r_meta, [lhs]}, rhs]}),
@@ -91,6 +101,16 @@ defmodule Styler.Style.SingleNode do
     do: if_ast(head, do_body, else_body)
 
   defp style(node), do: node
+
+  defp put_matches_on_right(params) do
+    params
+    |> Zipper.zip()
+    |> Zipper.traverse(fn
+      {{:=, m, [{_, _, nil} = var, match]}, _} = zipper -> Zipper.replace(zipper, {:=, m, [match, var]})
+      zipper -> zipper
+    end)
+    |> Zipper.node()
+  end
 
   # don't write an else clause if it's `false -> nil`
   defp if_ast(head, do_body, {:__block__, _, [nil]}), do: {:if, [do: []], [head, [{{:__block__, [], [:do]}, do_body}]]}
