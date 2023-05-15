@@ -12,14 +12,13 @@ defmodule Styler.StyleError do
   @moduledoc """
   Wraps errors raised by Styles during tree traversal.
   """
-  defexception [:exception, :style, :file]
+  defexception [:exception, :file]
 
-  def message(%{exception: exception, style: style, file: file}) do
+  def message(%{exception: exception, file: file}) do
     file = file && if file == :std, do: "stdin", else: Path.relative_to_cwd(file)
-    style = style |> Module.split() |> List.last()
 
     """
-    Error running style #{style} on #{file}
+    Error styling #{file}
        Please consider opening an issue at: #{IO.ANSI.light_green()}https://github.com/adobe/elixir-styler/issues/new#{IO.ANSI.reset()}
     #{IO.ANSI.default_color()}#{Exception.format(:error, exception)}
     """

@@ -105,6 +105,17 @@ defmodule Styler.Style do
   # give it a block parent, then step back to the child - we can insert next to it now that it's in a block
   defp wrap_in_block(zipper), do: zipper |> Zipper.update(&{:__block__, [], [&1]}) |> Zipper.down()
 
+  @doc "Moves all pattern matching in a tree to have the variable on the right side of all pattern matches"
+  def put_matches_on_right(ast) do
+    ast
+    |> Zipper.zip()
+    |> Zipper.traverse(fn
+      {{:=, m, [{_, _, nil} = var, match]}, _} = zipper -> Zipper.replace(zipper, {:=, m, [match, var]})
+      zipper -> zipper
+    end)
+    |> Zipper.node()
+  end
+
   @doc """
   Set the line of all comments with `line` in `range_start..range_end` to instead have line `range_start`
   """

@@ -14,15 +14,14 @@ defmodule Styler do
   """
   @behaviour Mix.Tasks.Format
 
+  alias Styler.Style.Defs
+  alias Styler.Style.ModuleDirectives
+  alias Styler.Style.Pipes
+  alias Styler.Style.SingleNode
   alias Styler.StyleError
   alias Styler.Zipper
 
-  @styles [
-    Styler.Style.ModuleDirectives,
-    Styler.Style.Pipes,
-    Styler.Style.SingleNode,
-    Styler.Style.Defs
-  ]
+  @directives ~w(defmodule alias import require use)a
 
   @doc false
   def style({ast, comments}, file, opts) do
@@ -31,22 +30,27 @@ defmodule Styler do
     context = %{comments: comments, file: file}
 
     {{ast, _}, %{comments: comments}} =
-      Enum.reduce(@styles, {zipper, context}, fn style, {zipper, context} ->
-        try do
-          Zipper.traverse_while(zipper, context, &style.run/2)
-        rescue
-          exception ->
-            exception = StyleError.exception(exception: exception, style: style, file: file)
+      try do
+        Zipper.traverse_while(zipper, context, fn {ast, _} = zipper, ctx ->
+          case ast do
+            {def, _, [_ | _]} when def in [:def, :defp] -> Defs.run(zipper, ctx)
+            {:|>, _, _} -> Pipes.run(zipper, ctx)
+            {d, _, [_ | _]} when d in @directives -> ModuleDirectives.run(zipper, ctx)
+            _ -> SingleNode.run(zipper, ctx)
+          end
+        end)
+      rescue
+        exception ->
+          exception = StyleError.exception(exception: exception, file: file)
 
-            if on_error == :log do
-              error = Exception.format(:error, exception, __STACKTRACE__)
-              Mix.shell().error("#{error}\n#{IO.ANSI.reset()}Skipping style and continuing on")
-              {zipper, context}
-            else
-              reraise exception, __STACKTRACE__
-            end
-        end
-      end)
+          if on_error == :log do
+            error = Exception.format(:error, exception, __STACKTRACE__)
+            Mix.shell().error("#{error}\n#{IO.ANSI.reset()}Skipping style and continuing on")
+            {zipper, context}
+          else
+            reraise exception, __STACKTRACE__
+          end
+      end
 
     {ast, comments}
   end

@@ -31,6 +31,10 @@ defmodule Styler.Style.Defs do
       def foo(%{bar: baz}) do
         ...
       end
+
+  * Credo.Check.Readability.PreferImplicitTry
+  * Credo.Check.Readability.ParenthesesOnZeroArityDefs
+  * Credo.Check.Consistency.ParameterPatternMatching
   """
 
   @behaviour Styler.Style
@@ -38,27 +42,45 @@ defmodule Styler.Style.Defs do
   alias Styler.Style
   alias Styler.Zipper
 
+  def run({{def, _, _}, _} = zipper, ctx) when def in [:def, :defp] do
+    {zipper, ctx} =
+      zipper
+      |> Zipper.update(&style/1)
+      |> flatten(ctx)
+
+    {:cont, zipper, ctx}
+  end
+
+  def run(zipper, ctx), do: {:cont, zipper, ctx}
+
+  # Remove parens from 0 arity funs (Credo.Check.Readability.ParenthesesOnZeroArityDefs)
+  defp style({def, dm, [{fun, funm, []} | rest]}), do: style({def, dm, [{fun, funm, nil} | rest]})
+  # `Credo.Check.Readability.PreferImplicitTry`
+  defp style({def, dm, [head, [{_, {:try, _, [try_children]}}]]}), do: style({def, dm, [head, try_children]})
+  # Credo.Check.Consistency.ParameterPatternMatching
+  defp style({def, dm, [{f, fm, params} | rest]}), do: {def, dm, [{f, fm, Style.put_matches_on_right(params)} | rest]}
+
   # a def with no body like
   #
   #  def example(foo, bar \\ nil)
   #
-  def run({{def, meta, [head]}, _} = zipper, ctx) when def in [:def, :defp] do
+  defp flatten({{def, meta, [head]}, _} = zipper, ctx) do
     {_fn_name, head_meta, _children} = head
     first_line = meta[:line]
     last_line = head_meta[:closing][:line]
 
     if first_line == last_line do
       # Already collapsed
-      {:skip, zipper, ctx}
+      {zipper, ctx}
     else
       comments = Style.displace_comments(ctx.comments, first_line..last_line)
       node = {def, meta, [Style.set_line_meta_to_line(head, meta[:line])]}
-      {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
+      {Zipper.replace(zipper, node), %{ctx | comments: comments}}
     end
   end
 
   # all the other kinds of defs!
-  def run({{def, def_meta, [head, body]}, _} = zipper, ctx) when def in [:def, :defp] do
+  defp flatten({{def, def_meta, [head, body]}, _} = zipper, ctx) do
     {def_line, do_line, end_line} =
       if def_meta[:do] do
         # This is a def with a do block, like
@@ -90,7 +112,7 @@ defmodule Styler.Style.Defs do
     cond do
       def_line == end_line ->
         # Already collapsed
-        {:skip, zipper, ctx}
+        {zipper, ctx}
 
       def_meta[:do] ->
         # We're working on a def do ... end
@@ -108,20 +130,16 @@ defmodule Styler.Style.Defs do
           |> Style.displace_comments(def_line..do_line)
           |> Style.shift_comments(do_line..end_line, delta)
 
-        # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
-        {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
+        {Zipper.replace(zipper, node), %{ctx | comments: comments}}
 
       true ->
         # We're working on a Keyword def do:
         node = Style.set_line_meta_to_line({def, def_meta, [head, body]}, def_line)
         comments = Style.displace_comments(ctx.comments, def_line..end_line)
 
-        # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
-        {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
+        {Zipper.replace(zipper, node), %{ctx | comments: comments}}
     end
   end
-
-  def run(zipper, ctx), do: {:cont, zipper, ctx}
 
   defp shift_lines(line_mover) do
     fn meta ->
