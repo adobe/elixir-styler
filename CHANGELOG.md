@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.7.5
+
+### Fixes
+
+* Fix bug from `ParameterPatternMatching` implementation that re-ordered pattern matching in `cond do` `->` clauses
+
 ## v0.7.4
 
 ### Features
