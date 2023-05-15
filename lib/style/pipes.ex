@@ -95,6 +95,9 @@ defmodule Styler.Style.Pipes do
   # block_result
   # |> ...
   defp extract_start({block, _, _} = lhs) when block in @blocks do
+    #@TODO create a block style and call that? keep style open so we can call it w/ a single ast node?
+    {:cont, {{block, _, _} = lhs, _}, _} = Styler.Style.SingleNode.run({lhs, nil}, %{})
+
     variable = {:"#{block}_result", [], nil}
     new_assignment = {:=, [], [variable, lhs]}
     {variable, new_assignment}

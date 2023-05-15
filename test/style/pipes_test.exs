@@ -12,6 +12,26 @@ defmodule Styler.Style.PipesTest do
   use Styler.StyleCase, async: true
 
   describe "big picture" do
+    test "case pipe" do
+      assert_style """
+      case foo do
+        true -> :ok
+        false -> :error
+      end
+      |> pipe()
+      """,
+      """
+      if_result =
+        if foo do
+          :ok
+        else
+          :error
+        end
+
+      pipe(if_result)
+      """
+    end
+
     test "doesn't modify valid pipe" do
       assert_style("""
       a()
