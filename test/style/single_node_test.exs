@@ -124,6 +124,16 @@ defmodule Styler.Style.SingleNodeTest do
         "fn %{baz: true = baz?} = bar, [[%{} = a] | _] = opts -> :ok end"
       )
     end
+
+    test "leaves those poor case statements alone!" do
+      assert_style("""
+      cond do
+        foo = Repo.get(Bar, 1) -> foo
+        x == y -> :kaboom?
+        true -> :else
+      end
+      """)
+    end
   end
 
   describe "numbers" do

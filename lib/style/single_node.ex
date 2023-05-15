@@ -85,7 +85,7 @@ defmodule Styler.Style.SingleNode do
   defp style({def, dm, [{fun, funm, params} | rest]}) when def in ~w(def defp)a,
     do: {def, dm, [{fun, funm, put_matches_on_right(params)} | rest]}
 
-  defp style({:->, m, [match | rest]}), do: {:->, m, [put_matches_on_right(match) | rest]}
+  # defp style({:->, m, [match | rest]}), do: {:->, m, [put_matches_on_right(match) | rest]}
 
   # `Enum.reverse(foo) ++ bar` => `Enum.reverse(foo, bar)`
   defp style({:++, _, [{{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, r_meta, [lhs]}, rhs]}),
@@ -100,10 +100,16 @@ defmodule Styler.Style.SingleNode do
   defp style(trivial_case(head, {:__block__, _, [true]}, do_body, {:_, _, _}, else_body)),
     do: if_ast(head, do_body, else_body)
 
+  defp style({:case, cm, [head, [{do_block, arrows}]]}), do: {:case, cm, [head, [{do_block, r_align_matches(arrows)}]]}
+
+  defp style({:fn, m, arrows}), do: {:fn, m, r_align_matches(arrows)}
+
   defp style(node), do: node
 
-  defp put_matches_on_right(params) do
-    params
+  defp r_align_matches(arrows), do: Enum.map(arrows, fn {:->, m, [lhs, rhs]} -> {:->, m, [put_matches_on_right(lhs), rhs]} end)
+
+  defp put_matches_on_right(ast) do
+    ast
     |> Zipper.zip()
     |> Zipper.traverse(fn
       {{:=, m, [{_, _, nil} = var, match]}, _} = zipper -> Zipper.replace(zipper, {:=, m, [match, var]})
