@@ -9,7 +9,7 @@
 # governing permissions and limitations under the License.
 
 defmodule Styler.Style.PipesTest do
-  use Styler.StyleCase, style: Styler.Style.Pipes, async: true
+  use Styler.StyleCase, async: true
 
   describe "big picture" do
     test "doesn't modify valid pipe" do

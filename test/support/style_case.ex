@@ -14,17 +14,9 @@ defmodule Styler.StyleCase do
   """
   use ExUnit.CaseTemplate
 
-  alias Styler.Zipper
-
-  using options do
-    style = options[:style]
-    unless style, do: raise(ArgumentError, "missing required `:style` option")
-
+  using do
     quote do
-      import unquote(__MODULE__), only: [assert_style: 1, assert_style: 2]
-
-      @style unquote(style)
-      def style(code), do: unquote(__MODULE__).style(code, @style)
+      import unquote(__MODULE__), only: [assert_style: 1, assert_style: 2, style: 1]
     end
   end
 
@@ -57,15 +49,9 @@ defmodule Styler.StyleCase do
     end
   end
 
-  def style(code, style) do
+  def style(code) do
     {ast, comments} = Styler.string_to_quoted_with_comments(code)
-
-    {zipper, %{comments: comments}} =
-      ast
-      |> Zipper.zip()
-      |> Zipper.traverse_while(%{comments: comments, file: "test"}, &style.run/2)
-
-    styled_ast = Zipper.root(zipper)
+    {styled_ast, comments} = Styler.style({ast, comments}, "testfile", on_error: :raise)
 
     try do
       styled_code = styled_ast |> Styler.quoted_to_string(comments) |> String.trim_trailing("\n")

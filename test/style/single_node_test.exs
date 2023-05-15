@@ -9,7 +9,7 @@
 # governing permissions and limitations under the License.
 
 defmodule Styler.Style.SingleNodeTest do
-  use Styler.StyleCase, style: Styler.Style.SingleNode, async: true
+  use Styler.StyleCase, async: true
 
   describe "def / defp" do
     test "0-arity functions have parens removed" do

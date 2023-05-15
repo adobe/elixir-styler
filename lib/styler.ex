@@ -24,17 +24,14 @@ defmodule Styler do
     Styler.Style.Defs
   ]
 
-  @impl Mix.Tasks.Format
-  def features(_opts), do: [sigils: [], extensions: [".ex", ".exs"]]
-
-  @impl Mix.Tasks.Format
-  def format(input, formatter_opts, opts \\ []) do
+  @doc false
+  def style({ast, comments}, file, opts) do
     on_error = opts[:on_error] || :log
-    file = formatter_opts[:file]
-    {ast, comments} = string_to_quoted_with_comments(input, to_string(file))
+    zipper = Zipper.zip(ast)
+    context = %{comments: comments, file: file}
 
-    {{ast, nil}, %{comments: comments}} =
-      Enum.reduce(@styles, {Zipper.zip(ast), %{comments: comments, file: file}}, fn style, {zipper, context} ->
+    {{ast, _}, %{comments: comments}} =
+      Enum.reduce(@styles, {zipper, context}, fn style, {zipper, context} ->
         try do
           Zipper.traverse_while(zipper, context, &style.run/2)
         rescue
@@ -50,6 +47,21 @@ defmodule Styler do
             end
         end
       end)
+
+    {ast, comments}
+  end
+
+  @impl Mix.Tasks.Format
+  def features(_opts), do: [sigils: [], extensions: [".ex", ".exs"]]
+
+  @impl Mix.Tasks.Format
+  def format(input, formatter_opts, opts \\ []) do
+    file = formatter_opts[:file]
+
+    {ast, comments} =
+      input
+      |> Styler.string_to_quoted_with_comments(to_string(file))
+      |> style(file, opts)
 
     quoted_to_string(ast, comments, formatter_opts)
   end
