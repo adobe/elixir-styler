@@ -104,7 +104,7 @@ defmodule Styler.Style.Pipes do
 
   # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
   defp extract_start({fun, meta, [arg | args]}) do
-    {{:|>, [], [arg, {fun, meta, args}]}, nil}
+    {{:|>, [line: meta[:line]], [arg, {fun, meta, args}]}, nil}
   end
 
   # `pipe_chain(a, b, c)` generates the ast for `a |> b |> c`
@@ -125,37 +125,37 @@ defmodule Styler.Style.Pipes do
   defp fix_pipe(
          pipe_chain(
            lhs,
-           {{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, _, []},
+           {{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, meta, []},
            {{:., _, [{_, _, [:Enum]}, :concat]}, _, [enum]}
          )
        ) do
-    {:|>, [], [lhs, {reverse, [], [enum]}]}
+    {:|>, [line: meta[:line]], [lhs, {reverse, [line: meta[:line]], [enum]}]}
   end
 
   # `lhs |> Enum.filter(filterer) |> Enum.count()` => `lhs |> Enum.count(count)`
   defp fix_pipe(
          pipe_chain(
            lhs,
-           {{:., _, [{_, _, [:Enum]}, :filter]}, _, [filterer]},
+           {{:., _, [{_, _, [:Enum]}, :filter]}, meta, [filterer]},
            {{:., _, [{_, _, [:Enum]}, :count]} = count, _, []}
          )
        ) do
-    {:|>, [], [lhs, {count, [], [filterer]}]}
+    {:|>, [line: meta[:line]], [lhs, {count, [line: meta[:line]], [filterer]}]}
   end
 
   # `lhs |> Enum.map(mapper) |> Enum.join(joiner)` => `lhs |> Enum.map_join(joiner, mapper)`
   defp fix_pipe(
          pipe_chain(
            lhs,
-           {{:., _, [{_, _, [:Enum]}, :map]}, _, [mapper]},
+           {{:., dm, [{_, _, [:Enum]} = enum, :map]}, em, [mapper]},
            {{:., _, [{_, _, [:Enum]}, :join]}, _, [joiner]}
          )
        ) do
     # Delete line info to keep things shrunk on the rewrite
     joiner = Style.drop_line_meta(joiner)
     mapper = Style.drop_line_meta(mapper)
-    rhs = {{:., [], [{:__aliases__, [], [:Enum]}, :map_join]}, [], [joiner, mapper]}
-    {:|>, [], [lhs, rhs]}
+    rhs = {{:., dm, [enum, :map_join]}, em, [joiner, mapper]}
+    {:|>, [line: dm[:line]], [lhs, rhs]}
   end
 
   # `lhs |> Enum.map(mapper) |> Enum.into(empty_map)` => `lhs |> Map.new(mapper)
@@ -164,7 +164,7 @@ defmodule Styler.Style.Pipes do
   defp fix_pipe(
          pipe_chain(
            lhs,
-           {{:., _, [{_, _, [:Enum]}, :map]}, _, [mapper]},
+           {{:., dm, [{_, am, [:Enum]}, :map]}, em, [mapper]},
            {{:., _, [{_, _, [:Enum]}, :into]} = into, _, [collectable]}
          )
        ) do
@@ -172,19 +172,19 @@ defmodule Styler.Style.Pipes do
 
     rhs =
       if empty_map?(collectable),
-        do: {{:., [], [{:__aliases__, [], [:Map]}, :new]}, [], [mapper]},
-        else: {into, [], [Style.drop_line_meta(collectable), mapper]}
+        do: {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, em, [mapper]},
+        else: {into, em, [Style.drop_line_meta(collectable), mapper]}
 
-    {:|>, [], [lhs, rhs]}
+    {:|>, [line: dm[:line]], [lhs, rhs]}
   end
 
-  defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, _, [:Enum]}, :into]}, _, [collectable]}]} = node) do
-    if empty_map?(collectable), do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, [], [:Map]}, :new]}, [], []}]}, else: node
+  defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, am, [:Enum]}, :into]}, em, [collectable]}]} = node) do
+    if empty_map?(collectable), do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, em, []}]}, else: node
   end
 
-  defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, _, [:Enum]}, :into]}, _, [collectable, mapper]}]} = node) do
+  defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, am, [:Enum]}, :into]}, em, [collectable, mapper]}]} = node) do
     if empty_map?(collectable),
-      do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, [], [:Map]}, :new]}, [], [Style.drop_line_meta(mapper)]}]},
+      do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, em, [Style.drop_line_meta(mapper)]}]},
       else: node
   end
 

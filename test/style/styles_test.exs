@@ -16,23 +16,23 @@ defmodule Styler.Style.StylesTest do
 
   describe "pipes + defs" do
     test "pipes doesnt abuse meta and break defs" do
-        assert_style(
-          """
-          foo
-          |> bar(fn baz ->
-            def widget() do
-              :bop
-            end
-          end)
-          """,
-          """
-          bar(foo, fn baz ->
-            def widget do
-              :bop
-            end
-          end)
-          """
-        )
-      end
+      assert_style(
+        """
+        foo
+        |> bar(fn baz ->
+          def widget() do
+            :bop
+          end
+        end)
+        """,
+        """
+        bar(foo, fn baz ->
+          def widget do
+            :bop
+          end
+        end)
+        """
+      )
+    end
   end
 end
