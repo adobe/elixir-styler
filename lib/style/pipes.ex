@@ -171,28 +171,20 @@ defmodule Styler.Style.Pipes do
     mapper = Style.drop_line_meta(mapper)
 
     rhs =
-      if empty_map?(collectable),
+      if Style.empty_map?(collectable),
         do: {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, em, [mapper]},
         else: {into, em, [Style.drop_line_meta(collectable), mapper]}
 
     {:|>, [line: dm[:line]], [lhs, rhs]}
   end
 
-  defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, am, [:Enum]}, :into]}, em, [collectable]}]} = node) do
-    if empty_map?(collectable), do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, em, []}]}, else: node
-  end
-
-  defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, am, [:Enum]}, :into]}, em, [collectable, mapper]}]} = node) do
-    if empty_map?(collectable),
-      do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, em, [Style.drop_line_meta(mapper)]}]},
+  defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, am, [:Enum]}, :into]}, em, [collectable | rest]}]} = node) do
+    if Style.empty_map?(collectable),
+      do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, em, rest}]},
       else: node
   end
 
   defp fix_pipe(node), do: node
-
-  defp empty_map?({:%{}, _, []}), do: true
-  defp empty_map?({{:., _, [{_, _, [:Map]}, :new]}, _, []}), do: true
-  defp empty_map?(_), do: false
 
   # most of these values were lifted directly from credoa's pipe_chain_start.ex
   @literal ~w(__block__ __aliases__ unquote)a

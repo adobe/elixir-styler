@@ -131,4 +131,9 @@ defmodule Styler.Style do
       end
     end)
   end
+
+  @doc "Returns true if the ast represents an empty map"
+  def empty_map?({:%{}, _, []}), do: true
+  def empty_map?({{:., _, [{_, _, [:Map]}, :new]}, _, []}), do: true
+  def empty_map?(_), do: false
 end

@@ -23,6 +23,7 @@ defmodule Styler.Style.SingleNode do
 
   @behaviour Styler.Style
 
+  alias Styler.Style
   alias Styler.Zipper
 
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
@@ -41,6 +42,10 @@ defmodule Styler.Style.SingleNode do
          ]
        ]}
     end
+  end
+
+  defp style({{:., dm, [{:__aliases__, am, [:Enum]}, :into]}, funm, [enum, collectable | rest]} = node) do
+    if Style.empty_map?(collectable), do: {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, funm, [enum | rest]}, else: node
   end
 
   # Add / Correct `_` location in large numbers. Formatter handles large number (>5 digits) rewrites,

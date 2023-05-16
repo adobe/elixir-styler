@@ -157,6 +157,19 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
+  describe "Enum.into and Map.new" do
+    test "into a new map" do
+      assert_style("Enum.into(a, foo)")
+      assert_style("Enum.into(a, foo, mapper)")
+
+      assert_style("Enum.into(a, %{})", "Map.new(a)")
+      assert_style("Enum.into(a, Map.new)", "Map.new(a)")
+
+      assert_style("Enum.into(a, %{}, mapper)", "Map.new(a, mapper)")
+      assert_style("Enum.into(a, Map.new, mapper)", "Map.new(a, mapper)")
+    end
+  end
+
   describe "Enum.reverse/1 and ++" do
     test "optimizes into `Enum.reverse/2`" do
       assert_style("Enum.reverse(foo) ++ bar", "Enum.reverse(foo, bar)")
