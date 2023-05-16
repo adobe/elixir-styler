@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.7.7
+
+## Improvements
+
+* Rewrite `Enum.into/2,3` into `Map.new/1,2` when the collectable is `%{}` or `Map.new/0`
+
 ## v0.7.6
 
 ### Fixes
