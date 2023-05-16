@@ -39,8 +39,9 @@ defmodule Styler.Style.Pipes do
             {:cont, find_pipe_start(chain_zipper), ctx}
 
           {{:|>, _, [lhs, rhs]}, _} = single_pipe_zipper ->
-            lhs = Style.drop_line_meta(lhs)
-            {fun, meta, args} = Style.drop_line_meta(rhs)
+            {_, meta, _} = lhs
+            lhs = Style.set_line_meta_to_line(lhs, meta[:line])
+            {fun, meta, args} = Style.set_line_meta_to_line(rhs, meta[:line])
             function_call_zipper = Zipper.replace(single_pipe_zipper, {fun, meta, [lhs | args || []]})
             {:cont, function_call_zipper, ctx}
         end
@@ -94,9 +95,10 @@ defmodule Styler.Style.Pipes do
   #
   # block_result
   # |> ...
-  defp extract_start({block, _, _} = lhs) when block in @blocks do
-    variable = {:"#{block}_result", [], nil}
-    new_assignment = {:=, [], [variable, lhs]}
+  defp extract_start({block, meta, _} = lhs) when block in @blocks do
+    meta = [line: meta[:line]]
+    variable = {:"#{block}_result", meta, nil}
+    new_assignment = {:=, meta, [variable, lhs]}
     {variable, new_assignment}
   end
 
