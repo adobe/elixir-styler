@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.7.6
+
 ### Fixes
 
 * Fix crash when single pipe had inner defs (h/t [@michallepicki](https://github.com/adobe/elixir-styler/issues/39))
