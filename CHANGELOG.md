@@ -2,9 +2,13 @@
 
 ## main
 
+### Fixes
+
+* Fix crash trying to remove 0-arity parens from metaprogramming ala `def unquote(foo)()`
+
 ## v0.7.7
 
-## Improvements
+### Improvements
 
 * Rewrite `Enum.into/2,3` into `Map.new/1,2` when the collectable is `%{}` or `Map.new/0`
 

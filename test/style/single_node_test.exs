@@ -41,6 +41,9 @@ defmodule Styler.Style.SingleNodeTest do
         end
         """
       )
+
+      # Regression: be wary of invocations with extra parens from metaprogramming
+      assert_style("def metaprogramming(foo)(), do: bar", "def metaprogramming(foo), do: bar")
     end
 
     test "prefers implicit try" do

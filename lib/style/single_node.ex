@@ -80,7 +80,10 @@ defmodule Styler.Style.SingleNode do
   end
 
   # Remove parens from 0 arity funs (Credo.Check.Readability.ParenthesesOnZeroArityDefs)
-  defp style({def, dm, [{fun, funm, []} | rest]}) when def in ~w(def defp)a,
+  # metaprogramming w/ extra parens, like `def unquote(bar)() do`
+  defp style({def, dm, [{{_, _, _} = fun, _, []} | rest]}) when def in ~w(def defp)a, do: style({def, dm, [fun | rest]})
+
+  defp style({def, dm, [{fun, funm, []} | rest]}) when def in ~w(def defp)a and is_atom(fun),
     do: style({def, dm, [{fun, funm, nil} | rest]})
 
   # `Credo.Check.Readability.PreferImplicitTry`
