@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.7.8
+
 ### Fixes
 
 * Fix crash trying to remove 0-arity parens from metaprogramming ala `def unquote(foo)()`
