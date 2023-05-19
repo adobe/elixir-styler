@@ -495,6 +495,20 @@ defmodule Styler.Style.PipesTest do
         end)
         """
       )
+
+      # Regression: something about the meta wants newlines when it's in a def
+      assert_style(
+        """
+        def foo() do
+          filename_map = foo |> Enum.map(&{&1.filename, true}) |> Enum.into(%{})
+        end
+        """,
+        """
+        def foo do
+          filename_map = Map.new(foo, &{&1.filename, true})
+        end
+        """
+      )
     end
 
     test "into a new map" do

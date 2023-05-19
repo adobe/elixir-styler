@@ -31,33 +31,8 @@ defmodule Styler.Style do
   """
   @callback run(Zipper.zipper(), context()) :: {Zipper.command(), Zipper.zipper(), context()}
 
-  @doc """
-  Deletes `:line` and `newlines` from the node's meta
-
-  If you expected `{:foo, foo_meta, [bar, baz, bop]` to give you a a single line like
-
-    foo(bar, baz, bop)
-
-  but instead got
-
-    foo(
-      bar,
-      baz,
-      bop
-    )
-
-  then it's likely that at least one of `bar`, `baz`, and/or `bop` have `:line` meta that's confusing the formatter
-  and causing the multilining.
-
-  This function fixes that problem.
-
-    {:foo, foo_meta, Enum.map([bar, baz, bop], &Styler.Style.drop_line_meta/1)}
-    # => foo(bar, baz, bop)
-  """
-  def drop_line_meta(ast_node), do: update_all_meta(ast_node, &Keyword.drop(&1, [:line, :newlines]))
-
   @doc "Sets `:line`, `:closing`, and `:last` to all be on `line` and deletes `:newlines`"
-  def set_line_meta_to_line(ast_node, line) do
+  def set_line(ast_node, line) do
     update_all_meta(ast_node, fn meta ->
       meta
       |> Keyword.replace(:line, line)

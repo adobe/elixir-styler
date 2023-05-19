@@ -84,7 +84,7 @@ defmodule Styler.Style.SingleNode do
   defp style({def, dm, [{{_, _, _} = fun, _, []} | rest]}) when def in ~w(def defp)a, do: style({def, dm, [fun | rest]})
 
   defp style({def, dm, [{fun, funm, []} | rest]}) when def in ~w(def defp)a and is_atom(fun),
-    do: style({def, dm, [{fun, funm, nil} | rest]})
+    do: style({def, dm, [{fun, Keyword.delete(funm, :closing), nil} | rest]})
 
   # `Credo.Check.Readability.PreferImplicitTry`
   defp style({def, dm, [head, [{_, {:try, _, [try_children]}}]]}) when def in ~w(def defp)a,

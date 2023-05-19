@@ -40,8 +40,8 @@ defmodule Styler.Style.Pipes do
 
           {{:|>, _, [lhs, rhs]}, _} = single_pipe_zipper ->
             {_, meta, _} = lhs
-            lhs = Style.set_line_meta_to_line(lhs, meta[:line])
-            {fun, meta, args} = Style.set_line_meta_to_line(rhs, meta[:line])
+            lhs = Style.set_line(lhs, meta[:line])
+            {fun, meta, args} = Style.set_line(rhs, meta[:line])
             function_call_zipper = Zipper.replace(single_pipe_zipper, {fun, meta, [lhs | args || []]})
             {:cont, function_call_zipper, ctx}
         end
@@ -151,9 +151,10 @@ defmodule Styler.Style.Pipes do
            {{:., _, [{_, _, [:Enum]}, :join]}, _, [joiner]}
          )
        ) do
+    line = dm[:line]
     # Delete line info to keep things shrunk on the rewrite
-    joiner = Style.drop_line_meta(joiner)
-    mapper = Style.drop_line_meta(mapper)
+    joiner = Style.set_line(joiner, line)
+    mapper = Style.set_line(mapper, line)
     rhs = {{:., dm, [enum, :map_join]}, em, [joiner, mapper]}
     {:|>, [line: dm[:line]], [lhs, rhs]}
   end
@@ -168,12 +169,12 @@ defmodule Styler.Style.Pipes do
            {{:., _, [{_, _, [:Enum]}, :into]} = into, _, [collectable]}
          )
        ) do
-    mapper = Style.drop_line_meta(mapper)
+    mapper = Style.set_line(mapper, am[:line])
 
     rhs =
       if Style.empty_map?(collectable),
         do: {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, em, [mapper]},
-        else: {into, em, [Style.drop_line_meta(collectable), mapper]}
+        else: {into, em, [Style.set_line(collectable, am[:line]), mapper]}
 
     {:|>, [line: dm[:line]], [lhs, rhs]}
   end
