@@ -206,7 +206,7 @@ defmodule Styler.Style.PipesTest do
         end
         """,
         """
-        def foo do
+        def foo() do
           case_result =
             case x do
               x -> x
@@ -230,7 +230,7 @@ defmodule Styler.Style.PipesTest do
         end
         """,
         """
-        def foo do
+        def foo() do
           if_result =
             if true do
               nil
@@ -250,7 +250,7 @@ defmodule Styler.Style.PipesTest do
       assert_style("b(a) |> c()", "a |> b() |> c()")
       assert_style("a |> f()", "f(a)")
       assert_style("x |> bar", "bar(x)")
-      assert_style("def a, do: b |> c()", "def a, do: c(b)")
+      assert_style("def a(), do: b |> c()", "def a(), do: c(b)")
     end
 
     test "keeps invocation on a single line" do

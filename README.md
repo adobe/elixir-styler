@@ -88,7 +88,7 @@ If you're using Credo and Styler, **we recommend disabling these rules in `.cred
 | `Credo.Check.Readability.ModuleDoc` | adds `@moduledoc false` |
 | `Credo.Check.Readability.MultiAlias` | |
 | `Credo.Check.Readability.OneArityFunctionInPipe` | |
-| `Credo.Check.Readability.ParenthesesOnZeroArityDefs` | removes parens |
+| `Credo.Check.Readability.ParenthesesOnZeroArityDefs` | adds parens |
 | `Credo.Check.Readability.PipeIntoAnonymousFunctions` | |
 | `Credo.Check.Readability.PreferImplicitTry` | |
 | `Credo.Check.Readability.SinglePipe` | |

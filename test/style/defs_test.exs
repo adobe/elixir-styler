@@ -136,7 +136,7 @@ defmodule Styler.Style.DefsTest do
         """,
         """
         # Weirdo comment
-        def foo, do: [:never_write_code_like_this]
+        def foo(), do: [:never_write_code_like_this]
         """
       )
     end
@@ -153,7 +153,7 @@ defmodule Styler.Style.DefsTest do
         ), do: :ok
         """,
         """
-        def foo, do: :ok
+        def foo(), do: :ok
 
         # Long long is too long
         def foo(too, long), do: :ok
@@ -201,7 +201,7 @@ defmodule Styler.Style.DefsTest do
 
       @doc "this is another function"
       # And it also has a comment
-      def this_one_fits_on_one_line, do: :ok
+      def this_one_fits_on_one_line(), do: :ok
       """)
     end
 

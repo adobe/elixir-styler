@@ -16,7 +16,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
     test "handles module with no directives" do
       assert_style("""
       defmodule Test do
-        def foo, do: :ok
+        def foo(), do: :ok
       end
       """)
     end
@@ -195,7 +195,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
           def c(x), do: y
 
           @doc "d doc"
-          def d do
+          def d() do
             import Ecto.Query
 
             alias H
