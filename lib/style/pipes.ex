@@ -151,11 +151,7 @@ defmodule Styler.Style.Pipes do
            {{:., _, [{_, _, [:Enum]}, :join]}, _, [joiner]}
          )
        ) do
-    line = dm[:line]
-    # Delete line info to keep things shrunk on the rewrite
-    joiner = Style.set_line(joiner, line)
-    mapper = Style.set_line(mapper, line)
-    rhs = {{:., dm, [enum, :map_join]}, em, [joiner, mapper]}
+    rhs = Style.set_line({{:., dm, [enum, :map_join]}, em, [joiner, mapper]}, dm[:line])
     {:|>, [line: dm[:line]], [lhs, rhs]}
   end
 
@@ -169,14 +165,12 @@ defmodule Styler.Style.Pipes do
            {{:., _, [{_, _, [:Enum]}, :into]} = into, _, [collectable]}
          )
        ) do
-    mapper = Style.set_line(mapper, am[:line])
-
     rhs =
       if Style.empty_map?(collectable),
         do: {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, em, [mapper]},
-        else: {into, em, [Style.set_line(collectable, am[:line]), mapper]}
+        else: {into, em, [collectable, mapper]}
 
-    {:|>, [line: dm[:line]], [lhs, rhs]}
+    Style.set_line({:|>, [], [lhs, rhs]}, dm[:line])
   end
 
   defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, am, [:Enum]}, :into]}, em, [collectable | rest]}]} = node) do
