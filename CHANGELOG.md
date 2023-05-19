@@ -2,6 +2,10 @@
 
 ## main
 
+### Improvements
+
+* ✨ Adds parens to 0-arity function defs, rather than removing them. ✨
+
 ## v0.7.8
 
 ### Fixes
