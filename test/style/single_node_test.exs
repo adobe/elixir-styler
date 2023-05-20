@@ -114,18 +114,35 @@ defmodule Styler.Style.SingleNodeTest do
       )
     end
 
-    test "when a match is equal to a match because who knows why" do
-      assert_style("""
-      case foo do
-        _ = bar -> :ok
-      end
-      """)
+    test "removes a double-var assignment when one var is _" do
+      assert_style("def foo(_ = bar), do: bar", "def foo(bar), do: bar")
+      assert_style("def foo(bar = _), do: bar", "def foo(bar), do: bar")
 
-      assert_style("""
-      case foo do
-        bar = _ -> :ok
-      end
-      """)
+      assert_style(
+        """
+        case foo do
+          bar = _ -> :ok
+        end
+        """,
+        """
+        case foo do
+          bar -> :ok
+        end
+        """
+      )
+
+      assert_style(
+        """
+        case foo do
+          _ = bar -> :ok
+        end
+        """,
+        """
+        case foo do
+          bar -> :ok
+        end
+        """
+      )
     end
 
     test "defs" do

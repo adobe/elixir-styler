@@ -2,6 +2,10 @@
 
 ## main
 
+### Improvements
+
+* when encountering `_ = bar ->`, replace it with `bar ->`
+
 ## v0.7.9
 
 ### Fixes

@@ -121,9 +121,11 @@ defmodule Styler.Style.SingleNode do
     ast
     |> Zipper.zip()
     |> Zipper.traverse(fn
-      # a variable equals a variable, like `_ = bar`. it's silly that people would write this, but if we don't
-      # ignore it we'll do the swap every time we run format again
-      {{:=, _, [{_, _, nil}, {_, _, nil}]}, _} = zipper -> zipper
+      # `_ = var ->` => `var ->`
+      {{:=, _, [{:_, _, nil}, var]}, _} = zipper -> Zipper.replace(zipper, var)
+      # `var = _ ->` => `var ->`
+      {{:=, _, [var, {:_, _, nil}]}, _} = zipper -> Zipper.replace(zipper, var)
+      # `var = *match*`  -> `*match -> var`
       {{:=, m, [{_, _, nil} = var, match]}, _} = zipper -> Zipper.replace(zipper, {:=, m, [match, var]})
       zipper -> zipper
     end)
