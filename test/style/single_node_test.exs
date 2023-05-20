@@ -114,6 +114,20 @@ defmodule Styler.Style.SingleNodeTest do
       )
     end
 
+    test "when a match is equal to a match because who knows why" do
+      assert_style("""
+      case foo do
+        _ = bar -> :ok
+      end
+      """)
+
+      assert_style("""
+      case foo do
+        bar = _ -> :ok
+      end
+      """)
+    end
+
     test "defs" do
       assert_style(
         "def foo(bar = %{baz: baz? = true}, opts = [[a = %{}] | _]), do: :ok",
