@@ -59,16 +59,81 @@ Styler's @adobe's internal Style Guide Enforcer - allowing exceptions to the sty
 
 **Speed**: Expect the first run to take some time as `Styler` rewrites violations of styles.
 
-Once styled the first time, future styling formats shouldn't take noticeably more time
+Once styled the first time, future styling formats shouldn't take noticeably more time.
 
-**Comments and compilation**: Additionally, two sad situations may happen on your first run:
+Roughly, `Styler` puts about a 10% slow down on `mix format`.
 
-* **module compilation breaks** if a reference to an alias is moved to be before the alias's declaration (part of the `StrictModuleLayout` credo rule)
-    - write out aliases in full when using them before the `alias` block of a module
-    - similarly, write out constant values rather than module directives
-* **comments get put weird places** when module directives are moved
-    - manually put them back where you want them, and they shouldn't be moved again
-    - feel free to open or +1 an issue in the hopes that we get around to handling this
+#### Troubleshooting: Compilation broke due to Module Directive rearrangement
+
+**Alias dependency**
+If you have an alias that, for example, a `@behaviour` relies on, compilation will break after your first run.
+This requires one-time manual fixing to get your repo in line with Styler's standards.
+
+For example, if your code was this:
+```elixir
+defmodule MyModule do
+  @moduledoc "Implements MyBehaviour!"
+  alias Deeply.Nested.MyBehaviour
+  @behaviour MyBehaviour
+  ...
+end
+```
+
+then Styler will style the file like this, which cannot compile due to `MyBehaviour` not being defined.
+
+```elixir
+defmodule MyModule do
+  @moduledoc "Implements MyBehaviour!"
+  @behaviour MyBehaviour  # <------ compilation error, MyBehaviour is not defined!
+
+  alias Deeply.Nested.MyBehaviour
+
+  ...
+end
+```
+
+A simple solution is to manually expand the alias with a find-replace-all like:
+`@behaviour MyBehaviour` -> `@behaviour Deeply.Nested.MyBehaviour`. It's important to specify that you only want to
+find-replace with the `@behaviour` prefix or you'll unintentially expand `MyBehaviour` everywhere in the codebase.
+
+**Module Attribute dependency**
+
+Another common compilation break on the first run is a `@moduledoc` that depended on another module attribute which
+was moved below it.
+
+For example, given the following broken code after an initial `mix format`:
+
+```elixir
+defmodule MyGreatLibrary do
+  @moduledoc make_pretty_docs(@library_options)
+
+  @library_options [ ... ]
+end
+```
+
+You can fix the code by moving the static value outside of the module into a naked variable and then reference it in the module.
+
+Yes, this is a thing you can do in a `.ex` file =)
+
+```elixir
+library_options = [ ... ]
+
+defmodule MyGreatLibrary do
+  @moduledoc make_pretty_docs(library_options)
+
+  @library_options library_options
+end
+```
+
+#### Troubleshooting: My comments ended up somewhere weird
+
+Sorry! Please put it back where it should be.
+
+The sad truth is only the `def{p}`-shrinking Style is currently aware of comments, so other rules
+(especially `StrictModuleLayout`) may move things on the first run. It shouldn't happen again once things are where
+`Styler` wants them to be.
+
+Please feel free to open or +1 an issue in the hopes that we get around to improving this onboarding experience.
 
 ## Styles
 
