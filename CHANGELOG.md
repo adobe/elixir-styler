@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.7.9
+
+### Fixes
+
+* Fix a toggle state resulting from (ahem, nonsense) code like `_ = bar ->` encountering ParameterPatternMatching style
+
 ## v0.7.8
 
 ### Fixes
