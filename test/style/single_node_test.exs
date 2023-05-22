@@ -11,6 +11,10 @@
 defmodule Styler.Style.SingleNodeTest do
   use Styler.StyleCase, async: true
 
+  test "charlist literals: rewrites single quote charlists to ~c" do
+    assert_style("'foo'", ~s|~c'foo'|)
+  end
+
   describe "def / defp" do
     test "0-arity functions have parens removed" do
       assert_style("def foo(), do: :ok", "def foo, do: :ok")
