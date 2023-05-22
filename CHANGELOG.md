@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.7.10
+
 ### Fixes
 
 * fix crash when encountering single-quote charlists (h/t @fhunleth)
