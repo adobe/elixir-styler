@@ -11,9 +11,8 @@
 defmodule Styler.Style.SingleNodeTest do
   use Styler.StyleCase, async: true
 
-  test "rewrites single quote charlists to ~c" do
-    assert_style "'foo'", ~s(~c"foo")
-    assert_style "[1, :two]"
+  test "charlist literals: rewrites single quote charlists to ~c" do
+    assert_style("'foo'", ~s|~c'foo'|)
   end
 
   describe "def / defp" do

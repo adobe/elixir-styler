@@ -2,8 +2,13 @@
 
 ## main
 
+### Fixes
+
+* fix crash when encountering single-quote charlists (h/t @fhunleth)
+
 ### Improvements
 
+* single-quote charlists are rewritten to use the `~c` sigil (`'foo'` -> `~c'foo'`)
 * when encountering `_ = bar ->`, replace it with `bar ->`
 
 ## v0.7.9

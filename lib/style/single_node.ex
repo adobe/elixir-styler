@@ -44,13 +44,15 @@ defmodule Styler.Style.SingleNode do
     end
   end
 
-  defp style({:__block__, meta, [[int|_] = chars]} = _node) when is_integer(int) do
-    meta = [line: meta[:line]]
-    {:sigil_c, [{:delimiter, ~s(")} | meta], [{:<<>>, meta, [List.to_string(chars)]}, []]}
-  end
-
-  defp style({{:., dm, [{:__aliases__, am, [:Enum]}, :into]}, funm, [enum, collectable | rest]} = node) do
-    if Style.empty_map?(collectable), do: {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, funm, [enum | rest]}, else: node
+  # Our use of the `literal_encoder` option of `Code.string_to_quoted_with_comments!/2` creates
+  # invalid charlists literal AST nodes from `'foo'`. this rewrites them to use the `~c` sigil
+  # 'foo' => ~c'foo'
+  defp style({:__block__, meta, [[int | _] = chars]} = node) when is_integer(int) do
+    if meta[:delimiter] == "'" do
+      {:sigil_c, meta, [{:<<>>, [line: meta[:line]], [List.to_string(chars)]}, []]}
+    else
+      node
+    end
   end
 
   # Add / Correct `_` location in large numbers. Formatter handles large number (>5 digits) rewrites,
@@ -82,6 +84,10 @@ defmodule Styler.Style.SingleNode do
       end)
 
     {:__block__, meta, [number]}
+  end
+
+  defp style({{:., dm, [{:__aliases__, am, [:Enum]}, :into]}, funm, [enum, collectable | rest]} = node) do
+    if Style.empty_map?(collectable), do: {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, funm, [enum | rest]}, else: node
   end
 
   # Remove parens from 0 arity funs (Credo.Check.Readability.ParenthesesOnZeroArityDefs)
