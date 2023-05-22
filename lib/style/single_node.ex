@@ -44,6 +44,11 @@ defmodule Styler.Style.SingleNode do
     end
   end
 
+  defp style({:__block__, meta, [[int|_] = chars]} = _node) when is_integer(int) do
+    meta = [line: meta[:line]]
+    {:sigil_c, [{:delimiter, ~s(")} | meta], [{:<<>>, meta, [List.to_string(chars)]}, []]}
+  end
+
   defp style({{:., dm, [{:__aliases__, am, [:Enum]}, :into]}, funm, [enum, collectable | rest]} = node) do
     if Style.empty_map?(collectable), do: {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, funm, [enum | rest]}, else: node
   end
