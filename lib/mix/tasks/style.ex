@@ -35,6 +35,7 @@ defmodule Mix.Tasks.Style do
     Mix.shell().info("""
     Add `Styler` to your Formatter config `:plugins` file and use `mix format` for best results
     """)
+
     # we take `check_formatted` so we can easily replace `mix format`
     {opts, files} = OptionParser.parse!(args, strict: [check_styled: :boolean, check_formatted: :boolean])
     check_styled? = opts[:check_styled] || opts[:check_formatted] || false
