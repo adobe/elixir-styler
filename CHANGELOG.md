@@ -2,6 +2,17 @@
 
 ## main
 
+## v0.7.11
+
+### Fixes
+
+* fix crash from `mix style` running plugins as part of formatting (no longer runs formatter plugins)
+
+### Improvements
+
+* single-quote charlists are rewritten to use the `~c` sigil (`'foo'` -> `~c'foo'`) (h/t @fhunleth)
+* `mix style` warns the user that Styler is primarily meant to be used as a plugin
+
 ## v0.7.10
 
 ### Fixes
