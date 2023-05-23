@@ -1,6 +1,7 @@
-## Elixir / OTP Version
+## Versions
 
-use `elixir --version`
+* Elixir: use `elixir --version`
+* Styler: use `mix deps | grep locked | grep styler`
 
 ## Example Input
 
@@ -8,10 +9,4 @@ use `elixir --version`
 <a snippet causing problems>
 ```
 
-## Current behaviour / Stacktrace
-
-## Expected Output
-
-```elixir
-<expected output>
-```
+## Stacktrace / Current Behaviour
