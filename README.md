@@ -55,7 +55,37 @@ There isn't any! This is intentional.
 
 Styler's @adobe's internal Style Guide Enforcer - allowing exceptions to the styles goes against that ethos. Happily, it's open source and thus yours to do with as you will =)
 
-### Your first Styling
+## Styles
+
+You can find the currently-enabled styles in the `Styler` module, inside of its `@styles` module attribute. Each Style's moduledoc will tell you more about what it rewrites.
+
+### Credo Rules Styler Replaces
+
+If you're using Credo and Styler, **we recommend disabling these rules in `.credo.exs`** to save on unnecessary checks in CI.
+
+| `Credo` credo | notes |
+|---------------|-------|
+| `Credo.Check.Consistency.MultiAliasImportRequireUse` | always expands `A.{B, C}` |
+| `Credo.Check.Consistency.ParameterPatternMatching` | also case statements, anon functions |
+| `Credo.Check.Readability.AliasOrder` | |
+| `Credo.Check.Readability.BlockPipe` | |
+| `Credo.Check.Readability.LargeNumbers` | goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000` |
+| `Credo.Check.Readability.ModuleDoc` | adds `@moduledoc false` |
+| `Credo.Check.Readability.MultiAlias` | |
+| `Credo.Check.Readability.OneArityFunctionInPipe` | |
+| `Credo.Check.Readability.ParenthesesOnZeroArityDefs` | removes parens |
+| `Credo.Check.Readability.PipeIntoAnonymousFunctions` | |
+| `Credo.Check.Readability.PreferImplicitTry` | |
+| `Credo.Check.Readability.SinglePipe` | |
+| `Credo.Check.Readability.StrictModuleLayout` | **potentially breaks compilation** (see notes above) |
+| `Credo.Check.Readability.UnnecessaryAliasExpansion` | |
+| `Credo.Check.Refactor.CaseTrivialMatches` | |
+| `Credo.Check.Refactor.FilterCount` | in pipes only |
+| `Credo.Check.Refactor.MapInto` | in pipes only |
+| `Credo.Check.Refactor.MapJoin` | in pipes only |
+| `Credo.Check.Refactor.PipeChainStart` | allows ecto's `from`|
+
+## Your first Styling
 
 **Speed**: Expect the first run to take some time as `Styler` rewrites violations of styles.
 
@@ -63,7 +93,10 @@ Once styled the first time, future styling formats shouldn't take noticeably mor
 
 Roughly, `Styler` puts about a 10% slow down on `mix format`.
 
-#### Troubleshooting: Compilation broke due to Module Directive rearrangement
+Your first run can break compilation. Here's helpers on how to manually fix that and have a happy styling for the rest of
+your codebase's life.
+
+### Troubleshooting: Compilation broke due to Module Directive rearrangement
 
 **Alias dependency**
 If you have an alias that, for example, a `@behaviour` relies on, compilation will break after your first run.
@@ -125,7 +158,7 @@ defmodule MyGreatLibrary do
 end
 ```
 
-#### Troubleshooting: My comments ended up somewhere weird
+### Troubleshooting: My comments ended up somewhere weird
 
 Sorry! Please put it back where it should be.
 
@@ -135,35 +168,6 @@ The sad truth is only the `def{p}`-shrinking Style is currently aware of comment
 
 Please feel free to open or +1 an issue in the hopes that we get around to improving this onboarding experience.
 
-## Styles
-
-You can find the currently-enabled styles in the `Styler` module, inside of its `@styles` module attribute. Each Style's moduledoc will tell you more about what it rewrites.
-
-### Credo Rules Styler Replaces
-
-If you're using Credo and Styler, **we recommend disabling these rules in `.credo.exs`** to save on unnecessary checks in CI.
-
-| `Credo` credo | notes |
-|---------------|-------|
-| `Credo.Check.Consistency.MultiAliasImportRequireUse` | always expands `A.{B, C}` |
-| `Credo.Check.Consistency.ParameterPatternMatching` | also case statements, anon functions |
-| `Credo.Check.Readability.AliasOrder` | |
-| `Credo.Check.Readability.BlockPipe` | |
-| `Credo.Check.Readability.LargeNumbers` | goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000` |
-| `Credo.Check.Readability.ModuleDoc` | adds `@moduledoc false` |
-| `Credo.Check.Readability.MultiAlias` | |
-| `Credo.Check.Readability.OneArityFunctionInPipe` | |
-| `Credo.Check.Readability.ParenthesesOnZeroArityDefs` | removes parens |
-| `Credo.Check.Readability.PipeIntoAnonymousFunctions` | |
-| `Credo.Check.Readability.PreferImplicitTry` | |
-| `Credo.Check.Readability.SinglePipe` | |
-| `Credo.Check.Readability.StrictModuleLayout` | **potentially breaks compilation** (see notes above) |
-| `Credo.Check.Readability.UnnecessaryAliasExpansion` | |
-| `Credo.Check.Refactor.CaseTrivialMatches` | |
-| `Credo.Check.Refactor.FilterCount` | in pipes only |
-| `Credo.Check.Refactor.MapInto` | in pipes only |
-| `Credo.Check.Refactor.MapJoin` | in pipes only |
-| `Credo.Check.Refactor.PipeChainStart` | allows ecto's `from`|
 
 ## Thanks & Inspiration
 
