@@ -2,6 +2,10 @@
 
 ## main
 
+### Fixes
+
+* fix 0-arity paren removal on metaprogramming creating uncompilable code (h/t @simonprev)
+
 ## v0.7.11
 
 ### Fixes
