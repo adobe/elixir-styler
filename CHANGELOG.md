@@ -2,6 +2,10 @@
 
 ## main
 
+### Fixes
+
+* don't unpipe single-piped `unquote` expressions (h/t @elliottneilclark)
+
 ## v0.7.12
 
 ### Fixes

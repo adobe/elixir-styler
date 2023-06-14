@@ -246,6 +246,10 @@ defmodule Styler.Style.PipesTest do
   end
 
   describe "single pipe issues" do
+    test "allows unquote single pipes" do
+      assert_style("foo |> unquote(bar)")
+    end
+
     test "fixes simple single pipes" do
       assert_style("b(a) |> c()", "a |> b() |> c()")
       assert_style("a |> f()", "f(a)")

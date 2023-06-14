@@ -38,6 +38,10 @@ defmodule Styler.Style.Pipes do
           {{:|>, _, [{:|>, _, _}, _]}, _} = chain_zipper ->
             {:cont, find_pipe_start(chain_zipper), ctx}
 
+          # don't un-pipe into unquotes, as some expressions are only valid as pipes
+          {{:|>, _, [_, {:unquote, _, [_]}]}, _} = single_pipe_unquote_zipper ->
+            {:cont, single_pipe_unquote_zipper, ctx}
+
           {{:|>, _, [lhs, rhs]}, _} = single_pipe_zipper ->
             {_, meta, _} = lhs
             lhs = Style.set_line(lhs, meta[:line])
