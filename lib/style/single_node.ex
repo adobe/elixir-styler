@@ -102,8 +102,6 @@ defmodule Styler.Style.SingleNode do
   defp style({def, dm, [{fun, funm, params} | rest]}) when def in ~w(def defp)a,
     do: {def, dm, [{fun, funm, put_matches_on_right(params)} | rest]}
 
-  # defp style({:->, m, [match | rest]}), do: {:->, m, [put_matches_on_right(match) | rest]}
-
   # `Enum.reverse(foo) ++ bar` => `Enum.reverse(foo, bar)`
   defp style({:++, _, [{{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, r_meta, [lhs]}, rhs]}),
     do: {reverse, r_meta, [lhs, rhs]}
