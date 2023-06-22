@@ -92,7 +92,8 @@ defmodule Styler.Style.SingleNode do
   end
 
   # Logger.warn -> Logger.warning
-  defp style({{:., dm, [{:__aliases__, am, [:Logger]}, :warn]}, funm, args}), do: {{:., dm, [{:__aliases__, am, [:Logger]}, :warning]}, funm, args}
+  defp style({{:., dm, [{:__aliases__, am, [:Logger]}, :warn]}, funm, args}),
+    do: {{:., dm, [{:__aliases__, am, [:Logger]}, :warning]}, funm, args}
 
   # Remove parens from 0 arity funs (Credo.Check.Readability.ParenthesesOnZeroArityDefs)
   defp style({def, dm, [{fun, funm, []} | rest]}) when def in ~w(def defp)a and is_atom(fun),

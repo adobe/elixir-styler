@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.7.14
+
+### Improvements
+
+* rewrite `Logger.warn/1,2` to `Logger.warning/1,2` due to Elixir 1.15 deprecation
+
 ## v0.7.13
 
 ### Fixes
