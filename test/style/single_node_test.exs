@@ -16,6 +16,11 @@ defmodule Styler.Style.SingleNodeTest do
     assert_style(~s|'"'|, ~s|~c"\\""|)
   end
 
+  test "Logger.warn to Logger.warning" do
+    assert_style("Logger.warn(foo)", "Logger.warning(foo)")
+    assert_style("Logger.warn(foo, bar)", "Logger.warning(foo, bar)")
+  end
+
   describe "def / defp" do
     test "0-arity functions have parens removed" do
       assert_style("def foo(), do: :ok", "def foo, do: :ok")
@@ -299,7 +304,7 @@ defmodule Styler.Style.SingleNodeTest do
         case foo do
           true -> :ok
           false ->
-            Logger.warn("it's false")
+            Logger.warning("it's false")
             nil
         end
         """,
@@ -307,7 +312,7 @@ defmodule Styler.Style.SingleNodeTest do
         if foo do
           :ok
         else
-          Logger.warn("it's false")
+          Logger.warning("it's false")
           nil
         end
         """
