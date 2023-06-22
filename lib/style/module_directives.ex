@@ -228,6 +228,7 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   defp fix_line_numbers([last], acc), do: Enum.reverse([last | acc])
+
   defp fix_line_numbers([], []), do: []
 
   defp expand_and_sort(directives) do
