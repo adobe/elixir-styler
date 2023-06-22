@@ -95,7 +95,13 @@ Roughly, `Styler` puts about a 10% slow down on `mix format`.
 
 ### Troubleshooting: Compilation broke due to Module Directive rearrangement
 
-**Alias dependency**
+Sometimes naively moving Module Directives around can break compilation.
+
+Here's helpers on how to manually fix that and have a happy styling for the rest of
+your codebase's life.
+
+#### Alias dependency
+
 If you have an alias that, for example, a `@behaviour` relies on, compilation will break after your first run.
 This requires one-time manual fixing to get your repo in line with Styler's standards.
 
@@ -126,7 +132,7 @@ A simple solution is to manually expand the alias with a find-replace-all like:
 `@behaviour MyBehaviour` -> `@behaviour Deeply.Nested.MyBehaviour`. It's important to specify that you only want to
 find-replace with the `@behaviour` prefix or you'll unintentially expand `MyBehaviour` everywhere in the codebase.
 
-**Module Attribute dependency**
+#### Module Attribute dependency
 
 Another common compilation break on the first run is a `@moduledoc` that depended on another module attribute which
 was moved below it.
