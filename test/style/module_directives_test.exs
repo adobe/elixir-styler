@@ -349,4 +349,36 @@ defmodule Styler.Style.ModuleDirectivesTest do
       """)
     end
   end
+
+  describe "with comments..." do
+    test "moving aliases up through non-directives doesn't move comments up" do
+      assert_style(
+        """
+        defmodule Foo do
+          alias B
+          # hi
+          # this is foo
+          def foo do
+            # i promise it's ok!
+            :ok
+          end
+          alias A
+        end
+        """,
+        """
+        defmodule Foo do
+          @moduledoc false
+          alias A
+          alias B
+          # hi
+          # this is foo
+          def foo do
+            # i promise it's ok!
+            :ok
+          end
+        end
+        """
+      )
+    end
+  end
 end

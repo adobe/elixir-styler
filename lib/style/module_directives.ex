@@ -150,7 +150,7 @@ defmodule Styler.Style.ModuleDirectives do
     requires = expand_and_sort(directives[:require] || [])
 
     directives =
-      Enum.concat([
+      [
         shortdocs,
         moduledocs,
         behaviours,
@@ -158,7 +158,9 @@ defmodule Styler.Style.ModuleDirectives do
         imports,
         aliases,
         requires
-      ])
+      ]
+      |> Enum.concat()
+      |> fix_line_numbers()
 
     cond do
       Enum.empty?(directives) ->
@@ -177,6 +179,57 @@ defmodule Styler.Style.ModuleDirectives do
         {last_directive, %{meta | r: nondirectives}}
     end
   end
+
+  # This is the step that ensures that comments don't get wrecked as part of us moving AST nodes willy-nilly.
+  #
+  # For example, given document
+  #
+  # 1: defmodule ...
+  # 2: alias B
+  # 3: # hi
+  # 4: # this is foo
+  # 5: def foo ...
+  # 6: alias A
+  #
+  # Moving the ast node for alias A would put line 6 before line 2 in the AST.
+  # Elixir's document algebra would then encounter "line 6" and immediately dump all comments with line < 6,
+  # meaning after running through the formatter we'd end up with
+  #
+  # 1: defmodule
+  # 2: # hi
+  # 3: # this is foo
+  # 4: alias A
+  # 5: alias B
+  # 6:
+  # 7: def foo ...
+  #
+  # This fixes that error by ensuring the following property:
+  # A given node of AST cannot have a line number greater than the next AST node.
+  # Et voila! Comments behave much better.
+  defp fix_line_numbers(directives, acc \\ [])
+
+  defp fix_line_numbers([{_, this_meta, _} = this, {_, next_meta, _} = next | rest], acc) do
+    next_line = next_meta[:line]
+    this_line = this_meta[:line]
+
+    this =
+      if this_line > next_line do
+        Style.update_all_meta(this, fn meta ->
+          meta
+          |> Keyword.replace(:line, next_line)
+          |> Keyword.replace(:closing, line: next_line)
+          |> Keyword.replace(:last, line: next_line)
+        end)
+      else
+        this
+      end
+
+    fix_line_numbers([next | rest], [this | acc])
+  end
+
+  defp fix_line_numbers([last], acc), do: Enum.reverse([last | acc])
+
+  defp fix_line_numbers([], []), do: []
 
   defp expand_and_sort(directives) do
     # sorting is done with `downcase` to match Credo
