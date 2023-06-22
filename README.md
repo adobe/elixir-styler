@@ -93,9 +93,6 @@ Once styled the first time, future styling formats shouldn't take noticeably mor
 
 Roughly, `Styler` puts about a 10% slow down on `mix format`.
 
-Your first run can break compilation. Here's helpers on how to manually fix that and have a happy styling for the rest of
-your codebase's life.
-
 ### Troubleshooting: Compilation broke due to Module Directive rearrangement
 
 **Alias dependency**
@@ -157,17 +154,6 @@ defmodule MyGreatLibrary do
   @library_options library_options
 end
 ```
-
-### Troubleshooting: My comments ended up somewhere weird
-
-Sorry! Please put it back where it should be.
-
-The sad truth is only the `def{p}`-shrinking Style is currently aware of comments, so other rules
-(especially `StrictModuleLayout`) may move things on the first run. It shouldn't happen again once things are where
-`Styler` wants them to be.
-
-Please feel free to open or +1 an issue in the hopes that we get around to improving this onboarding experience.
-
 
 ## Thanks & Inspiration
 
