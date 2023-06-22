@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.8.0
+
+### Improvements (Bug Fix!?)
+
+* ModuleDirectives no longer throws comments around a file when hoisting directives up (#53)
+
 ## v0.7.14
 
 ### Improvements
