@@ -363,6 +363,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
             :ok
           end
           alias A
+          alias C
         end
         """,
         """
@@ -370,6 +371,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
           @moduledoc false
           alias A
           alias B
+          alias C
           # hi
           # this is foo
           def foo do
