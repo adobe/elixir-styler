@@ -355,29 +355,39 @@ defmodule Styler.Style.ModuleDirectivesTest do
       assert_style(
         """
         defmodule Foo do
+          # mdf
+          @moduledoc false
+          # B
           alias B
-          # hi
-          # this is foo
+
+          # foo
           def foo do
-            # i promise it's ok!
+            # ok
             :ok
           end
-          alias A
+          # C
           alias C
+          # A
+          alias A
         end
         """,
         """
         defmodule Foo do
+          # mdf
           @moduledoc false
           alias A
+          # B
           alias B
           alias C
-          # hi
-          # this is foo
+
+          # foo
           def foo do
-            # i promise it's ok!
+            # ok
             :ok
           end
+
+          # C
+          # A
         end
         """
       )
