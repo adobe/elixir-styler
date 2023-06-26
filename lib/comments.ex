@@ -44,14 +44,18 @@ defmodule Styler.Comments do
   @doc """
   Set the line of all comments with `line` in `range_start..range_end` to instead have line `range_start`
   """
-  def displace(comments, range) do
-    Enum.map(comments, fn comment ->
+  def displace(comments, range), do: displace(comments, range, range.first)
+
+  def displace(comments, range, new_line) do
+    comments
+    |> Enum.map(fn comment ->
       if comment.line in range do
-        %{comment | line: range.first}
+        %{comment | line: new_line}
       else
         comment
       end
     end)
+    |> Enum.sort_by(& &1.line)
   end
 
   @doc """
