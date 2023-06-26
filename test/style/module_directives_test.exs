@@ -247,6 +247,24 @@ defmodule Styler.Style.ModuleDirectivesTest do
   end
 
   describe "directive sort/dedupe/expansion" do
+    test "isn't fooled by function names" do
+      assert_style(
+        """
+        def import(foo) do
+          import B
+
+          import A
+        end
+        """,
+        """
+        def import(foo) do
+          import A
+          import B
+        end
+        """
+      )
+    end
+
     test "handles a lonely lonely directive" do
       assert_style("import Foo")
     end
