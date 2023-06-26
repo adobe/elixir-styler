@@ -208,7 +208,7 @@ defmodule Styler.Style.ModuleDirectives do
   # Et voila! Comments behave much better.
   defp fix_line_numbers(directives, acc \\ [], first_non_directive)
 
-  defp fix_line_numbers([this,  next | rest], acc, first_non_directive) do
+  defp fix_line_numbers([this, next | rest], acc, first_non_directive) do
     this = cap_line(this, next)
     fix_line_numbers([next | rest], [this | acc], first_non_directive)
   end
