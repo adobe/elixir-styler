@@ -375,7 +375,11 @@ defmodule Styler.Style.ModuleDirectivesTest do
         defmodule Foo do
           # mdf
           @moduledoc false
-          # B
+          # some comment
+
+          # B 1
+          # B 2
+          # B 3
           alias B
 
           # foo
@@ -385,7 +389,10 @@ defmodule Styler.Style.ModuleDirectivesTest do
           end
           # C
           alias C
-          # A
+          # unrelated
+
+          # A 1
+          # A 2
           alias A
         end
         """,
@@ -393,9 +400,16 @@ defmodule Styler.Style.ModuleDirectivesTest do
         defmodule Foo do
           # mdf
           @moduledoc false
+          # some comment
+
+          # A 1
+          # A 2
           alias A
-          # B
+          # B 1
+          # B 2
+          # B 3
           alias B
+          # C
           alias C
 
           # foo
@@ -403,9 +417,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
             # ok
             :ok
           end
-
-          # C
-          # A
+          # unrelated
         end
         """
       )
