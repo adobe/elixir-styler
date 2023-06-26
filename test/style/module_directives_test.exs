@@ -247,6 +247,24 @@ defmodule Styler.Style.ModuleDirectivesTest do
   end
 
   describe "directive sort/dedupe/expansion" do
+    test "isn't fooled by function names" do
+      assert_style(
+        """
+        def import(foo) do
+          import B
+
+          import A
+        end
+        """,
+        """
+        def import(foo) do
+          import A
+          import B
+        end
+        """
+      )
+    end
+
     test "handles a lonely lonely directive" do
       assert_style("import Foo")
     end
@@ -355,27 +373,39 @@ defmodule Styler.Style.ModuleDirectivesTest do
       assert_style(
         """
         defmodule Foo do
+          # mdf
+          @moduledoc false
+          # B
           alias B
-          # hi
-          # this is foo
+
+          # foo
           def foo do
-            # i promise it's ok!
+            # ok
             :ok
           end
+          # C
+          alias C
+          # A
           alias A
         end
         """,
         """
         defmodule Foo do
+          # mdf
           @moduledoc false
           alias A
+          # B
           alias B
-          # hi
-          # this is foo
+          alias C
+
+          # foo
           def foo do
-            # i promise it's ok!
+            # ok
             :ok
           end
+
+          # C
+          # A
         end
         """
       )

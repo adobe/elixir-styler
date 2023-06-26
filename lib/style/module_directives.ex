@@ -107,6 +107,13 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
+  def run({{def, _, _}, _} = zipper, ctx) when def in ~w(def defp defmacro defmacrop)a do
+    # we don't want to look at import nodes like `def import(foo)`
+    if def_body = zipper |> Zipper.down() |> Zipper.right(),
+      do: {:cont, def_body, ctx},
+      else: {:skip, zipper, ctx}
+  end
+
   def run({{directive, _, _}, _} = zipper, ctx) when directive in @directives do
     parent = zipper |> Style.ensure_block_parent() |> Zipper.up()
     {:skip, organize_directives(parent), ctx}
@@ -160,7 +167,7 @@ defmodule Styler.Style.ModuleDirectives do
         requires
       ]
       |> Enum.concat()
-      |> fix_line_numbers()
+      |> fix_line_numbers(List.first(nondirectives))
 
     cond do
       Enum.empty?(directives) ->
@@ -206,30 +213,41 @@ defmodule Styler.Style.ModuleDirectives do
   # This fixes that error by ensuring the following property:
   # A given node of AST cannot have a line number greater than the next AST node.
   # Et voila! Comments behave much better.
-  defp fix_line_numbers(directives, acc \\ [])
+  defp fix_line_numbers(directives, acc \\ [], first_non_directive)
 
-  defp fix_line_numbers([{_, this_meta, _} = this, {_, next_meta, _} = next | rest], acc) do
-    next_line = next_meta[:line]
-    this_line = this_meta[:line]
-
-    this =
-      if this_line > next_line do
-        Style.update_all_meta(this, fn meta ->
-          meta
-          |> Keyword.replace(:line, next_line)
-          |> Keyword.replace(:closing, line: next_line)
-          |> Keyword.replace(:last, line: next_line)
-        end)
-      else
-        this
-      end
-
-    fix_line_numbers([next | rest], [this | acc])
+  defp fix_line_numbers([this, next | rest], acc, first_non_directive) do
+    this = cap_line(this, next)
+    fix_line_numbers([next | rest], [this | acc], first_non_directive)
   end
 
-  defp fix_line_numbers([last], acc), do: Enum.reverse([last | acc])
+  defp fix_line_numbers([last], acc, first_non_directive) do
+    last = if first_non_directive, do: cap_line(last, first_non_directive), else: last
+    Enum.reverse([last | acc])
+  end
 
-  defp fix_line_numbers([], []), do: []
+  defp fix_line_numbers([], [], _), do: []
+
+  defp cap_line({_, this_meta, _} = this, {_, next_meta, _}) do
+    this_line = this_meta[:line]
+    next_line = next_meta[:line]
+
+    if this_line > next_line do
+      # Subtracting 2 helps the behaviour with one-liner comments preceding the next node. It's a bit of a hack.
+      # TODO: look into the comments list and
+      # 1. move comment blocks preceding `this` up with it
+      # 2. find the earliest comment before `next` and set `new_line` to that value - 1
+      new_line = next_line - 2
+
+      Style.update_all_meta(this, fn meta ->
+        meta
+        |> Keyword.replace(:line, new_line)
+        |> Keyword.replace(:closing, line: new_line)
+        |> Keyword.replace(:last, line: new_line)
+      end)
+    else
+      this
+    end
+  end
 
   defp expand_and_sort(directives) do
     # sorting is done with `downcase` to match Credo
