@@ -212,11 +212,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
 
   describe "strange parents!" do
     test "regression: doesn't trigger on variables" do
-      assert_style("""
-      def foo(alias) do
-        Foo.bar(alias)
-      end
-      """)
+      assert_style("def foo(alias), do: Foo.bar(alias)")
     end
 
     test "anon function" do
