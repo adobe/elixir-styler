@@ -2,6 +2,10 @@
 
 ## main
 
+### Fixes
+
+* ModuleDirectives doesn't mistake variables for directives (#57, h/t @leandrocp)
+
 ## v0.8.0
 
 ### Improvements (Bug Fix!?)

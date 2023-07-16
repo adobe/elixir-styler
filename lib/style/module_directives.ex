@@ -107,14 +107,14 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  def run({{def, _, _}, _} = zipper, ctx) when def in ~w(def defp defmacro defmacrop)a do
+  def run({{def, _, children}, _} = zipper, ctx) when def in ~w(def defp defmacro defmacrop)a and is_list(children) do
     # we don't want to look at import nodes like `def import(foo)`
     if def_body = zipper |> Zipper.down() |> Zipper.right(),
       do: {:cont, def_body, ctx},
       else: {:skip, zipper, ctx}
   end
 
-  def run({{directive, _, _}, _} = zipper, ctx) when directive in @directives do
+  def run({{directive, _, children}, _} = zipper, ctx) when directive in @directives and is_list(children) do
     parent = zipper |> Style.ensure_block_parent() |> Zipper.up()
     {:skip, organize_directives(parent), ctx}
   end
