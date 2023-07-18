@@ -12,7 +12,7 @@ defmodule Styler.MixProject do
   use Mix.Project
 
   # Don't forget to bump the README when doing non-patch version changes
-  @version "0.8.0"
+  @version "0.8.1"
   @url "https://github.com/adobe/elixir-styler"
 
   def project do
