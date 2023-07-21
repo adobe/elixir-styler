@@ -4,6 +4,7 @@ defmodule Styler.Style.Blocks do
   Rewrites for the following Credo rules:
 
     * Credo.Check.Refactor.UnlessWithElse
+    * Credo.Check.Refactor.NegatedConditionsWithElse
   """
 
   @behaviour Styler.Style
@@ -14,14 +15,28 @@ defmodule Styler.Style.Blocks do
   def run(zipper, ctx), do: {:cont, style(zipper), ctx}
 
   defp style({{:unless, _, [_condition, children]}, _} = zipper) when length(children) == 2 do
+    zipper
+    |> Zipper.update(fn {:unless, meta, children} -> {:if, meta, children} end)
+    |> flip_do_else()
+    |> style()
+  end
+
+  # run after unless
+  defp style({{:if, _, [_condition, children]}, _} = zipper) when length(children) == 2 do
+    zipper
+    |> Zipper.down()
+    |> remove_if_token_in([:!, :not])
+    |> flip_do_else()
+    |> style()
+  end
+
+  defp style(zipper), do: zipper
+
+  defp flip_do_else({{token, _, [_condition, children]}, _} = zipper)
+       when length(children) == 2
+       when token in [:unless, :if] do
     [{{:__block__, do_meta, [:do]}, _do_body}, {{:__block__, else_meta, [:else]}, _else_body}] = children
     diff = else_meta[:line] - do_meta[:line]
-
-    zipper =
-      Zipper.update(
-        zipper,
-        fn {:unless, meta, children} -> {:if, meta, children} end
-      )
 
     do_body =
       zipper
@@ -48,11 +63,23 @@ defmodule Styler.Style.Blocks do
       |> Zipper.replace(new_do_body)
       |> Zipper.right()
       |> Zipper.replace(new_else_body)
+      |> Zipper.up()
+      |> Zipper.up()
 
     zipper
   end
 
-  defp style(zipper), do: zipper
+  defp flip_do_else(zipper), do: zipper
+
+  defp remove_if_token_in(zipper, tokens) when is_list(tokens) do
+    case Zipper.node(zipper) do
+      {token, _meta, [body | []]} ->
+        if token in tokens, do: zipper |> Zipper.remove() |> Zipper.insert_child(body), else: zipper
+
+      _ ->
+        zipper
+    end
+  end
 
   defp update_line_number(ast_node, fun) do
     Style.update_all_meta(ast_node, fn meta ->
