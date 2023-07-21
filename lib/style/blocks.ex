@@ -5,6 +5,7 @@ defmodule Styler.Style.Blocks do
 
     * Credo.Check.Refactor.UnlessWithElse
     * Credo.Check.Refactor.NegatedConditionsWithElse
+    * Credo.Check.Refactor.NegatedConditionsInUnless
   """
 
   @behaviour Styler.Style
@@ -21,12 +22,21 @@ defmodule Styler.Style.Blocks do
     |> style()
   end
 
-  # run after unless
-  defp style({{:if, _, [_condition, children]}, _} = zipper) when length(children) == 2 do
+  defp style({{:if, _, [{token, _, _}, children]}, _} = zipper) when length(children) == 2 and token in [:!, :not] do
     zipper
     |> Zipper.down()
     |> remove_if_token_in([:!, :not])
     |> flip_do_else()
+    |> style()
+  end
+
+  defp style({{:unless, _, [{token, _, _}, children]}, _} = zipper) when length(children) == 1 and token in [:!, :not] do
+    IO.inspect(token in [:!, :not])
+
+    zipper
+    |> Zipper.down()
+    |> remove_if_token_in([:!, :not])
+    |> Zipper.update(fn {:unless, meta, children} -> {:if, meta, children} end)
     |> style()
   end
 

@@ -69,5 +69,35 @@ defmodule Styler.Style.BlocksTest do
         """
       )
     end
+
+    test "it not negate condition in unless" do
+      assert_style(
+        """
+        unless allowed? do
+          proceed_as_planned()
+        end
+        """,
+        """
+        unless allowed? do
+          proceed_as_planned()
+        end
+        """
+      )
+    end
+
+    test "it negate condition in unless" do
+      assert_style(
+        """
+        unless !allowed? do
+          proceed_as_planned()
+        end
+        """,
+        """
+        if allowed? do
+          proceed_as_planned()
+        end
+        """
+      )
+    end
   end
 end
