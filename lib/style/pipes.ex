@@ -120,7 +120,8 @@ defmodule Styler.Style.Pipes do
             arg
           end
 
-        arg -> arg
+        arg ->
+          arg
       end
 
     {{:|>, [line: line], [arg, {fun, meta, args}]}, nil}
