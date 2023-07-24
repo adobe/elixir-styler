@@ -108,7 +108,22 @@ defmodule Styler.Style.Pipes do
 
   # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
   defp extract_start({fun, meta, [arg | args]}) do
-    {{:|>, [line: meta[:line]], [arg, {fun, meta, args}]}, nil}
+    line = meta[:line]
+
+    # If the first arg is a syntax-sugared kwl, we need to manually desugar it to cover all scenarios
+    arg =
+      case arg do
+        [{{:__block__, bm, _}, {:__block__, _, _}} | _] ->
+          if bm[:format] == :keyword do
+            {:__block__, [line: line, closing: [line: line]], [arg]}
+          else
+            arg
+          end
+
+        arg -> arg
+      end
+
+    {{:|>, [line: line], [arg, {fun, meta, args}]}, nil}
   end
 
   # `pipe_chain(a, b, c)` generates the ast for `a |> b |> c`
