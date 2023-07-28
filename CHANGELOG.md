@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.8.2
+
+### Fixes
+
+* Pipes always de-sugars keyword lists when unpiping them (#60)
+
 ## v0.8.1
 
 ### Fixes
