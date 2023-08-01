@@ -38,14 +38,14 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style("Timex.after?(a, b)", "DateTime.after?(a, b)")
     end
 
-    test "DateTime.compare to DateTime.before?" do
+    test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.before?" do
       assert_style("DateTime.compare(foo, bar) == :lt", "DateTime.before?(foo, bar)")
       assert_style("NaiveDateTime.compare(foo, bar) == :lt", "NaiveDateTime.before?(foo, bar)")
       assert_style("Time.compare(foo, bar) == :lt", "Time.before?(foo, bar)")
       assert_style("Date.compare(foo, bar) == :lt", "Date.before?(foo, bar)")
     end
 
-    test "DateTime.compare to DateTime.after" do
+    test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.after?" do
       assert_style("DateTime.compare(foo, bar) == :gt", "DateTime.after?(foo, bar)")
       assert_style("NaiveDateTime.compare(foo, bar) == :gt", "NaiveDateTime.after?(foo, bar)")
       assert_style("Time.compare(foo, bar) == :gt", "Time.after?(foo, bar)")
