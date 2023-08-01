@@ -30,14 +30,6 @@ defmodule Styler.Style.SingleNodeTest do
   end
 
   if Version.match?(System.version(), ">= 1.15.0-dev") do
-    test "Timex.before?(a, b) -> DateTime.before?(a, b)" do
-      assert_style("Timex.before?(a, b)", "DateTime.before?(a, b)")
-    end
-
-    test "Timex.after?(a, b) -> DateTime.after?(a, b)" do
-      assert_style("Timex.after?(a, b)", "DateTime.after?(a, b)")
-    end
-
     test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.before?" do
       assert_style("DateTime.compare(foo, bar) == :lt", "DateTime.before?(foo, bar)")
       assert_style("NaiveDateTime.compare(foo, bar) == :lt", "NaiveDateTime.before?(foo, bar)")

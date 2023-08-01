@@ -103,19 +103,13 @@ defmodule Styler.Style.SingleNode do
     do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :utc_now]}, funm, args}
 
   if Version.match?(System.version(), ">= 1.15.0-dev") do
-    # Timex.{before?,after?} -> DateTime.{before?,after?}
-    defp style({{:., dm, [{:__aliases__, am, [:Timex]}, fun]}, funm, args}) when fun in [:before?, :after?],
-      do: {{:., dm, [{:__aliases__, am, [:DateTime]}, fun]}, funm, args}
-
     # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :lt -> {DateTime,NaiveDateTime,Time,Date}.before?(a, b)
-    defp style({:==, _, [{{:., dm, [{:__aliases__, am, [mod]}, :compare]}, funm, args}, {:__block__, _, [:lt]}]})
-         when mod in ~w[DateTime NaiveDateTime Time Date]a,
-         do: {{:., dm, [{:__aliases__, am, [mod]}, :before?]}, funm, args}
-
     # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :gt -> {DateTime,NaiveDateTime,Time,Date}.after?(a, b)
-    defp style({:==, _, [{{:., dm, [{:__aliases__, am, [mod]}, :compare]}, funm, args}, {:__block__, _, [:gt]}]})
-         when mod in ~w[DateTime NaiveDateTime Time Date]a,
-         do: {{:., dm, [{:__aliases__, am, [mod]}, :after?]}, funm, args}
+    defp style({:==, _, [{{:., dm, [{:__aliases__, am, [mod]}, :compare]}, funm, args}, {:__block__, _, [result]}]})
+         when mod in ~w[DateTime NaiveDateTime Time Date]a and result in [:lt, :gt] do
+      fun = if result == :lt, do: :before?, else: :after?
+      {{:., dm, [{:__aliases__, am, [mod]}, fun]}, funm, args}
+    end
   end
 
   # Remove parens from 0 arity funs (Credo.Check.Readability.ParenthesesOnZeroArityDefs)
