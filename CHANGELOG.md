@@ -2,6 +2,17 @@
 
 ## main
 
+### Improvements
+
+* DateTime rewrites:
+  * `DateTime.compare` => `DateTime.{before/after}` (elixir >= 1.15, #62)
+  * `Timex.now` => `DateTime.utc_now`
+  * `Timex.today` => `Date.utc_today`
+
+### Fixes
+
+
+
 ## v0.8.2
 
 ### Fixes
