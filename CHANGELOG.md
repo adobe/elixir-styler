@@ -13,7 +13,7 @@
 
 ### Fixes
 
-* Pipes: add `===`, `!==`, `and`, `or`, `not` to list of valid infix operators (#64)
+* Pipes: add  `!=`, `!==`, `===`, `and`, and `or` to list of valid infix operators (#64)
 
 ## v0.8.2
 
