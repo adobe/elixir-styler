@@ -2,16 +2,18 @@
 
 ## main
 
+## v0.8.3
+
 ### Improvements
 
-* DateTime rewrites:
-  * `DateTime.compare` => `DateTime.{before/after}` (elixir >= 1.15, #62)
+* DateTime rewrites (#62, ht @milmazz)
+  * `DateTime.compare` => `DateTime.{before/after}` (elixir >= 1.15)
   * `Timex.now` => `DateTime.utc_now`
   * `Timex.today` => `Date.utc_today`
 
 ### Fixes
 
-
+* Pipes: add `===`, `!==`, `and`, `or`, `not` to list of valid infix operators (#64)
 
 ## v0.8.2
 
