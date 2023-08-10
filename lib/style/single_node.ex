@@ -95,12 +95,17 @@ defmodule Styler.Style.SingleNode do
   defp style({{:., dm, [{:__aliases__, am, [:Logger]}, :warn]}, funm, args}),
     do: {{:., dm, [{:__aliases__, am, [:Logger]}, :warning]}, funm, args}
 
-  # Transform Timex defdelegates
-  defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :today]}, funm, args}),
-    do: {{:., dm, [{:__aliases__, am, [:Date]}, :utc_today]}, funm, args}
+  # Timex.today() => DateTime.utc_today()
+  defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :today]}, funm, []}),
+    do: {{:., dm, [{:__aliases__, am, [:Date]}, :utc_today]}, funm, []}
 
-  defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, args}),
-    do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :utc_now]}, funm, args}
+  # Timex.now() => DateTime.utc_now()
+  defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, []}),
+    do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :utc_now]}, funm, []}
+
+  # Timex.now("Europe/London") => DateTime.now!()
+  defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, [tz]}),
+    do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :now!]}, funm, [tz]}
 
   if Version.match?(System.version(), ">= 1.15.0-dev") do
     # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :lt -> {DateTime,NaiveDateTime,Time,Date}.before?(a, b)

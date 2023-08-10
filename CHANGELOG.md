@@ -2,6 +2,12 @@
 
 ## main
 
+### Fixes
+
+* Timex related fixes:
+  * Rewrite `Timex.now/1` to `DateTime.now!/1` instead of `DateTime.utc_now/1`
+  * Only rewrite `Timex.today/0`, don't change `Timex.today/1`
+
 ## v0.8.3
 
 ### Improvements

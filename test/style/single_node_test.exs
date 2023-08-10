@@ -21,12 +21,14 @@ defmodule Styler.Style.SingleNodeTest do
     assert_style("Logger.warn(foo, bar)", "Logger.warning(foo, bar)")
   end
 
-  test "Timex.now -> DateTime.utc_now" do
+  test "Timex.now -> DateTime.utc_now/now!" do
     assert_style("Timex.now()", "DateTime.utc_now()")
+    assert_style(~S|Timex.now("Some/Timezone")|, ~S|DateTime.now!("Some/Timezone")|)
   end
 
   test "Timex.today -> Date.utc_today" do
     assert_style("Timex.today()", "Date.utc_today()")
+    assert_style(~S|Timex.today("Some/Timezone")|, ~S|Timex.today("Some/Timezone")|)
   end
 
   if Version.match?(System.version(), ">= 1.15.0-dev") do
