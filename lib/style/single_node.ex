@@ -147,8 +147,10 @@ defmodule Styler.Style.SingleNode do
 
   defp style(node), do: node
 
-  defp r_align_matches(arrows),
+  defp r_align_matches(arrows) when is_list(arrows),
     do: Enum.map(arrows, fn {:->, m, [lhs, rhs]} -> {:->, m, [put_matches_on_right(lhs), rhs]} end)
+
+  defp r_align_matches(macros_or_something_crazy_oh_no_abooort), do: macros_or_something_crazy_oh_no_abooort
 
   defp put_matches_on_right(ast) do
     ast
