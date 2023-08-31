@@ -150,6 +150,10 @@ defmodule Styler.Style.SingleNodeTest do
       )
     end
 
+    test "regression: ignores unquoted cases" do
+      assert_style("case foo, do: unquote(quoted)")
+    end
+
     test "removes a double-var assignment when one var is _" do
       assert_style("def foo(_ = bar), do: bar", "def foo(bar), do: bar")
       assert_style("def foo(bar = _), do: bar", "def foo(bar), do: bar")
