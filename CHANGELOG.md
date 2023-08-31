@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.8.5
+
 ### Fixes
 
 * Fixed exception when encountering non-arrowed case statements ala `case foo, do: unquote(quoted)` (#69, h/t @brettinternet, nice)
