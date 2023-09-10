@@ -18,7 +18,9 @@ defmodule Styler.Style.SingleNode do
   * Credo.Check.Readability.LargeNumbers
   * Credo.Check.Readability.ParenthesesOnZeroArityDefs
   * Credo.Check.Readability.PreferImplicitTry
+  * Credo.Check.Readability.WithSingleClause
   * Credo.Check.Refactor.CaseTrivialMatches
+  * Credo.Check.Refactor.WithClauses
   """
 
   @behaviour Styler.Style
@@ -141,6 +143,7 @@ defmodule Styler.Style.SingleNode do
   defp style(trivial_case(head, {:__block__, _, [true]}, do_body, {:_, _, _}, else_body)),
     do: if_ast(head, do_body, else_body)
 
+  # Credo.Check.Readability.WithSingleClause
   # rewrite `with success <- single_statement do body else ...elses end`
   # to `case single_statement do success -> body; ...elses end`
   defp style({:with, m, [{:<-, am, [success, single_statement]}, [body, elses]]}) do
@@ -148,6 +151,27 @@ defmodule Styler.Style.SingleNode do
     {{:__block__, _else_meta, [:else]}, elses} = elses
     clauses = [{{:__block__, am, [:do]}, [{:->, do_meta, [[success], body]} | elses]}]
     style({:case, m, [single_statement, clauses]})
+  end
+
+  # Credo.Check.Refactor.WithClauses
+  defp style({:with, m, clauses} = with_statement) do
+    if Enum.any?(clauses, &match?({:<-, _, _}, &1)) do
+      {pre_with_statements, good_start} = Enum.split_while(clauses, &(not match?({:<-, _, _}, &1)))
+      {good_start, [[{{:__block__, _, [:do]} = do_, body} | elses]]} = Enum.split_while(good_start, &(not is_list(&1)))
+      {body_statements, reversed_start} = good_start |> Enum.reverse() |> Enum.split_while(&(not match?({:<-, _, _}, &1)))
+      good_start = Enum.reverse(reversed_start)
+      body_statements = Enum.reverse(body_statements)
+
+      if Enum.any?(pre_with_statements) or Enum.any?(body_statements) do
+        with_statement = {:with, m, good_start ++ [[{do_, {:__block__, [], body_statements ++ List.wrap(body)}} | elses]]}
+        {:__block__, m, pre_with_statements ++ [with_statement]}
+      else
+        with_statement
+      end
+    else
+      # nothing we can do about a with statement with no `:<-`
+      with_statement
+    end
   end
 
   # ARROW REWRITES

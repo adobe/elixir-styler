@@ -212,7 +212,7 @@ defmodule Styler.Style.SingleNodeTest do
     test "with statements" do
       assert_style(
         """
-        with ok = :ok <- foo, yeehaw() do
+        with ok = :ok <- foo, :ok <- yeehaw() do
           ok
         else
           error = :error -> error
@@ -220,7 +220,7 @@ defmodule Styler.Style.SingleNodeTest do
         end
         """,
         """
-        with :ok = ok <- foo, yeehaw() do
+        with :ok = ok <- foo, :ok <- yeehaw() do
           ok
         else
           :error = error -> error
@@ -372,7 +372,7 @@ defmodule Styler.Style.SingleNodeTest do
   end
 
   describe "with statements" do
-    test "rewrites simple withs to cases & styles the case" do
+    test "Credo.Check.Readability.WithSingleClause" do
       assert_style(
         """
         with :ok <- foo do
@@ -390,17 +390,59 @@ defmodule Styler.Style.SingleNodeTest do
         end
         """
       )
+
+      for nontrivial_head <- ["foo", ":ok = foo", ":ok <- foo, :ok <- bar"] do
+        assert_style("""
+        with #{nontrivial_head} do
+          :success
+        else
+          :fail -> :failure
+        end
+        """)
+      end
     end
 
-    test "doesn't rewrite nontrivial withs" do
-      assert_style("""
-      with :ok <- foo, :ok <- bar do
-        :success
-      else
-        :error -> 1
-        :fail -> 2
-      end
-      """)
+    test "moves non-arrow clauses from the beginning & end" do
+      assert_style(
+        """
+        with foo, bar, :ok <- baz, :ok <- boz, a = bop, boop do
+          :horay!
+        else
+          :error -> :error
+        end
+        """,
+        """
+        foo
+        bar
+
+        with :ok <- baz, :ok <- boz do
+          a = bop
+          boop
+          :horay!
+        else
+          :error -> :error
+        end
+        """
+      )
+
+      assert_style(
+        """
+        with :ok <- baz, :ok <- boz, a = bop, boop do
+          :horay!
+        else
+          :error -> :error
+        end
+        """,
+        """
+        with :ok <- baz, :ok <- boz do
+          a = bop
+          boop
+          :horay!
+        else
+          :error -> :error
+        end
+        """
+      )
     end
   end
 end

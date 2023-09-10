@@ -81,11 +81,13 @@ If you're using Credo and Styler, **we recommend disabling these rules in `.cred
 | `Credo.Check.Readability.SinglePipe` | |
 | `Credo.Check.Readability.StrictModuleLayout` | **potentially breaks compilation** (see notes above) |
 | `Credo.Check.Readability.UnnecessaryAliasExpansion` | |
+| `Credo.Check.Readability.WithSingleClause` | |
 | `Credo.Check.Refactor.CaseTrivialMatches` | |
 | `Credo.Check.Refactor.FilterCount` | in pipes only |
 | `Credo.Check.Refactor.MapInto` | in pipes only |
 | `Credo.Check.Refactor.MapJoin` | in pipes only |
 | `Credo.Check.Refactor.PipeChainStart` | allows ecto's `from`|
+| `Credo.Check.Refactor.WithClauses` | |
 
 ## Your first Styling
 
