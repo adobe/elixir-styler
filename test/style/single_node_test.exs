@@ -210,7 +210,21 @@ defmodule Styler.Style.SingleNodeTest do
     end
 
     test "with statements" do
-      
+      assert_style """
+      with ok = :ok <- foo, yeehaw() do
+        ok
+      else
+        error = :error -> error
+        other -> other
+      end
+      ""","""
+      with :ok = ok <- foo, yeehaw() do
+        ok
+      else
+        :error = error -> error
+        other -> other
+      end
+      """
     end
   end
 
