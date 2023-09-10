@@ -155,10 +155,11 @@ defmodule Styler.Style.SingleNode do
 
   # Credo.Check.Refactor.WithClauses
   defp style({:with, m, clauses} = with_statement) do
-    if Enum.any?(clauses, &match?({:<-, _, _}, &1)) do
-      {pre_with_statements, good_start} = Enum.split_while(clauses, &(not match?({:<-, _, _}, &1)))
-      {good_start, [[{{:__block__, _, [:do]} = do_, body} | elses]]} = Enum.split_while(good_start, &(not is_list(&1)))
-      {body_statements, reversed_start} = good_start |> Enum.reverse() |> Enum.split_while(&(not match?({:<-, _, _}, &1)))
+    if Enum.any?(clauses, &left_arrow?/1) do
+      {pre_with_statements, valid_start} = Enum.split_while(clauses, &(not left_arrow?(&1)))
+      # the do/else keyword macro of the with statement is the last element of the list
+      {[{{_, _, [:do]} = do_, body} | elses], valid_start} = List.pop_at(valid_start, -1)
+      {body_statements, reversed_start} = valid_start |> Enum.reverse() |> Enum.split_while(&(not left_arrow?(&1)))
       good_start = Enum.reverse(reversed_start)
       body_statements = Enum.reverse(body_statements)
 
@@ -185,6 +186,9 @@ defmodule Styler.Style.SingleNode do
   defp style({:<-, cm, [lhs, rhs]}), do: {:<-, cm, [put_matches_on_right(lhs), rhs]}
 
   defp style(node), do: node
+
+  defp left_arrow?({:<-, _, _}), do: true
+  defp left_arrow?(_), do: false
 
   defp rewrite_arrows(arrows) when is_list(arrows),
     do: Enum.map(arrows, fn {:->, m, [lhs, rhs]} -> {:->, m, [put_matches_on_right(lhs), rhs]} end)
