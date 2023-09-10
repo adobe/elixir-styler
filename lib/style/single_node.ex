@@ -141,28 +141,24 @@ defmodule Styler.Style.SingleNode do
   defp style(trivial_case(head, {:__block__, _, [true]}, do_body, {:_, _, _}, else_body)),
     do: if_ast(head, do_body, else_body)
 
+  # rewrite `with success <- single_statement do body else ...elses end`
+  # to `case single_statement do success -> body; ...elses end`
+  defp style({:with, m, [{:<-, am, [success, single_statement]}, [body, elses]]}) do
+    {{:__block__, do_meta, [:do]}, body} = body
+    {{:__block__, _else_meta, [:else]}, elses} = elses
+    clauses = [{{:__block__, am, [:do]}, [{:->, do_meta, [[success], body]} | elses]}]
+    style({:case, m, [single_statement, clauses]})
+  end
+
+  # ARROW REWRITES
+  # `foo = :foo` => `:foo = foo` within `case`, `fn`, `with`
+  # there's complexity to `:->` due to `cond` also utilizing the symbol but with different semantics
+  # `with` elses
+  defp style({{:__block__, em, [:else]}, arrows}), do: {{:__block__, em, [:else]}, rewrite_arrows(arrows)}
   defp style({:case, cm, [head, [{do_block, arrows}]]}), do: {:case, cm, [head, [{do_block, rewrite_arrows(arrows)}]]}
-
   defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
-
-  defp style(
-         {:with, m,
-          [
-            {:<-, am, [success, head]},
-            [{{:__block__, do_meta, [:do]}, do_body}, {{:__block__, _else_meta, [:else]}, elses}]
-          ]}
-       ) do
-    clauses = [{{:__block__, am, [:do]}, [{:->, do_meta, [[success], do_body]} | elses]}]
-    style({:case, m, [head, clauses]})
-  end
-
-  # sadly, we can't make a rule this simple for `:->` because of `cond do`
+  # `with` head - if only we could write something this trivial for `->`!
   defp style({:<-, cm, [lhs, rhs]}), do: {:<-, cm, [put_matches_on_right(lhs), rhs]}
-
-  # rewrite `->` on with statements else clauses
-  defp style({{:__block__, em, [:else]}, [{:->, _, _} | _] = clauses}) do
-    {{:__block__, em, [:else]}, rewrite_arrows(clauses)}
-  end
 
   defp style(node), do: node
 

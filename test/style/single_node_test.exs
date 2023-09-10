@@ -210,21 +210,24 @@ defmodule Styler.Style.SingleNodeTest do
     end
 
     test "with statements" do
-      assert_style """
-      with ok = :ok <- foo, yeehaw() do
-        ok
-      else
-        error = :error -> error
-        other -> other
-      end
-      ""","""
-      with :ok = ok <- foo, yeehaw() do
-        ok
-      else
-        :error = error -> error
-        other -> other
-      end
-      """
+      assert_style(
+        """
+        with ok = :ok <- foo, yeehaw() do
+          ok
+        else
+          error = :error -> error
+          other -> other
+        end
+        """,
+        """
+        with :ok = ok <- foo, yeehaw() do
+          ok
+        else
+          :error = error -> error
+          other -> other
+        end
+        """
+      )
     end
   end
 
@@ -390,16 +393,14 @@ defmodule Styler.Style.SingleNodeTest do
     end
 
     test "doesn't rewrite nontrivial withs" do
-      assert_style(
-        """
-        with :ok <- foo, :ok <- bar do
-          :success
-        else
-          :error -> 1
-          :fail -> 2
-        end
-        """
-      )
+      assert_style("""
+      with :ok <- foo, :ok <- bar do
+        :success
+      else
+        :error -> 1
+        :fail -> 2
+      end
+      """)
     end
   end
 end
