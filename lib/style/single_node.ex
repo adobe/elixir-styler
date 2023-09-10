@@ -154,27 +154,29 @@ defmodule Styler.Style.SingleNode do
   end
 
   # Credo.Check.Refactor.WithClauses
-  defp style({:with, m, clauses} = with_statement) do
+  defp style({:with, m, clauses} = with) when is_list(clauses) do
     if Enum.any?(clauses, &left_arrow?/1) do
-      {pre_with_statements, valid_start} = Enum.split_while(clauses, &(not left_arrow?(&1)))
+      {preroll, arrow_start} = Enum.split_while(clauses, &(not left_arrow?(&1)))
       # the do/else keyword macro of the with statement is the last element of the list
-      {[{{_, _, [:do]} = do_, body} | elses], valid_start} = List.pop_at(valid_start, -1)
-      {body_statements, reversed_start} = valid_start |> Enum.reverse() |> Enum.split_while(&(not left_arrow?(&1)))
-      good_start = Enum.reverse(reversed_start)
-      body_statements = Enum.reverse(body_statements)
+      {[{do_block, body} | elses], arrow_start} = List.pop_at(arrow_start, -1)
+      {postroll, reversed_start} = arrow_start |> Enum.reverse() |> Enum.split_while(&(not left_arrow?(&1)))
+      valid_start = Enum.reverse(reversed_start)
+      postroll = Enum.reverse(postroll)
 
       # @TODO check for redundant final node
-      # - can only be redundant if the body itself is a single ast node (after body has body_statements added)
+      # - can only be redundant if the body itself is a single ast node (after body has postroll added)
 
-      if Enum.any?(pre_with_statements) or Enum.any?(body_statements) do
-        with_statement = {:with, m, good_start ++ [[{do_, {:__block__, [], body_statements ++ List.wrap(body)}} | elses]]}
-        {:__block__, m, pre_with_statements ++ [with_statement]}
+      # only rewrite if it needs rewriting!
+      if Enum.any?(preroll) or Enum.any?(postroll) do
+        with = {:with, m, valid_start ++ [[{do_block, {:__block__, [], postroll ++ List.wrap(body)}} | elses]]}
+        {:__block__, m, preroll ++ [with]}
       else
-        with_statement
+        with
       end
     else
-      # nothing we can do about a with statement with no `:<-`
-      with_statement
+      # maybe this isn't a with statement - could be a functino named `with`
+      # or it's just a with statement with no arrows, but that's too saddening to imagine
+      with
     end
   end
 
