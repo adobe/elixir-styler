@@ -163,6 +163,9 @@ defmodule Styler.Style.SingleNode do
       good_start = Enum.reverse(reversed_start)
       body_statements = Enum.reverse(body_statements)
 
+      # @TODO check for redundant final node
+      # - can only be redundant if the body itself is a single ast node (after body has body_statements added)
+
       if Enum.any?(pre_with_statements) or Enum.any?(body_statements) do
         with_statement = {:with, m, good_start ++ [[{do_, {:__block__, [], body_statements ++ List.wrap(body)}} | elses]]}
         {:__block__, m, pre_with_statements ++ [with_statement]}

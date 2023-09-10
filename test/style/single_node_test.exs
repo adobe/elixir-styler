@@ -444,5 +444,30 @@ defmodule Styler.Style.SingleNodeTest do
         """
       )
     end
+
+    @tag :skip
+    # not implemented
+    test "Credo.Check.Refactor.RedundantWithClauseResult" do
+      assert_style """
+      with {:ok, a} <- foo(),
+           {:ok, b} <- bar(a) do
+        {:ok, b}
+      end
+      """,
+      """
+      with {:ok, a} <- foo() do
+        bar(a)
+      end
+      """
+
+      assert_style """
+      with {:ok, a} <- foo(),
+           {:ok, b} <- bar(a) do
+        {:ok, b}
+      else
+        error -> handle(error)
+      end
+      """
+    end
   end
 end
