@@ -145,6 +145,17 @@ defmodule Styler.Style.SingleNode do
 
   defp style({:fn, m, arrows}), do: {:fn, m, r_align_matches(arrows)}
 
+  defp style(
+         {:with, m,
+          [
+            {:<-, am, [success, head]},
+            [{{:__block__, do_meta, [:do]}, do_body}, {{:__block__, _else_meta, [:else]}, elses}]
+          ]}
+       ) do
+    clauses = [{{:__block__, am, [:do]}, [{:->, do_meta, [[success], do_body]} | elses]}]
+    style({:case, m, [head, clauses]})
+  end
+
   defp style(node), do: node
 
   defp r_align_matches(arrows) when is_list(arrows),

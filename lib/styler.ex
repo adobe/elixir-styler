@@ -60,15 +60,14 @@ defmodule Styler do
 
     {ast, comments} =
       input
-      |> Styler.string_to_quoted_with_comments(to_string(file))
+      |> string_to_quoted_with_comments(to_string(file))
       |> style(file, opts)
 
     quoted_to_string(ast, comments, formatter_opts)
   end
 
-  @doc """
-  Wraps `Code.string_to_quoted_with_comments` with our desired options
-  """
+  @doc false
+  # Wrap `Code.string_to_quoted_with_comments` with our desired options
   def string_to_quoted_with_comments(code, file \\ "nofile") when is_binary(code) do
     Code.string_to_quoted_with_comments!(code,
       literal_encoder: &__MODULE__.literal_encoder/2,
@@ -81,9 +80,8 @@ defmodule Styler do
   @doc false
   def literal_encoder(a, b), do: {:ok, {:__block__, b, [a]}}
 
-  @doc """
-  Turns an ast and comments back into code, formatting it along the way.
-  """
+  @doc false
+  # Turns an ast and comments back into code, formatting it along the way.
   def quoted_to_string(ast, comments, formatter_opts \\ []) do
     opts = [{:comments, comments}, {:escape, false} | formatter_opts]
     {line_length, opts} = Keyword.pop(opts, :line_length, 122)

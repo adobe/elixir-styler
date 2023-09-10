@@ -208,6 +208,10 @@ defmodule Styler.Style.SingleNodeTest do
       end
       """)
     end
+
+    test "with statements" do
+      
+    end
   end
 
   describe "numbers" do
@@ -344,6 +348,41 @@ defmodule Styler.Style.SingleNodeTest do
         else
           Logger.warning("it's false")
           nil
+        end
+        """
+      )
+    end
+  end
+
+  describe "with statements" do
+    test "rewrites simple withs to cases & styles the case" do
+      assert_style(
+        """
+        with :ok <- foo do
+          :success
+        else
+          error = :error -> error
+          :fail -> :failure
+        end
+        """,
+        """
+        case foo do
+          :ok -> :success
+          :error = error -> error
+          :fail -> :failure
+        end
+        """
+      )
+    end
+
+    test "doesn't rewrite nontrivial withs" do
+      assert_style(
+        """
+        with :ok <- foo, :ok <- bar do
+          :success
+        else
+          :error -> 1
+          :fail -> 2
         end
         """
       )
