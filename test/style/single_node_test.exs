@@ -456,8 +456,6 @@ defmodule Styler.Style.SingleNodeTest do
       )
     end
 
-    @tag :skip
-    # not implemented
     test "Credo.Check.Refactor.RedundantWithClauseResult" do
       assert_style(
         """
