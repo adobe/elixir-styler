@@ -160,36 +160,29 @@ defmodule Styler.Style.SingleNode do
     if Enum.any?(children, &left_arrow?/1) do
       {preroll, children} = Enum.split_while(children, &(not left_arrow?(&1)))
       # the do/else keyword macro of the with statement is the last element of the list
-      {[{do_block, body} | elses], clauses} = List.pop_at(children, -1)
-
-      {postroll, reversed_clauses} =
-        clauses
-        |> Enum.reverse()
-        |> Enum.split_while(&(not left_arrow?(&1)))
-
+      [[{do_block, do_body} | elses] | reversed_clauses] = Enum.reverse(children)
+      {postroll, reversed_clauses} = Enum.split_while(reversed_clauses, &(not left_arrow?(&1)))
       [{:<-, _, [lhs, rhs]} = _final_clause | rest] = reversed_clauses
 
       # Credo.Check.Refactor.RedundantWithClauseResult
-      rewrite_body? = Enum.empty?(postroll) and Enum.empty?(elses) and nodes_equivalent?(lhs, body)
+      rewrite_body? = Enum.empty?(postroll) and Enum.empty?(elses) and nodes_equivalent?(lhs, do_body)
+      {_, do_body_meta, _} = do_body
 
-      {reversed_clauses, body} =
+      {reversed_clauses, do_body} =
         if rewrite_body?,
           do: {rest, [rhs]},
-          else: {reversed_clauses, Enum.reverse(postroll, [body])}
+          else: {reversed_clauses, Enum.reverse(postroll, [do_body])}
 
-      do_else = [{do_block, {:__block__, [], body}} | elses]
-      clauses = Enum.reverse(reversed_clauses, [do_else])
-      # @TODO check for redundant final node
-      # - can only be redundant if the body itself is a single ast node (after body has postroll added)
-      # - can only be redundant if there's no else
-      rewritten_with = {:with, m, clauses}
+      do_else = [{do_block, {:__block__, do_body_meta, do_body}} | elses]
+      children = Enum.reverse(reversed_clauses, [do_else])
+
       # only rewrite if it needs rewriting!
       cond do
         Enum.any?(preroll) ->
-          {:__block__, m, preroll ++ [rewritten_with]}
+          {:__block__, m, preroll ++ [{:with, m, children}]}
 
         rewrite_body? or Enum.any?(postroll) ->
-          rewritten_with
+          {:with, m, children}
 
         true ->
           with
