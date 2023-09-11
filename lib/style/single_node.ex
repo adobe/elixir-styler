@@ -195,7 +195,7 @@ defmodule Styler.Style.SingleNode do
           with
       end
     else
-      # maybe this isn't a with statement - could be a functino named `with`
+      # maybe this isn't a with statement - could be a function named `with`
       # or it's just a with statement with no arrows, but that's too saddening to imagine
       with
     end
