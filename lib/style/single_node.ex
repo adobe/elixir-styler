@@ -141,16 +141,22 @@ defmodule Styler.Style.SingleNode do
   defp style(trivial_case(head, {:__block__, _, [true]}, do_body, {:_, _, _}, else_body)),
     do: if_ast(head, do_body, else_body)
 
-  defp style({:case, cm, [head, [{do_block, arrows}]]}), do: {:case, cm, [head, [{do_block, r_align_matches(arrows)}]]}
-
-  defp style({:fn, m, arrows}), do: {:fn, m, r_align_matches(arrows)}
+  # ARROW REWRITES
+  # `with`, `for` left arrow - if only we could write something this trivial for `->`!
+  defp style({:<-, cm, [lhs, rhs]}), do: {:<-, cm, [put_matches_on_right(lhs), rhs]}
+  # there's complexity to `:->` due to `cond` also utilizing the symbol but with different semantics.
+  # thus, we have to have a clause for each place that `:->` can show up
+  # `with` elses
+  defp style({{:__block__, _, [:else]} = else_, arrows}), do: {else_, rewrite_arrows(arrows)}
+  defp style({:case, cm, [head, [{do_, arrows}]]}), do: {:case, cm, [head, [{do_, rewrite_arrows(arrows)}]]}
+  defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
 
   defp style(node), do: node
 
-  defp r_align_matches(arrows) when is_list(arrows),
+  defp rewrite_arrows(arrows) when is_list(arrows),
     do: Enum.map(arrows, fn {:->, m, [lhs, rhs]} -> {:->, m, [put_matches_on_right(lhs), rhs]} end)
 
-  defp r_align_matches(macros_or_something_crazy_oh_no_abooort), do: macros_or_something_crazy_oh_no_abooort
+  defp rewrite_arrows(macros_or_something_crazy_oh_no_abooort), do: macros_or_something_crazy_oh_no_abooort
 
   defp put_matches_on_right(ast) do
     ast
