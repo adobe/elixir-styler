@@ -18,7 +18,10 @@ defmodule Styler.Style.SingleNode do
   * Credo.Check.Readability.LargeNumbers
   * Credo.Check.Readability.ParenthesesOnZeroArityDefs
   * Credo.Check.Readability.PreferImplicitTry
+  * Credo.Check.Readability.WithSingleClause
   * Credo.Check.Refactor.CaseTrivialMatches
+  * Credo.Check.Refactor.RedundantWithClauseResult
+  * Credo.Check.Refactor.WithClauses
   """
 
   @behaviour Styler.Style
@@ -141,6 +144,63 @@ defmodule Styler.Style.SingleNode do
   defp style(trivial_case(head, {:__block__, _, [true]}, do_body, {:_, _, _}, else_body)),
     do: if_ast(head, do_body, else_body)
 
+  # Credo.Check.Readability.WithSingleClause
+  # rewrite `with success <- single_statement do body else ...elses end`
+  # to `case single_statement do success -> body; ...elses end`
+  defp style({:with, m, [{:<-, am, [success, single_statement]}, [body, elses]]}) do
+    {{:__block__, do_meta, [:do]}, body} = body
+    {{:__block__, _else_meta, [:else]}, elses} = elses
+    clauses = [{{:__block__, am, [:do]}, [{:->, do_meta, [[success], body]} | elses]}]
+    style({:case, m, [single_statement, clauses]})
+  end
+
+  # Credo.Check.Refactor.WithClauses
+  # Credo.Check.Refactor.RedundantWithClauseResult
+  defp style({:with, m, children} = with) when is_list(children) do
+    if Enum.any?(children, &left_arrow?/1) do
+      {preroll, children} = Enum.split_while(children, &(not left_arrow?(&1)))
+      # the do/else keyword macro of the with statement is the last element of the list
+      {[{do_block, body} | elses], clauses} = List.pop_at(children, -1)
+
+      {postroll, reversed_clauses} =
+        clauses
+        |> Enum.reverse()
+        |> Enum.split_while(&(not left_arrow?(&1)))
+
+      [{:<-, _, [lhs, rhs]} = _final_clause | rest] = reversed_clauses
+
+      # Credo.Check.Refactor.RedundantWithClauseResult
+      rewrite_body? = Enum.empty?(postroll) and Enum.empty?(elses) and nodes_equivalent?(lhs, body)
+
+      {reversed_clauses, body} =
+        if rewrite_body?,
+          do: {rest, [rhs]},
+          else: {reversed_clauses, Enum.reverse(postroll, [body])}
+
+      do_else = [{do_block, {:__block__, [], body}} | elses]
+      clauses = Enum.reverse(reversed_clauses, [do_else])
+      # @TODO check for redundant final node
+      # - can only be redundant if the body itself is a single ast node (after body has postroll added)
+      # - can only be redundant if there's no else
+      rewritten_with = {:with, m, clauses}
+      # only rewrite if it needs rewriting!
+      cond do
+        Enum.any?(preroll) ->
+          {:__block__, m, preroll ++ [rewritten_with]}
+
+        rewrite_body? or Enum.any?(postroll) ->
+          rewritten_with
+
+        true ->
+          with
+      end
+    else
+      # maybe this isn't a with statement - could be a function named `with`
+      # or it's just a with statement with no arrows, but that's too saddening to imagine
+      with
+    end
+  end
+
   # ARROW REWRITES
   # `with`, `for` left arrow - if only we could write something this trivial for `->`!
   defp style({:<-, cm, [lhs, rhs]}), do: {:<-, cm, [put_matches_on_right(lhs), rhs]}
@@ -171,6 +231,14 @@ defmodule Styler.Style.SingleNode do
       zipper -> zipper
     end)
     |> Zipper.node()
+  end
+
+  defp left_arrow?({:<-, _, _}), do: true
+  defp left_arrow?(_), do: false
+
+  defp nodes_equivalent?(a, b) do
+    # compare nodes without metadata
+    Style.update_all_meta(a, fn _ -> nil end) == Style.update_all_meta(b, fn _ -> nil end)
   end
 
   # don't write an else clause if it's `false -> nil`

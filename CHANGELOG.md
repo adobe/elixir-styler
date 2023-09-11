@@ -6,6 +6,10 @@
 
 * Added right-hand-pattern-matching rewrites to `for` and `with` left arrow expressions `<-`
   (ex: `with map = %{} <- foo()` => `with %{} = map <- foo`)
+* `with` statement rewrites, solving the following credo rules
+  * `Credo.Check.Readability.WithSingleClause`
+  * `Credo.Check.Refactor.RedundantWithClauseResult`
+  * `Credo.Check.Refactor.WithClauses`
 
 ## v0.8.5
 

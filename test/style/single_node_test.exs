@@ -213,6 +213,27 @@ defmodule Styler.Style.SingleNodeTest do
       end
       """)
     end
+
+    test "with statements" do
+      assert_style(
+        """
+        with ok = :ok <- foo, :ok <- yeehaw() do
+          ok
+        else
+          error = :error -> error
+          other -> other
+        end
+        """,
+        """
+        with :ok = ok <- foo, :ok <- yeehaw() do
+          ok
+        else
+          :error = error -> error
+          other -> other
+        end
+        """
+      )
+    end
   end
 
   describe "numbers" do
@@ -352,6 +373,112 @@ defmodule Styler.Style.SingleNodeTest do
         end
         """
       )
+    end
+  end
+
+  describe "with statements" do
+    test "doesn't false positive with vars" do
+      assert_style("""
+      if naming_is_hard, do: with
+      """)
+    end
+
+    test "Credo.Check.Readability.WithSingleClause" do
+      assert_style(
+        """
+        with :ok <- foo do
+          :success
+        else
+          error = :error -> error
+          :fail -> :failure
+        end
+        """,
+        """
+        case foo do
+          :ok -> :success
+          :error = error -> error
+          :fail -> :failure
+        end
+        """
+      )
+
+      for nontrivial_head <- ["foo", ":ok = foo", ":ok <- foo, :ok <- bar"] do
+        assert_style("""
+        with #{nontrivial_head} do
+          :success
+        else
+          :fail -> :failure
+        end
+        """)
+      end
+    end
+
+    test "moves non-arrow clauses from the beginning & end" do
+      assert_style(
+        """
+        with foo, bar, :ok <- baz, :ok <- boz, a = bop, boop do
+          :horay!
+        else
+          :error -> :error
+        end
+        """,
+        """
+        foo
+        bar
+
+        with :ok <- baz, :ok <- boz do
+          a = bop
+          boop
+          :horay!
+        else
+          :error -> :error
+        end
+        """
+      )
+
+      assert_style(
+        """
+        with :ok <- baz, :ok <- boz, a = bop, boop do
+          :horay!
+        else
+          :error -> :error
+        end
+        """,
+        """
+        with :ok <- baz, :ok <- boz do
+          a = bop
+          boop
+          :horay!
+        else
+          :error -> :error
+        end
+        """
+      )
+    end
+
+    test "Credo.Check.Refactor.RedundantWithClauseResult" do
+      assert_style(
+        """
+        with {:ok, a} <- foo(),
+             {:ok, b} <- bar(a) do
+          {:ok, b}
+        end
+        """,
+        """
+        with {:ok, a} <- foo() do
+          bar(a)
+        end
+        """
+      )
+
+      assert_style("""
+      with {:ok, a} <- foo(),
+           {:ok, b} <- bar(a) do
+        {:ok, b}
+      else
+        error -> handle(error)
+      end
+      """)
     end
   end
 end
