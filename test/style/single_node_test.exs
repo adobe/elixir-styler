@@ -21,12 +21,12 @@ defmodule Styler.Style.SingleNodeTest do
     assert_style("Logger.warn(foo, bar)", "Logger.warning(foo, bar)")
   end
 
-  test "Timex.now -> DateTime.utc_now/now!" do
+  test "Timex.now => DateTime.utc_now/now!" do
     assert_style("Timex.now()", "DateTime.utc_now()")
     assert_style(~S|Timex.now("Some/Timezone")|, ~S|DateTime.now!("Some/Timezone")|)
   end
 
-  test "Timex.today -> Date.utc_today" do
+  test "Timex.today => Date.utc_today" do
     assert_style("Timex.today()", "Date.utc_today()")
     assert_style(~S|Timex.today("Some/Timezone")|, ~S|Timex.today("Some/Timezone")|)
   end
@@ -133,6 +133,11 @@ defmodule Styler.Style.SingleNodeTest do
   end
 
   describe "RHS pattern matching" do
+    test "left arrows" do
+      assert_style("with {:ok, result = %{}} <- foo, do: result", "with {:ok, %{} = result} <- foo, do: result")
+      assert_style("for map = %{} <- maps, do: map[:key]", "for %{} = map <- maps, do: map[:key]")
+    end
+
     test "case statements" do
       assert_style(
         """

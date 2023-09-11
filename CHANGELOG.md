@@ -2,6 +2,11 @@
 
 ## main
 
+### Improvements
+
+* Added right-hand-pattern-matching rewrites to `for` and `with` left arrow expressions `<-`
+  (ex: `with map = %{} <- foo()` => `with %{} = map <- foo`)
+
 ## v0.8.5
 
 ### Fixes

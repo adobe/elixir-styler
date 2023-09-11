@@ -181,19 +181,16 @@ defmodule Styler.Style.SingleNode do
   end
 
   # ARROW REWRITES
-  # `foo = :foo` => `:foo = foo` within `case`, `fn`, `with`
-  # there's complexity to `:->` due to `cond` also utilizing the symbol but with different semantics
-  # `with` elses
-  defp style({{:__block__, em, [:else]}, arrows}), do: {{:__block__, em, [:else]}, rewrite_arrows(arrows)}
-  defp style({:case, cm, [head, [{do_block, arrows}]]}), do: {:case, cm, [head, [{do_block, rewrite_arrows(arrows)}]]}
-  defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
-  # `with` head - if only we could write something this trivial for `->`!
+  # `with`, `for` left arrow - if only we could write something this trivial for `->`!
   defp style({:<-, cm, [lhs, rhs]}), do: {:<-, cm, [put_matches_on_right(lhs), rhs]}
+  # there's complexity to `:->` due to `cond` also utilizing the symbol but with different semantics.
+  # thus, we have to have a clause for each place that `:->` can show up
+  # `with` elses
+  defp style({{:__block__, _, [:else]} = else_, arrows}), do: {else_, rewrite_arrows(arrows)}
+  defp style({:case, cm, [head, [{do_, arrows}]]}), do: {:case, cm, [head, [{do_, rewrite_arrows(arrows)}]]}
+  defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
 
   defp style(node), do: node
-
-  defp left_arrow?({:<-, _, _}), do: true
-  defp left_arrow?(_), do: false
 
   defp rewrite_arrows(arrows) when is_list(arrows),
     do: Enum.map(arrows, fn {:->, m, [lhs, rhs]} -> {:->, m, [put_matches_on_right(lhs), rhs]} end)
@@ -214,6 +211,9 @@ defmodule Styler.Style.SingleNode do
     end)
     |> Zipper.node()
   end
+
+  defp left_arrow?({:<-, _, _}), do: true
+  defp left_arrow?(_), do: false
 
   # don't write an else clause if it's `false -> nil`
   defp if_ast(head, do_body, {:__block__, _, [nil]}), do: {:if, [do: []], [head, [{{:__block__, [], [:do]}, do_body}]]}
