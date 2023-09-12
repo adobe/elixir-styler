@@ -17,14 +17,7 @@ def deps do
 end
 ```
 
-## Usage
-
-We recommend using `Styler` as a formatter plugin, but it comes with a task for making it easy to try styling smaller
-portions of your project or for installing without modifying your dependencies (via mix's archive.install feature)
-
-### As a Formatter plugin
-
-Add `Styler` as a plugin to your `.formatter.exs` file
+Then add `Styler` as a plugin to your `.formatter.exs` file
 
 ```elixir
 [
@@ -34,41 +27,29 @@ Add `Styler` as a plugin to your `.formatter.exs` file
 
 And that's it! Now when you run `mix format` you'll also get the benefits of Styler's *definitely-always-right* style fixes.
 
-### As a Mix Task
-
-```bash
-$ mix style
-```
-
-The task can helpful for slowly converting a codebase directory-by-directory. It also allows you to use `mix archive.install`
-to easily test run `Styler` on a project without modifying its dependencies:
-
-```bash
-$ mix archive.install hex styler
-```
-
-`mix style` is designed to take the same basic options as `mix format`.
-
-See `mix help style` for more.
-
 ### Configuration
 
 There isn't any! This is intentional.
 
-Styler's @adobe's internal Style Guide Enforcer - allowing exceptions to the styles goes against that ethos. Happily, it's open source and thus yours to do with as you will =)
+Styler is @adobe's internal Style Guide Enforcer - allowing exceptions to the styles goes against that ethos. Happily, it's open source and thus yours to do with as you will =)
 
-## Styles
+## Features (or as we call them, "Styles")
 
-You can find the currently-enabled styles in the `Styler` module, inside of its `@styles` module attribute. Each Style's moduledoc will tell you more about what it rewrites.
+At this point, Styler does a lot. We've catalogued a list of Credo rules that it automatically fixes, but it does some things -
+like shrinking function heads down to a single line when possible - that Credo doesn't care about.
+
+Ultimately, the best way to see what Styler does is to just try it out! What could go wrong? (You're using version control, right?)
 
 ### Credo Rules Styler Replaces
 
 If you're using Credo and Styler, **we recommend disabling these rules in `.credo.exs`** to save on unnecessary checks in CI.
 
+Some of the rules have `priority: :high`, meaning Credo runs them unless you explicitly disable them (removing them from your file isn't enough).
+
 | `Credo` credo | notes |
 |---------------|-------|
 | `Credo.Check.Consistency.MultiAliasImportRequireUse` | always expands `A.{B, C}` |
-| `Credo.Check.Consistency.ParameterPatternMatching` | also case statements, anon functions |
+| `Credo.Check.Consistency.ParameterPatternMatching` | including `case`, `fn` and `with` statements |
 | `Credo.Check.Readability.AliasOrder` | |
 | `Credo.Check.Readability.BlockPipe` | |
 | `Credo.Check.Readability.LargeNumbers` | goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000` |
@@ -79,7 +60,7 @@ If you're using Credo and Styler, **we recommend disabling these rules in `.cred
 | `Credo.Check.Readability.PipeIntoAnonymousFunctions` | |
 | `Credo.Check.Readability.PreferImplicitTry` | |
 | `Credo.Check.Readability.SinglePipe` | |
-| `Credo.Check.Readability.StrictModuleLayout` | **potentially breaks compilation** (see notes above) |
+| `Credo.Check.Readability.StrictModuleLayout` | **potentially breaks compilation** - see **Troubleshooting** section below |
 | `Credo.Check.Readability.UnnecessaryAliasExpansion` | |
 | `Credo.Check.Readability.WithSingleClause` | |
 | `Credo.Check.Refactor.CaseTrivialMatches` | |
@@ -96,8 +77,6 @@ If you're using Credo and Styler, **we recommend disabling these rules in `.cred
 **Speed**: Expect the first run to take some time as `Styler` rewrites violations of styles.
 
 Once styled the first time, future styling formats shouldn't take noticeably more time.
-
-Roughly, `Styler` puts about a 10% slow down on `mix format`.
 
 ### Troubleshooting: Compilation broke due to Module Directive rearrangement
 
