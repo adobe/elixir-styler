@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.9.0
+
 ### Improvements
 
 * Added right-hand-pattern-matching rewrites to `for` and `with` left arrow expressions `<-`
