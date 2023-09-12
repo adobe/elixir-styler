@@ -159,7 +159,6 @@ defmodule Styler.Style.PipesTest do
         """
         cond do
           x -> :ok
-          true -> :error
         end
         |> bar()
         |> baz()
@@ -168,7 +167,6 @@ defmodule Styler.Style.PipesTest do
         cond_result =
           cond do
             x -> :ok
-            true -> :error
           end
 
         cond_result

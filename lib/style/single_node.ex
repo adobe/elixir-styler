@@ -20,6 +20,7 @@ defmodule Styler.Style.SingleNode do
   * Credo.Check.Readability.PreferImplicitTry
   * Credo.Check.Readability.WithSingleClause
   * Credo.Check.Refactor.CaseTrivialMatches
+  * Credo.Check.Refactor.CondStatements
   * Credo.Check.Refactor.RedundantWithClauseResult
   * Credo.Check.Refactor.WithClauses
   """
@@ -143,6 +144,13 @@ defmodule Styler.Style.SingleNode do
 
   defp style(trivial_case(head, {:__block__, _, [true]}, do_body, {:_, _, _}, else_body)),
     do: if_ast(head, do_body, else_body)
+
+  # `Credo.Check.Refactor.CondStatements`
+  # This also detects strings and lists...
+  defp style({:cond, _, [[{_, [{:->, _, [[expr], do_body]}, {:->, _, [[{:__block__, _, [truthy]}], else_body]}]}]]})
+       when is_atom(truthy) and truthy not in [nil, false] do
+    if_ast(expr, do_body, else_body)
+  end
 
   # Credo.Check.Readability.WithSingleClause
   # rewrite `with success <- single_statement do body else ...elses end`

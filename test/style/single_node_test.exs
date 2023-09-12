@@ -481,4 +481,42 @@ defmodule Styler.Style.SingleNodeTest do
       """)
     end
   end
+
+  test "Credo.Check.Refactor.CondStatements" do
+    for truthy <- ~w(true :atom :else) do
+      assert_style(
+        """
+        cond do
+          a -> b
+          #{truthy} -> c
+        end
+        """,
+        """
+        if a do
+          b
+        else
+          c
+        end
+        """
+      )
+    end
+
+    for falsey <- ~w(false nil) do
+      assert_style("""
+      cond do
+        a -> b
+        #{falsey} -> c
+      end
+      """)
+    end
+
+    for ignored <- ["x == y", "foo", "foo()", "foo(b)", "Module.foo(x)", ~s("else"), "%{}", "{}"] do
+      assert_style("""
+      cond do
+        a -> b
+        #{ignored} -> c
+      end
+      """)
+    end
+  end
 end

@@ -2,6 +2,10 @@
 
 ## main
 
+### Improvements
+
+* auto-fix `Credo.Check.Refactor.CondStatements`, detects any truthy atom, not just `true`
+
 ## v0.9.0
 
 ### Improvements
