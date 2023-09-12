@@ -68,8 +68,11 @@ Some of the rules have `priority: :high`, meaning Credo runs them unless you exp
 | `Credo.Check.Refactor.FilterCount` | in pipes only |
 | `Credo.Check.Refactor.MapInto` | in pipes only |
 | `Credo.Check.Refactor.MapJoin` | in pipes only |
+| `Credo.Check.Refactor.NegatedConditionsInUnless` | |
+| `Credo.Check.Refactor.NegatedConditionsWithElse` | |
 | `Credo.Check.Refactor.PipeChainStart` | allows ecto's `from`|
 | `Credo.Check.Refactor.RedundantWithClauseResult` | |
+| `Credo.Check.Refactor.UnlessWithElse` | |
 | `Credo.Check.Refactor.WithClauses` | |
 
 ## Your first Styling

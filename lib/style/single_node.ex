@@ -212,6 +212,23 @@ defmodule Styler.Style.SingleNode do
   defp style({:case, cm, [head, [{do_, arrows}]]}), do: {:case, cm, [head, [{do_, rewrite_arrows(arrows)}]]}
   defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
 
+  # Credo.Check.Refactor.UnlessWithElse
+  # if adding a negation to the if is incorrect, we'll remove it on the recurse =)
+  defp style({:unless, m, [{_, hm, _} = head, [{do_block, do_body}, {else_block, else_body}]]}) do
+    style({:if, m, [{:!, hm, [head]}, [{do_block, else_body}, {else_block, do_body}]]})
+  end
+
+  # Credo.Check.Refactor.NegatedConditionsInUnless
+  defp style({:unless, m, [{negator, _, [expr]}, [{do_block, do_body}]]}) when negator in [:!, :not] do
+    style({:if, m, [expr, [{do_block, do_body}]]})
+  end
+
+  # Credo.Check.Refactor.NegatedConditionsWithElse
+  defp style({:if, m, [{negator, _, [expr]}, [{do_block, do_body}, {else_block, else_body}]]})
+       when negator in [:!, :not] do
+    style({:if, m, [expr, [{do_block, else_body}, {else_block, do_body}]]})
+  end
+
   defp style(node), do: node
 
   defp rewrite_arrows(arrows) when is_list(arrows),

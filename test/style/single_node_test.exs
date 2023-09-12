@@ -519,4 +519,129 @@ defmodule Styler.Style.SingleNodeTest do
       """)
     end
   end
+
+  describe "if/else" do
+    test "Credo.Check.Refactor.UnlessWithElse" do
+      for negator <- ["!", "not "] do
+        assert_style(
+          """
+          unless #{negator} a do
+            b
+          else
+            c
+          end
+          """,
+          """
+          if a do
+            c
+          else
+            b
+          end
+          """
+        )
+      end
+
+      assert_style(
+        """
+        unless a do
+          b
+        else
+          c
+        end
+        """,
+        """
+        if a do
+          b
+        else
+          c
+        end
+        """
+      )
+    end
+
+    test "Credo.Check.Refactor.NegatedConditionsInUnless" do
+      for negator <- ["!", "not "] do
+        assert_style("unless #{negator} foo, do: :bar", "if foo, do: :bar")
+
+        assert_style(
+          """
+          unless #{negator} foo do
+            bar
+          end
+          """,
+          """
+          if foo do
+            bar
+          end
+          """
+        )
+      end
+    end
+
+    test "Credo.Check.Refactor.NegatedConditionsWithElse" do
+      for negator <- ["!", "not "] do
+        assert_style("if #{negator}foo, do: :bar")
+        assert_style("if #{negator}foo, do: :bar, else: :baz", "if foo, do: :baz, else: :bar")
+
+        assert_style("""
+        if #{negator}foo do
+          bar
+        end
+        """)
+
+        assert_style(
+          """
+          if #{negator}foo do
+            bar
+          else
+            baz
+          end
+          """,
+          """
+          if foo do
+            baz
+          else
+            bar
+          end
+          """
+        )
+      end
+    end
+
+    test "recurses" do
+      assert_style(
+        """
+        if !!val do
+          a
+        else
+          b
+        end
+        """,
+        """
+        if val do
+          a
+        else
+          b
+        end
+        """
+      )
+
+      assert_style(
+        """
+        unless !! not true do
+          a
+        else
+          b
+        end
+        """,
+        """
+        if true do
+          b
+        else
+          a
+        end
+        """
+      )
+    end
+  end
 end

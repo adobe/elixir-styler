@@ -5,6 +5,10 @@
 ### Improvements
 
 * auto-fix `Credo.Check.Refactor.CondStatements`, detects any truthy atom, not just `true`
+* if/unless rewrites:
+  - `Credo.Check.Refactor.NegatedConditionsWithElse`
+  - `Credo.Check.Refactor.NegatedConditionsInUnless`
+  - `Credo.Check.Refactor.UnlessWithElse`
 
 ## v0.9.0
 
