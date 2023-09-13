@@ -44,36 +44,58 @@ Ultimately, the best way to see what Styler does is to just try it out! What cou
 
 If you're using Credo and Styler, **we recommend disabling these rules in `.credo.exs`** to save on unnecessary checks in CI.
 
-Some of the rules have `priority: :high`, meaning Credo runs them unless you explicitly disable them (removing them from your file isn't enough).
+Disabling the rules means updating your `.credo.exs` depending on your configuration:
 
-| `Credo` credo | notes |
-|---------------|-------|
-| `Credo.Check.Consistency.MultiAliasImportRequireUse` | always expands `A.{B, C}` |
-| `Credo.Check.Consistency.ParameterPatternMatching` | including `case`, `fn` and `with` statements |
-| `Credo.Check.Readability.AliasOrder` | |
-| `Credo.Check.Readability.BlockPipe` | |
-| `Credo.Check.Readability.LargeNumbers` | goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000` |
-| `Credo.Check.Readability.ModuleDoc` | adds `@moduledoc false` |
-| `Credo.Check.Readability.MultiAlias` | |
-| `Credo.Check.Readability.OneArityFunctionInPipe` | |
-| `Credo.Check.Readability.ParenthesesOnZeroArityDefs` | removes parens |
-| `Credo.Check.Readability.PipeIntoAnonymousFunctions` | |
-| `Credo.Check.Readability.PreferImplicitTry` | |
-| `Credo.Check.Readability.SinglePipe` | |
-| `Credo.Check.Readability.StrictModuleLayout` | **potentially breaks compilation** - see **Troubleshooting** section below |
-| `Credo.Check.Readability.UnnecessaryAliasExpansion` | |
-| `Credo.Check.Readability.WithSingleClause` | |
-| `Credo.Check.Refactor.CaseTrivialMatches` | |
-| `Credo.Check.Refactor.CondStatements` | |
-| `Credo.Check.Refactor.FilterCount` | in pipes only |
-| `Credo.Check.Refactor.MapInto` | in pipes only |
-| `Credo.Check.Refactor.MapJoin` | in pipes only |
-| `Credo.Check.Refactor.NegatedConditionsInUnless` | |
-| `Credo.Check.Refactor.NegatedConditionsWithElse` | |
-| `Credo.Check.Refactor.PipeChainStart` | allows ecto's `from`|
-| `Credo.Check.Refactor.RedundantWithClauseResult` | |
-| `Credo.Check.Refactor.UnlessWithElse` | |
-| `Credo.Check.Refactor.WithClauses` | |
+- if you're using `checks: %{enabled: [...]}`, ensure none of the checks are listed in your enabled checks
+- if you're using `checks: %{disabled: [...]}`, copy/paste the snippet below into the list
+- if you're using `checks: [...]`, copy/paste the snippet below into the list and ensure none of the checks appear earlier in the list
+
+```elixir
+# Styler Rewrites
+#
+# The following rules are automatically rewritten by Styler and so disabled here to save time
+# Some of the rules have `priority: :high`, meaning Credo runs them unless we explicitly disable them
+# (removing them from this file wouldn't be enough, the `false` is required)
+#
+# Some rules have a comment before them explaining ways Styler deviates from the Credo rule.
+#
+# always expands `A.{B, C}`
+{Credo.Check.Consistency.MultiAliasImportRequireUse, false},
+# including `case`, `fn` and `with` statements
+{Credo.Check.Consistency.ParameterPatternMatching, false},
+{Credo.Check.Readability.AliasOrder, false},
+{Credo.Check.Readability.BlockPipe, false},
+# goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000`
+{Credo.Check.Readability.LargeNumbers, false},
+# adds `@moduledoc false`
+{Credo.Check.Readability.ModuleDoc, false},
+{Credo.Check.Readability.MultiAlias, false},
+{Credo.Check.Readability.OneArityFunctionInPipe, false},
+# removes parens
+{Credo.Check.Readability.ParenthesesOnZeroArityDefs, false},
+{Credo.Check.Readability.PipeIntoAnonymousFunctions, false},
+{Credo.Check.Readability.PreferImplicitTry, false},
+{Credo.Check.Readability.SinglePipe, false},
+# **potentially breaks compilation** - see **Troubleshooting** section below
+{Credo.Check.Readability.StrictModuleLayout, false},
+{Credo.Check.Readability.UnnecessaryAliasExpansion, false},
+{Credo.Check.Readability.WithSingleClause, false},
+{Credo.Check.Refactor.CaseTrivialMatches, false},
+{Credo.Check.Refactor.CondStatements, false},
+# in pipes only
+{Credo.Check.Refactor.FilterCount, false},
+# in pipes only
+{Credo.Check.Refactor.MapInto, false},
+# in pipes only
+{Credo.Check.Refactor.MapJoin, false},
+{Credo.Check.Refactor.NegatedConditionsInUnless, false},
+{Credo.Check.Refactor.NegatedConditionsWithElse, false},
+# allows ecto's `from
+{Credo.Check.Refactor.PipeChainStart, false},
+{Credo.Check.Refactor.RedundantWithClauseResult, false},
+{Credo.Check.Refactor.UnlessWithElse, false},
+{Credo.Check.Refactor.WithClauses, false},
+ ```
 
 ## Your first Styling
 
