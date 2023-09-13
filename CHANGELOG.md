@@ -2,9 +2,11 @@
 
 ## main
 
+## v0.9.1
+
 ### Improvements
 
-* auto-fix `Credo.Check.Refactor.CondStatements`, detects any truthy atom, not just `true`
+* auto-fix `Credo.Check.Refactor.CondStatements` (detects any truthy atom, not just `true`)
 * if/unless rewrites:
   - `Credo.Check.Refactor.NegatedConditionsWithElse`
   - `Credo.Check.Refactor.NegatedConditionsInUnless`
