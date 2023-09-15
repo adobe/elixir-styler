@@ -2,6 +2,13 @@
 
 ## main
 
+## v0.9.3
+
+### Fixes
+
+* fix `unless a do b else c end` rewrites to `if` not flopping do/else bodies! (#77, h/t @jcowgar)
+* fix pipes styling ranges with steps (`a..b//c`) incorrectly (#76, h/t @cschmatzler)
+
 ## v0.9.2
 
 ### Fixes
