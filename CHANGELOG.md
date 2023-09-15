@@ -6,9 +6,11 @@
 
 ### Fixes
 
-* fix exception formatting `@def` module attributes (#75 h/t @randycoulman)
+* fix exception styling module attributes named `@def` (we confused them with real `def`s, whoops!) (#75, h/t @randycoulman)
 
 ## v0.9.1
+
+the boolean blocks edition!
 
 ### Improvements
 
@@ -19,6 +21,8 @@
   - `Credo.Check.Refactor.UnlessWithElse`
 
 ## v0.9.0
+
+the with statement edition!
 
 ### Improvements
 
