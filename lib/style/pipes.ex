@@ -201,7 +201,7 @@ defmodule Styler.Style.Pipes do
 
   defp fix_pipe(node), do: node
 
-  # most of these values were lifted directly from credoa's pipe_chain_start.ex
+  # most of these values were lifted directly from credo's pipe_chain_start.ex
   @literal ~w(__block__ __aliases__ unquote)a
   @value_constructors ~w(% %{} .. ..// <<>> @ {} ^ & fn from)a
   @infix_ops ~w(++ -- && || in - * + / > < <= >= == and or != !== ===)a
