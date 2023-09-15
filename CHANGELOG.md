@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.9.2
+
 ### Fixes
 
 * fix exception formatting `@def` module attributes (#75 h/t @randycoulman)
