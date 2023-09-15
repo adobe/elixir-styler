@@ -214,5 +214,9 @@ defmodule Styler.Style.DefsTest do
       end
       """)
     end
+
+    test "regression: @def module attribute" do
+      assert_style("@def ~s(this should be okay)")
+    end
   end
 end

@@ -38,6 +38,11 @@ defmodule Styler.Style.Defs do
   alias Styler.Style
   alias Styler.Zipper
 
+  # Optimization / regression
+  # it's non-trivial distinguishing `@def "foo"` from `def foo(...)` once you're deeper than the `@`,
+  # so we're catching it here and skipping all module attribute nodes - shouldn't be defs inside them anyways
+  def run({{:@, _, _}, _} = zipper, ctx), do: {:skip, zipper, ctx}
+
   # a def with no body like
   #
   #  def example(foo, bar \\ nil)
