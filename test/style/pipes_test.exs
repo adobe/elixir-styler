@@ -350,6 +350,12 @@ defmodule Styler.Style.PipesTest do
 
       assert_style("^foo |> Ecto.Query.bar() |> Ecto.Query.baz()")
     end
+
+    test "ranges" do
+      assert_style("start..stop//step |> foo()", "foo(start..stop//step)")
+      assert_style("start..stop//step |> foo() |> bar()")
+      assert_style("foo(start..stop//step) |> bar()", "start..stop//step |> foo() |> bar()")
+    end
   end
 
   describe "simple rewrites" do
