@@ -214,8 +214,8 @@ defmodule Styler.Style.SingleNode do
 
   # IF / UNLESS & NEGATION REWRITES
   # Credo.Check.Refactor.UnlessWithElse
-  defp style({:unless, m, [{_, hm, _} = head, [{do_, do_body}, {else_, else_body}]]}),
-    do: style({:if, m, [{:!, hm, [head]}, [{do_, else_body}, {else_, do_body}]]})
+  defp style({:unless, m, [{_, hm, _} = head, [_, _] = do_else]}),
+    do: style({:if, m, [{:!, hm, [head]}, do_else]})
 
   # Credo.Check.Refactor.NegatedConditionsInUnless
   defp style({:unless, m, [{negator, _, [expr]}, [{do_, do_body}]]}) when negator in [:!, :not],

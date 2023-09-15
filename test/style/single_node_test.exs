@@ -533,9 +533,9 @@ defmodule Styler.Style.SingleNodeTest do
           """,
           """
           if a do
-            c
-          else
             b
+          else
+            c
           end
           """
         )
@@ -551,9 +551,9 @@ defmodule Styler.Style.SingleNodeTest do
         """,
         """
         if a do
-          b
-        else
           c
+        else
+          b
         end
         """
       )
@@ -636,9 +636,9 @@ defmodule Styler.Style.SingleNodeTest do
         """,
         """
         if true do
-          b
-        else
           a
+        else
+          b
         end
         """
       )
