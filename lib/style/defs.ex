@@ -63,45 +63,24 @@ defmodule Styler.Style.Defs do
   end
 
   # all the other kinds of defs!
+  # @TODO all paths here skip, which means that `def a .. quote do def b ...` won't style `def b`
   def run({{def, def_meta, [head, body]}, _} = zipper, ctx) when def in [:def, :defp] do
-    {def_line, do_line, end_line} =
-      if def_meta[:do] do
-        # This is a def with a do block, like
-        #
-        #  def example(foo, bar \\ nil) do
-        #    :ok
-        #  end
-        #
-        def_line = def_meta[:line]
-        do_line = def_meta[:do][:line]
-        end_line = def_meta[:end][:line]
-        {def_line, do_line, end_line}
-      else
-        # This is a def with a keyword do, like
-        #
-        #  def example(foo, bar \\ nil), do: :ok
-        #
-        [{{:__block__, do_meta, [:do]}, {_, body_meta, _}}] = body
-        def_line = def_meta[:line]
-        do_line = do_meta[:line]
-        end_line = body_meta[:closing][:line] || do_meta[:line]
-        {def_line, do_line, end_line}
-      end
+    def_line = def_meta[:line]
 
-    delta = def_line - do_line
-    move_up = &(&1 + delta)
-    set_to_def_line = fn _ -> def_line end
+    if do_meta = def_meta[:do] do
+      # This is a def with a do end block
+      end_line = def_meta[:end][:line]
 
-    cond do
-      def_line == end_line ->
-        # Already collapsed
+      if def_line == end_line do
         {:skip, zipper, ctx}
+      else
+        do_line = do_meta[:line]
+        delta = def_line - do_line
+        move_up = &(&1 + delta)
 
-      def_meta[:do] ->
-        # We're working on a def do ... end
         def_meta =
           def_meta
-          |> Keyword.replace_lazy(:do, &Keyword.update!(&1, :line, set_to_def_line))
+          |> Keyword.replace_lazy(:do, &Keyword.update!(&1, :line, fn _ -> def_line end))
           |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, move_up))
 
         head = Style.set_line(head, def_line)
@@ -113,16 +92,20 @@ defmodule Styler.Style.Defs do
           |> Style.displace_comments(def_line..do_line)
           |> Style.shift_comments(do_line..end_line, delta)
 
-        # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
         {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
+      end
+    else
+      # This is a def with a keyword do
+      [{{:__block__, do_meta, [:do]}, {_, body_meta, _}}] = body
+      end_line = body_meta[:closing][:line] || do_meta[:line]
 
-      true ->
-        # We're working on a Keyword def do:
+      if def_line == end_line do
+        {:skip, zipper, ctx}
+      else
         node = Style.set_line({def, def_meta, [head, body]}, def_line)
         comments = Style.displace_comments(ctx.comments, def_line..end_line)
-
-        # @TODO this skips checking the body, which can be incorrect if therey's a `quote do def do ...` inside of it
         {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
+      end
     end
   end
 
