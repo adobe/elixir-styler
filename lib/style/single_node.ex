@@ -136,13 +136,13 @@ defmodule Styler.Style.SingleNode do
   defp style({:++, _, [{{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, r_meta, [lhs]}, rhs]}),
     do: {reverse, r_meta, [lhs, rhs]}
 
-  defp style(trivial_case(head, {:__block__, _, [true]}, do_body, {:__block__, _, [false]}, else_body)),
+  defp style(trivial_case(head, {_, _, [true]}, do_body, {_, _, [false]}, else_body)),
     do: if_ast(head, do_body, else_body)
 
-  defp style(trivial_case(head, {:__block__, _, [false]}, else_body, {:__block__, _, [true]}, do_body)),
+  defp style(trivial_case(head, {_, _, [false]}, else_body, {_, _, [true]}, do_body)),
     do: if_ast(head, do_body, else_body)
 
-  defp style(trivial_case(head, {:__block__, _, [true]}, do_body, {:_, _, _}, else_body)),
+  defp style(trivial_case(head, {_, _, [true]}, do_body, {:_, _, _}, else_body)),
     do: if_ast(head, do_body, else_body)
 
   # `Credo.Check.Refactor.CondStatements`
@@ -212,7 +212,7 @@ defmodule Styler.Style.SingleNode do
   defp style({:case, cm, [head, [{do_, arrows}]]}), do: {:case, cm, [head, [{do_, rewrite_arrows(arrows)}]]}
   defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
 
-  # IF / UNLESS & NEGATION REWRITES
+  # IF / UNLESS REWRITES
   # Credo.Check.Refactor.UnlessWithElse
   defp style({:unless, m, [{_, hm, _} = head, [_, _] = do_else]}), do: style({:if, m, [{:!, hm, [head]}, do_else]})
 
@@ -223,6 +223,8 @@ defmodule Styler.Style.SingleNode do
   # Credo.Check.Refactor.NegatedConditionsWithElse
   defp style({:if, m, [{negator, _, [expr]}, [{do_, do_body}, {else_, else_body}]]}) when negator in [:!, :not],
     do: style({:if, m, [expr, [{do_, else_body}, {else_, do_body}]]})
+
+  defp style({:if, m, [head, [do_block, {_, {:__block__, _, [nil]}}]]}), do: {:if, m, [head, [do_block]]}
 
   defp style(node), do: node
 
@@ -254,11 +256,13 @@ defmodule Styler.Style.SingleNode do
     Style.update_all_meta(a, fn _ -> nil end) == Style.update_all_meta(b, fn _ -> nil end)
   end
 
-  # don't write an else clause if it's `false -> nil`
-  defp if_ast(head, do_body, {:__block__, _, [nil]}), do: {:if, [do: []], [head, [{{:__block__, [], [:do]}, do_body}]]}
-
-  defp if_ast(head, do_body, else_body),
-    do: {:if, [do: [], end: []], [head, [{{:__block__, [], [:do]}, do_body}, {{:__block__, [], [:else]}, else_body}]]}
+  defp if_ast(head, do_body, else_body) do
+    {_, meta, _} = head
+    line = meta[:line]
+    # @TODO figure out appropriate line meta for `else` and `if->end->line`
+    children = [head, [{{:__block__, [line: line], [:do]}, do_body}, {{:__block__, [], [:else]}, else_body}]]
+    style({:if, [line: line, do: [line: line], end: []], children})
+  end
 
   defp delimit(token), do: token |> String.to_charlist() |> remove_underscores([]) |> add_underscores([])
 

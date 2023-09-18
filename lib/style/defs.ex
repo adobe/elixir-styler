@@ -80,8 +80,8 @@ defmodule Styler.Style.Defs do
 
         def_meta =
           def_meta
-          |> Keyword.replace_lazy(:do, &Keyword.update!(&1, :line, fn _ -> def_line end))
-          |> Keyword.replace_lazy(:end, &Keyword.update!(&1, :line, move_up))
+          |> put_in([:do, :line], def_line)
+          |> update_in([:end, :line], move_up)
 
         head = Style.set_line(head, def_line)
         body = Style.update_all_meta(body, shift_lines(move_up))

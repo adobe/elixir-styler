@@ -521,6 +521,16 @@ defmodule Styler.Style.SingleNodeTest do
   end
 
   describe "if/else" do
+    test "drops if else nil" do
+      assert_style("if a, do: b, else: nil", "if a, do: b")
+
+      assert_style("if a do b else nil end", """
+      if a do
+        b
+      end
+      """)
+    end
+
     test "Credo.Check.Refactor.UnlessWithElse" do
       for negator <- ["!", "not "] do
         assert_style(

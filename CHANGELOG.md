@@ -2,6 +2,10 @@
 
 ## main
 
+### Improvements
+
+* `if` statements: drop `else` clauses whose body is simply `nil`
+
 ## v0.9.3
 
 ### Fixes
