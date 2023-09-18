@@ -136,20 +136,15 @@ defmodule Styler.Style.SingleNode do
   defp style({:++, _, [{{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, r_meta, [lhs]}, rhs]}),
     do: {reverse, r_meta, [lhs, rhs]}
 
-  defp style(trivial_case(head, {_, _, [true]}, do_body, {_, _, [false]}, else_body)),
-    do: if_ast(head, do_body, else_body)
-
-  defp style(trivial_case(head, {_, _, [false]}, else_body, {_, _, [true]}, do_body)),
-    do: if_ast(head, do_body, else_body)
-
-  defp style(trivial_case(head, {_, _, [true]}, do_body, {:_, _, _}, else_body)),
-    do: if_ast(head, do_body, else_body)
+  defp style(trivial_case(head, {_, _, [true]}, do_, {_, _, [false]}, else_)), do: styled_if(head, do_, else_)
+  defp style(trivial_case(head, {_, _, [false]}, else_, {_, _, [true]}, do_)), do: styled_if(head, do_, else_)
+  defp style(trivial_case(head, {_, _, [true]}, do_, {:_, _, _}, else_)), do: styled_if(head, do_, else_)
 
   # `Credo.Check.Refactor.CondStatements`
   # This also detects strings and lists...
   defp style({:cond, _, [[{_, [{:->, _, [[expr], do_body]}, {:->, _, [[{:__block__, _, [truthy]}], else_body]}]}]]})
        when is_atom(truthy) and truthy not in [nil, false] do
-    if_ast(expr, do_body, else_body)
+    styled_if(expr, do_body, else_body)
   end
 
   # Credo.Check.Readability.WithSingleClause
@@ -256,7 +251,7 @@ defmodule Styler.Style.SingleNode do
     Style.update_all_meta(a, fn _ -> nil end) == Style.update_all_meta(b, fn _ -> nil end)
   end
 
-  defp if_ast(head, do_body, else_body) do
+  defp styled_if(head, do_body, else_body) do
     {_, meta, _} = head
     line = meta[:line]
     # @TODO figure out appropriate line meta for `else` and `if->end->line`
