@@ -91,29 +91,30 @@ defmodule Styler.Style.SingleNode do
     {:__block__, meta, [number]}
   end
 
+  ## DEPRECATED & INEFFICIENT FUNCTION REWRITES
+  # Keep in mind when rewriting a `/n::pos_integer` arity function here that it should also be added
+  # to the pipes rewriting rules, where it will appear as `/n-1`
+
+  # Enum.into(enum, empty_map[, ...]) => Map.new(enum[, ...])
   defp style({{:., dm, [{:__aliases__, am, [:Enum]}, :into]}, funm, [enum, collectable | rest]} = node) do
     if Style.empty_map?(collectable), do: {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, funm, [enum | rest]}, else: node
   end
 
-  # Logger.warn -> Logger.warning
+  # Logger.warn => Logger.warning
   defp style({{:., dm, [{:__aliases__, am, [:Logger]}, :warn]}, funm, args}),
     do: {{:., dm, [{:__aliases__, am, [:Logger]}, :warning]}, funm, args}
-
-  # Timex.today() => DateTime.utc_today()
-  defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :today]}, funm, []}),
-    do: {{:., dm, [{:__aliases__, am, [:Date]}, :utc_today]}, funm, []}
 
   # Timex.now() => DateTime.utc_now()
   defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, []}),
     do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :utc_now]}, funm, []}
 
-  # Timex.now("Europe/London") => DateTime.now!()
+  # Timex.now(tz) => DateTime.now!(tz)
   defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, [tz]}),
     do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :now!]}, funm, [tz]}
 
   if Version.match?(System.version(), ">= 1.15.0-dev") do
-    # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :lt -> {DateTime,NaiveDateTime,Time,Date}.before?(a, b)
-    # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :gt -> {DateTime,NaiveDateTime,Time,Date}.after?(a, b)
+    # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :lt => {DateTime,NaiveDateTime,Time,Date}.before?(a, b)
+    # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :gt => {DateTime,NaiveDateTime,Time,Date}.after?(a, b)
     defp style({:==, _, [{{:., dm, [{:__aliases__, am, [mod]}, :compare]}, funm, args}, {:__block__, _, [result]}]})
          when mod in ~w[DateTime NaiveDateTime Time Date]a and result in [:lt, :gt] do
       fun = if result == :lt, do: :before?, else: :after?

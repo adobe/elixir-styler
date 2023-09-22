@@ -136,10 +136,13 @@ defmodule Styler.Style.Pipes do
   # a |> fun => a |> fun()
   defp fix_pipe({:|>, m, [lhs, {fun, m2, nil}]}), do: {:|>, m, [lhs, {fun, m2, []}]}
   # rewrite anonymous function invocation to use `then/2`
-  # `a |> (& &1).() |> c` => `a |> then(& &1) |> c()`
-  # `a |> (fn x -> x end).() |> c` => `a |> then(fn x -> x end) |> c()`
+  # `a |> (& &1).() |> c()` => `a |> then(& &1) |> c()`
   defp fix_pipe({:|>, m, [lhs, {{:., m2, [{anon_fun, _, _}] = fun}, _, []}]}) when anon_fun in [:&, :fn],
     do: {:|>, m, [lhs, {:then, m2, fun}]}
+
+  # `|> Timex.now()` => `|> DateTime.now!()`
+  defp fix_pipe({:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, []}]}),
+    do: {:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:DateTime]}, :now!]}, funm, []}]}
 
   # `lhs |> Enum.reverse() |> Enum.concat(enum)` => `lhs |> Enum.reverse(enum)`
   defp fix_pipe(

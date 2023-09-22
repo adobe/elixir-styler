@@ -2,6 +2,14 @@
 
 ## main
 
+### Fixes
+
+* fix mistaking `Timex.now/1` in a pipe for `Timex.now/0` (#66, h/t @sabiwara)
+
+### Removed style
+
+* stop rewriting `Timex.today/0` given that we allow `Timex.today/1` -- too inconsistent.
+
 ## v0.9.4
 
 ### Improvements
