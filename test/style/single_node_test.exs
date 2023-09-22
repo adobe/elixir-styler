@@ -30,19 +30,20 @@ defmodule Styler.Style.SingleNodeTest do
     test "Timex.now/1 => DateTime.now!/1" do
       assert_style("Timex.now(tz)", "DateTime.now!(tz)")
 
-      assert_style("""
-      timezone
-      |> Timex.now()
-      |> foo()
-      """,
-      """
-      timezone
-      |> DateTime.now!()
-      |> foo()
-      """)
+      assert_style(
+        """
+        timezone
+        |> Timex.now()
+        |> foo()
+        """,
+        """
+        timezone
+        |> DateTime.now!()
+        |> foo()
+        """
+      )
     end
   end
-
 
   if Version.match?(System.version(), ">= 1.15.0-dev") do
     test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.before?" do

@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.9.5
+
 ### Fixes
 
 * fix mistaking `Timex.now/1` in a pipe for `Timex.now/0` (#66, h/t @sabiwara)
