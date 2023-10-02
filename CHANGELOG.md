@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.9.6
+
 ### Breaking Change
 
 * removed `mix style` task
