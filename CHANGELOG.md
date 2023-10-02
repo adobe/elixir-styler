@@ -2,6 +2,10 @@
 
 ## main
 
+### Breaking Change
+
+* removed `mix style` task
+
 ## v0.9.5
 
 ### Fixes
