@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.9.7
+
 ### Fixes
 
 * rewrite pipes starting with `quote` blocks like we do with `case|if|cond|with` blocks (#82, h/t @SteffenDE)
