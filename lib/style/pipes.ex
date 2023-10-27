@@ -29,7 +29,7 @@ defmodule Styler.Style.Pipes do
   alias Styler.Style
   alias Styler.Zipper
 
-  @blocks ~w(case if with cond for unless)a
+  @blocks ~w(case if with cond for unless quote)a
 
   def run({{:|>, _, _}, _} = zipper, ctx) do
     case fix_pipe_start(zipper) do

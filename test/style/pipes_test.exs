@@ -241,6 +241,28 @@ defmodule Styler.Style.PipesTest do
         """
       )
     end
+
+    test "rewrites quote" do
+      assert_style(
+        """
+        quote do
+          foo
+        end
+        |> bar()
+        |> baz()
+        """,
+        """
+        quote_result =
+          quote do
+            foo
+          end
+
+        quote_result
+        |> bar()
+        |> baz()
+        """
+      )
+    end
   end
 
   describe "single pipe issues" do
