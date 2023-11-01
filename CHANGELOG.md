@@ -2,9 +2,11 @@
 
 ## main
 
+## v0.10.0
+
 ### Improvements
 
-* extract all block starts to pipes
+* hoist all block-starts to pipes to their own variables (makes styler play better with piped macros)
 
 ### Fixes
 
