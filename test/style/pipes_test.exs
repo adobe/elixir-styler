@@ -12,6 +12,42 @@ defmodule Styler.Style.PipesTest do
   use Styler.StyleCase, async: true
 
   describe "big picture" do
+    test "macros with single do block argument" do
+      assert_style("""
+      IO.puts(
+        foo do
+          "foo"
+        end
+      )
+      """)
+
+      assert_style(
+        """
+        foo do
+          "foo"
+        end
+        |> IO.puts()
+        """,
+        """
+        IO.puts(
+          foo do
+            "foo"
+          end
+        )
+        """
+      )
+    end
+
+    test "macro with arg and do block" do
+      assert_style("""
+      "baz"
+      |> foo do
+        "foo"
+      end
+      |> IO.puts()
+      """)
+    end
+
     test "doesn't modify valid pipe" do
       assert_style("""
       a()
