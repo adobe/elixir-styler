@@ -2,6 +2,14 @@
 
 ## main
 
+### Improvements
+
+* extract all block starts to pipes
+
+### Fixes
+
+* fix pipes starting with a macro do-block creating invalid ast (#83, h/t @mhanberg)
+
 ## v0.9.7
 
 ### Fixes

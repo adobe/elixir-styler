@@ -29,8 +29,6 @@ defmodule Styler.Style.Pipes do
   alias Styler.Style
   alias Styler.Zipper
 
-  @blocks ~w(case if with cond for unless quote)a
-
   def run({{:|>, _, _}, _} = zipper, ctx) do
     case fix_pipe_start(zipper) do
       {{:|>, _, _}, _} = zipper ->
@@ -90,41 +88,43 @@ defmodule Styler.Style.Pipes do
     end)
   end
 
-  # `block do ... end |> ...`
-  # =======================>
-  # block_result =
-  #   block do
-  #     ...
-  #   end
-  #
-  # block_result
-  # |> ...
-  defp extract_start({block, meta, _} = lhs) when block in @blocks do
-    meta = [line: meta[:line]]
-    variable = {:"#{block}_result", meta, nil}
-    new_assignment = {:=, meta, [variable, lhs]}
-    {variable, new_assignment}
-  end
-
-  # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
-  defp extract_start({fun, meta, [arg | args]}) do
+  defp extract_start({fun, meta, [arg | args]} = lhs) do
     line = meta[:line]
 
-    # If the first arg is a syntax-sugared kwl, we need to manually desugar it to cover all scenarios
-    arg =
-      case arg do
-        [{{:__block__, bm, _}, {:__block__, _, _}} | _] ->
-          if bm[:format] == :keyword do
-            {:__block__, [line: line, closing: [line: line]], [arg]}
-          else
+    # is it a do-block macro style invocation?
+    # if so, store the block result in a var and start the pipe w/ that
+    if Enum.any?([arg | args], &match?([{{:__block__, _, [:do]}, _} | _], &1)) do
+      # `block [foo] do ... end |> ...`
+      # =======================>
+      # block_result =
+      #   block [foo] do
+      #     ...
+      #   end
+      #
+      # block_result
+      # |> ...
+      variable = {:"#{fun}_result", [line: line], nil}
+      new_assignment = {:=, [line: line], [variable, lhs]}
+      {variable, new_assignment}
+    else
+      # looks like it's just a normal function, so lift the first arg up into a new pipe
+      # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
+      arg =
+        case arg do
+          # If the first arg is a syntax-sugared kwl, we need to manually desugar it to cover all scenarios
+          [{{:__block__, bm, _}, {:__block__, _, _}} | _] ->
+            if bm[:format] == :keyword do
+              {:__block__, [line: line, closing: [line: line]], [arg]}
+            else
+              arg
+            end
+
+          arg ->
             arg
-          end
+        end
 
-        arg ->
-          arg
-      end
-
-    {{:|>, [line: line], [arg, {fun, meta, args}]}, nil}
+      {{:|>, [line: line], [arg, {fun, meta, args}]}, nil}
+    end
   end
 
   # `pipe_chain(a, b, c)` generates the ast for `a |> b |> c`
@@ -225,8 +225,6 @@ defmodule Styler.Style.Pipes do
   defp valid_pipe_start?({{:., _, _}, _, _}), do: false
   # variable
   defp valid_pipe_start?({variable, _, nil}) when is_atom(variable), do: true
-  # macro with single block argument
-  defp valid_pipe_start?({fun, _, [[{{:__block__, _, [:do]}, _}]]}) when is_atom(fun) and fun not in @blocks, do: true
   # 0-arity function_call()
   defp valid_pipe_start?({fun, _, []}) when is_atom(fun), do: true
   # function_call(with, args) or sigils. sigils are allowed, function w/ args is not

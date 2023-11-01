@@ -12,42 +12,6 @@ defmodule Styler.Style.PipesTest do
   use Styler.StyleCase, async: true
 
   describe "big picture" do
-    test "macros with single do block argument" do
-      assert_style("""
-      IO.puts(
-        foo do
-          "foo"
-        end
-      )
-      """)
-
-      assert_style(
-        """
-        foo do
-          "foo"
-        end
-        |> IO.puts()
-        """,
-        """
-        IO.puts(
-          foo do
-            "foo"
-          end
-        )
-        """
-      )
-    end
-
-    test "macro with arg and do block" do
-      assert_style("""
-      "baz"
-      |> foo do
-        "foo"
-      end
-      |> IO.puts()
-      """)
-    end
-
     test "doesn't modify valid pipe" do
       assert_style("""
       a()
@@ -113,6 +77,64 @@ defmodule Styler.Style.PipesTest do
   end
 
   describe "block pipe starts" do
+    test "handles arbitrary do-block macros" do
+      assert_style("""
+      IO.puts(
+        foo meow do
+          :foo
+        end
+      )
+      """)
+
+      assert_style(
+        """
+        foo do
+          "foo"
+        end
+        |> IO.puts()
+        """,
+        """
+        foo_result =
+          foo do
+            "foo"
+          end
+
+        IO.puts(foo_result)
+        """
+      )
+
+      assert_style(
+        """
+        foo meow? do
+          :meow
+        else
+          :bark
+        end
+        |> IO.puts()
+        """,
+        """
+        foo_result =
+          foo meow? do
+            :meow
+          else
+            :bark
+          end
+
+        IO.puts(foo_result)
+        """
+      )
+    end
+
+    test "macro with arg and do block" do
+      assert_style("""
+      "baz"
+      |> foo do
+        "foo"
+      end
+      |> IO.puts()
+      """)
+    end
+
     test "variable assignment of a block" do
       assert_style(
         """
