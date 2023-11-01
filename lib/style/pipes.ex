@@ -225,6 +225,8 @@ defmodule Styler.Style.Pipes do
   defp valid_pipe_start?({{:., _, _}, _, _}), do: false
   # variable
   defp valid_pipe_start?({variable, _, nil}) when is_atom(variable), do: true
+  # macro with single block argument
+  defp valid_pipe_start?({fun, _, [[{{:__block__, _, [:do]}, {:__block__, [], []}}]]}) when is_atom(fun), do: true
   # 0-arity function_call()
   defp valid_pipe_start?({fun, _, []}) when is_atom(fun), do: true
   # function_call(with, args) or sigils. sigils are allowed, function w/ args is not
