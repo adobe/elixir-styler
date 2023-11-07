@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.10.1
+
+### Fixes
+
+* Fix function head shrink-failures causing comments to jump into blocks (Closes #67, h/t @APB9785)
+
 ## v0.10.0
 
 ### Improvements
