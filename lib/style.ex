@@ -42,6 +42,19 @@ defmodule Styler.Style do
     end)
   end
 
+  def shift_line(ast_node, delta) do
+    shift_line = &Keyword.replace_lazy(&1, :line, fn line -> line + delta end)
+
+    update_all_meta(ast_node, fn meta ->
+      meta
+      |> shift_line.()
+      |> Keyword.replace_lazy(:closing, shift_line)
+      |> Keyword.replace_lazy(:end_of_expression, shift_line)
+      |> Keyword.replace_lazy(:last, shift_line)
+      |> Keyword.replace_lazy(:end, shift_line)
+    end)
+  end
+
   @doc "Traverses an ast node, updating all nodes' meta with `meta_fun`"
   def update_all_meta(node, meta_fun) do
     node

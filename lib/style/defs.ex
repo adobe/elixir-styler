@@ -76,15 +76,14 @@ defmodule Styler.Style.Defs do
       else
         do_line = do_meta[:line]
         delta = def_line - do_line
-        move_up = &(&1 + delta)
 
         def_meta =
           def_meta
           |> put_in([:do, :line], def_line)
-          |> update_in([:end, :line], move_up)
+          |> update_in([:end, :line], &(&1 + delta))
 
         head = Style.set_line(head, def_line)
-        body = Style.update_all_meta(body, shift_lines(move_up))
+        body = Style.shift_line(body, delta)
         node = {def, def_meta, [head, body]}
 
         comments =
@@ -110,12 +109,4 @@ defmodule Styler.Style.Defs do
   end
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
-
-  defp shift_lines(line_mover) do
-    fn meta ->
-      meta
-      |> Keyword.replace_lazy(:line, line_mover)
-      |> Keyword.replace_lazy(:closing, &Keyword.replace_lazy(&1, :line, line_mover))
-    end
-  end
 end

@@ -12,6 +12,24 @@ defmodule Styler.Style.DefsTest do
   use Styler.StyleCase, async: true
 
   describe "run" do
+    test "comments stay put when we can't shrink the head, even with blocks" do
+      assert_style("""
+        def my_function(
+            so_long_that_this_head_will_not_fit_on_one_lineso_long_that_this_head_will_not_fit_on_one_line,
+            so_long_that_this_head_will_not_fit_on_one_line
+          ) do
+        result =
+          case foo do
+            :bar -> :baz
+            :baz -> :bong
+          end
+
+        # My comment
+        Context.process(result)
+      end
+      """)
+    end
+
     test "function with do keyword" do
       assert_style(
         """
