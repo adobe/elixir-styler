@@ -31,27 +31,28 @@ defmodule Styler.Style do
   """
   @callback run(Zipper.zipper(), context()) :: {Zipper.command(), Zipper.zipper(), context()}
 
-  @doc "Sets `:line`, `:closing`, and `:last` to all be on `line` and deletes `:newlines`"
-  def set_line(ast_node, line) do
-    update_all_meta(ast_node, fn meta ->
-      meta
-      |> Keyword.replace(:line, line)
-      |> Keyword.replace(:closing, line: line)
-      |> Keyword.replace(:last, line: line)
-      |> Keyword.delete(:newlines)
-    end)
+  @doc "Recursively sets `:line` meta to `line`. Deletes `:newlines` unless `delete_lines: false` is passed"
+  def set_line(ast_node, line, opts \\ []) do
+    set_line = fn _ -> line end
+
+    if Keyword.get(opts, :delete_newlines, true) do
+      update_all_meta(ast_node, &(&1 |> update_line(set_line) |> Keyword.delete(:newlines)))
+    else
+      update_all_meta(ast_node, &update_line(&1, set_line))
+    end
   end
 
+  @doc "Recursively updates `:line` meta by adding `delta`"
   def shift_line(ast_node, delta) do
-    shift_line = &Keyword.replace_lazy(&1, :line, fn line -> line + delta end)
+    shift_line = &(&1 + delta)
+    update_all_meta(ast_node, &update_line(&1, shift_line))
+  end
 
-    update_all_meta(ast_node, fn meta ->
-      meta
-      |> shift_line.()
-      |> Keyword.replace_lazy(:closing, shift_line)
-      |> Keyword.replace_lazy(:end_of_expression, shift_line)
-      |> Keyword.replace_lazy(:last, shift_line)
-      |> Keyword.replace_lazy(:end, shift_line)
+  defp update_line(meta, fun) do
+    Enum.map(meta, fn
+      {:line, line} -> {:line, fun.(line)}
+      {k, v} when is_list(v) -> {k, update_line(v, fun)}
+      kv -> kv
     end)
   end
 

@@ -236,14 +236,7 @@ defmodule Styler.Style.ModuleDirectives do
       # TODO: look into the comments list and
       # 1. move comment blocks preceding `this` up with it
       # 2. find the earliest comment before `next` and set `new_line` to that value - 1
-      new_line = next_line - 2
-
-      Style.update_all_meta(this, fn meta ->
-        meta
-        |> Keyword.replace(:line, new_line)
-        |> Keyword.replace(:closing, line: new_line)
-        |> Keyword.replace(:last, line: new_line)
-      end)
+      Style.set_line(this, next_line - 2, delete_newlines: false)
     else
       this
     end
