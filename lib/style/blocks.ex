@@ -80,23 +80,19 @@ defmodule Styler.Style.Blocks do
       [{:<-, _, [lhs, rhs]} = _final_clause | rest] = reversed_clauses
 
       # Credo.Check.Refactor.RedundantWithClauseResult
-      rewrite_body? = Enum.empty?(postroll) and Enum.empty?(elses) and nodes_equivalent?(lhs, do_body)
-
       {reversed_clauses, do_body} =
-        if rewrite_body? do
-          {rest, rhs}
-        else
-          body =
-            case Enum.reverse(postroll, [do_body]) do
-              [{:__block__, _, _} = block] ->
-                block
+        cond do
+          Enum.empty?(postroll) and Enum.empty?(elses) and nodes_equivalent?(lhs, do_body) ->
+            {rest, rhs}
 
-              body ->
-                {_, do_body_meta, _} = do_body
-                {:__block__, do_body_meta, body}
-            end
+          Enum.any?(postroll) ->
+            body = Enum.reverse(postroll, [do_body])
+            {_, do_body_meta, _} = do_body
+            new_do_body = {:__block__, do_body_meta, body}
+            {reversed_clauses, new_do_body}
 
-          {reversed_clauses, body}
+          true ->
+            {reversed_clauses, do_body}
         end
 
       # drop singleton identity else clauses like `else foo -> foo end`
@@ -108,18 +104,9 @@ defmodule Styler.Style.Blocks do
 
       children = Enum.reverse(reversed_clauses, [[{do_block, do_body} | new_elses]])
 
-      # only rewrite if it needs rewriting!
-      # can probably stop optimizing like this once we handle comments nicely
-      cond do
-        Enum.any?(preroll) ->
-          {:__block__, m, preroll ++ [{:with, m, children}]}
-
-        rewrite_body? or Enum.any?(postroll) or new_elses != elses ->
-          {:with, m, children}
-
-        true ->
-          with
-      end
+      if Enum.any?(preroll),
+        do: {:__block__, m, preroll ++ [{:with, m, children}]},
+        else: {:with, m, children}
     else
       # maybe this isn't a with statement - could be a function named `with`
       # or it's just a with statement with no arrows, but that's too saddening to imagine
