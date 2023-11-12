@@ -121,6 +121,7 @@ defmodule Styler.Style.BlocksTest do
       assert_style(
         """
         with :ok <- b(), :ok <- b() do
+          weeee()
           :ok
         else
           :what -> :what
@@ -128,6 +129,7 @@ defmodule Styler.Style.BlocksTest do
         """,
         """
         with :ok <- b(), :ok <- b() do
+          weeee()
           :ok
         end
         """

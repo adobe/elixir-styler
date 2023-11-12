@@ -81,12 +81,23 @@ defmodule Styler.Style.Blocks do
 
       # Credo.Check.Refactor.RedundantWithClauseResult
       rewrite_body? = Enum.empty?(postroll) and Enum.empty?(elses) and nodes_equivalent?(lhs, do_body)
-      {_, do_body_meta, _} = do_body
 
       {reversed_clauses, do_body} =
-        if rewrite_body?,
-          do: {rest, [rhs]},
-          else: {reversed_clauses, Enum.reverse(postroll, [do_body])}
+        if rewrite_body? do
+          {rest, rhs}
+        else
+          body =
+            case Enum.reverse(postroll, [do_body]) do
+              [{:__block__, _, _} = block] ->
+                block
+
+              body ->
+                {_, do_body_meta, _} = do_body
+                {:__block__, do_body_meta, body}
+            end
+
+          {reversed_clauses, body}
+        end
 
       # drop singleton identity else clauses like `else foo -> foo end`
       new_elses =
@@ -95,8 +106,7 @@ defmodule Styler.Style.Blocks do
           _ -> elses
         end
 
-      do_else = [{do_block, {:__block__, do_body_meta, do_body}} | new_elses]
-      children = Enum.reverse(reversed_clauses, [do_else])
+      children = Enum.reverse(reversed_clauses, [[{do_block, do_body} | new_elses]])
 
       # only rewrite if it needs rewriting!
       # can probably stop optimizing like this once we handle comments nicely
