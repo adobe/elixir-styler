@@ -88,15 +88,23 @@ defmodule Styler.Style.Blocks do
           do: {rest, [rhs]},
           else: {reversed_clauses, Enum.reverse(postroll, [do_body])}
 
-      do_else = [{do_block, {:__block__, do_body_meta, do_body}} | elses]
+      # drop singleton identity else clauses like `else foo -> foo end`
+      new_elses =
+        case elses do
+          [{{_, _, [:else]}, [{:->, _, [[left], right]}]}] -> if nodes_equivalent?(left, right), do: [], else: elses
+          _ -> elses
+        end
+
+      do_else = [{do_block, {:__block__, do_body_meta, do_body}} | new_elses]
       children = Enum.reverse(reversed_clauses, [do_else])
 
       # only rewrite if it needs rewriting!
+      # can probably stop optimizing like this once we handle comments nicely
       cond do
         Enum.any?(preroll) ->
           {:__block__, m, preroll ++ [{:with, m, children}]}
 
-        rewrite_body? or Enum.any?(postroll) ->
+        rewrite_body? or Enum.any?(postroll) or new_elses != elses ->
           {:with, m, children}
 
         true ->
