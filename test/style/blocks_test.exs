@@ -211,6 +211,8 @@ defmodule Styler.Style.BlocksTest do
         with {:ok, a} <- foo(),
              {:ok, b} <- bar(a) do
           {:ok, b}
+        else
+          error -> error
         end
         """,
         """

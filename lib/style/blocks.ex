@@ -79,30 +79,29 @@ defmodule Styler.Style.Blocks do
       {postroll, reversed_clauses} = Enum.split_while(reversed_clauses, &(not left_arrow?(&1)))
       [{:<-, _, [lhs, rhs]} = _final_clause | rest] = reversed_clauses
 
-      # Credo.Check.Refactor.RedundantWithClauseResult
-      {reversed_clauses, do_body} =
-        cond do
-          Enum.empty?(postroll) and Enum.empty?(elses) and nodes_equivalent?(lhs, do_body) ->
-            {rest, rhs}
-
-          Enum.any?(postroll) ->
-            body = Enum.reverse(postroll, [do_body])
-            {_, do_body_meta, _} = do_body
-            new_do_body = {:__block__, do_body_meta, body}
-            {reversed_clauses, new_do_body}
-
-          true ->
-            {reversed_clauses, do_body}
-        end
-
       # drop singleton identity else clauses like `else foo -> foo end`
-      new_elses =
+      elses =
         case elses do
           [{{_, _, [:else]}, [{:->, _, [[left], right]}]}] -> if nodes_equivalent?(left, right), do: [], else: elses
           _ -> elses
         end
 
-      children = Enum.reverse(reversed_clauses, [[{do_block, do_body} | new_elses]])
+      {reversed_clauses, do_body} =
+        cond do
+          # Credo.Check.Refactor.RedundantWithClauseResult
+          Enum.empty?(postroll) and Enum.empty?(elses) and nodes_equivalent?(lhs, do_body) ->
+            {rest, rhs}
+
+          Enum.any?(postroll) ->
+            {_, do_body_meta, _} = do_body
+            do_body = {:__block__, do_body_meta, Enum.reverse(postroll, [do_body])}
+            {reversed_clauses, do_body}
+
+          true ->
+            {reversed_clauses, do_body}
+        end
+
+      children = Enum.reverse(reversed_clauses, [[{do_block, do_body} | elses]])
 
       if Enum.any?(preroll),
         do: {:__block__, m, preroll ++ [{:with, m, children}]},
