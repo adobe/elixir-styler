@@ -88,15 +88,17 @@ defmodule Styler.Style.Blocks do
 
       {reversed_clauses, do_body} =
         cond do
-          # Credo.Check.Refactor.RedundantWithClauseResult
-          Enum.empty?(postroll) and Enum.empty?(elses) and nodes_equivalent?(lhs, do_body) ->
-            {rest, rhs}
-
+          # Put the postroll into the body
           Enum.any?(postroll) ->
             {_, do_body_meta, _} = do_body
             do_body = {:__block__, do_body_meta, Enum.reverse(postroll, [do_body])}
             {reversed_clauses, do_body}
 
+          # Credo.Check.Refactor.RedundantWithClauseResult
+          Enum.empty?(elses) and nodes_equivalent?(lhs, do_body) ->
+            {rest, rhs}
+
+          # no change
           true ->
             {reversed_clauses, do_body}
         end
