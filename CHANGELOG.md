@@ -2,6 +2,10 @@
 
 ## main
 
+### Improvements
+
+* `with`: remove identity singleton else clause (eg `else {:error, e} -> {:error, e} end`, `else error -> error end`
+
 ## v0.10.1
 
 ### Fixes
