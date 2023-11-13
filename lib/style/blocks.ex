@@ -79,29 +79,35 @@ defmodule Styler.Style.Blocks do
       {postroll, reversed_clauses} = Enum.split_while(reversed_clauses, &(not left_arrow?(&1)))
       [{:<-, _, [lhs, rhs]} = _final_clause | rest] = reversed_clauses
 
-      # Credo.Check.Refactor.RedundantWithClauseResult
-      rewrite_body? = Enum.empty?(postroll) and Enum.empty?(elses) and nodes_equivalent?(lhs, do_body)
-      {_, do_body_meta, _} = do_body
+      # drop singleton identity else clauses like `else foo -> foo end`
+      elses =
+        case elses do
+          [{{_, _, [:else]}, [{:->, _, [[left], right]}]}] -> if nodes_equivalent?(left, right), do: [], else: elses
+          _ -> elses
+        end
 
       {reversed_clauses, do_body} =
-        if rewrite_body?,
-          do: {rest, [rhs]},
-          else: {reversed_clauses, Enum.reverse(postroll, [do_body])}
+        cond do
+          # Put the postroll into the body
+          Enum.any?(postroll) ->
+            {_, do_body_meta, _} = do_body
+            do_body = {:__block__, do_body_meta, Enum.reverse(postroll, [do_body])}
+            {reversed_clauses, do_body}
 
-      do_else = [{do_block, {:__block__, do_body_meta, do_body}} | elses]
-      children = Enum.reverse(reversed_clauses, [do_else])
+          # Credo.Check.Refactor.RedundantWithClauseResult
+          Enum.empty?(elses) and nodes_equivalent?(lhs, do_body) ->
+            {rest, rhs}
 
-      # only rewrite if it needs rewriting!
-      cond do
-        Enum.any?(preroll) ->
-          {:__block__, m, preroll ++ [{:with, m, children}]}
+          # no change
+          true ->
+            {reversed_clauses, do_body}
+        end
 
-        rewrite_body? or Enum.any?(postroll) ->
-          {:with, m, children}
+      children = Enum.reverse(reversed_clauses, [[{do_block, do_body} | elses]])
 
-        true ->
-          with
-      end
+      if Enum.any?(preroll),
+        do: {:__block__, m, preroll ++ [{:with, m, children}]},
+        else: {:with, m, children}
     else
       # maybe this isn't a with statement - could be a function named `with`
       # or it's just a with statement with no arrows, but that's too saddening to imagine

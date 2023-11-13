@@ -117,6 +117,25 @@ defmodule Styler.Style.BlocksTest do
       """)
     end
 
+    test "removes identity else clauses" do
+      assert_style(
+        """
+        with :ok <- b(), :ok <- b() do
+          weeee()
+          :ok
+        else
+          :what -> :what
+        end
+        """,
+        """
+        with :ok <- b(), :ok <- b() do
+          weeee()
+          :ok
+        end
+        """
+      )
+    end
+
     test "Credo.Check.Readability.WithSingleClause" do
       assert_style(
         """
@@ -164,8 +183,6 @@ defmodule Styler.Style.BlocksTest do
           a = bop
           boop
           :horay!
-        else
-          :error -> :error
         end
         """
       )
@@ -183,8 +200,6 @@ defmodule Styler.Style.BlocksTest do
           a = bop
           boop
           :horay!
-        else
-          :error -> :error
         end
         """
       )
@@ -196,6 +211,8 @@ defmodule Styler.Style.BlocksTest do
         with {:ok, a} <- foo(),
              {:ok, b} <- bar(a) do
           {:ok, b}
+        else
+          error -> error
         end
         """,
         """
