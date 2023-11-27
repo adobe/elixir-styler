@@ -14,6 +14,7 @@ defmodule Styler.Style.SingleNodeTest do
   test "charlist literals: rewrites single quote charlists to ~c" do
     assert_style("'foo'", ~s|~c"foo"|)
     assert_style(~s|'"'|, ~s|~c"\\""|)
+    # elixir's formatter >= 1.15 does this for us.
     assert_style("''", ~s|~c""|)
   end
 
