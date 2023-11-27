@@ -2,6 +2,14 @@
 
 ## main
 
+### Improvements
+
+* charlists: leave charlist rewriting to elixir's formatter on elixir >= 1.15
+
+### Fixes
+
+* charlists: rewrite empty charlist to use sigil (`''` => `~c""`)
+
 ## v0.10.2
 
 ### Improvements
