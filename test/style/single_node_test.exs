@@ -11,11 +11,12 @@
 defmodule Styler.Style.SingleNodeTest do
   use Styler.StyleCase, async: true
 
-  test "charlist literals: rewrites single quote charlists to ~c" do
-    assert_style("'foo'", ~s|~c"foo"|)
-    assert_style(~s|'"'|, ~s|~c"\\""|)
-    # elixir's formatter >= 1.15 does this for us.
-    assert_style("''", ~s|~c""|)
+  if Version.match?(System.version(), "< 1.15.0-dev") do
+    test "charlist literals: rewrites single quote charlists to ~c" do
+      assert_style("'foo'", ~s|~c"foo"|)
+      assert_style(~s|'"'|, ~s|~c"\\""|)
+      assert_style("''", ~s|~c""|)
+    end
   end
 
   test "Logger.warn to Logger.warning" do
