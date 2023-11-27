@@ -32,15 +32,13 @@ defmodule Styler.Style.SingleNode do
 
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 
-  # Our use of the `literal_encoder` option of `Code.string_to_quoted_with_comments!/2` creates
-  # invalid charlists literal AST nodes from `'foo'`. this rewrites them to use the `~c` sigil
-  # 'foo' => ~c"foo".
-  defp style({:__block__, meta, [[int | _] = chars]} = node) when is_integer(int) do
-    if meta[:delimiter] == "'" do
-      new_meta = Keyword.put(meta, :delimiter, "\"")
-      {:sigil_c, new_meta, [{:<<>>, [line: meta[:line]], [List.to_string(chars)]}, []]}
-    else
-      node
+  # as of 1.15, elixir's formatter takes care of this for us.
+  if Version.match?(System.version(), "< 1.15.0-dev") do
+    # 'charlist' => ~c"charlist"
+    defp style({:__block__, meta, [chars]} = node) when is_list(chars) do
+      if meta[:delimiter] == "'",
+        do: {:sigil_c, Keyword.put(meta, :delimiter, "\""), [{:<<>>, [line: meta[:line]], [List.to_string(chars)]}, []]},
+        else: node
     end
   end
 
