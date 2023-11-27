@@ -14,6 +14,7 @@ defmodule Styler.Style.SingleNodeTest do
   test "charlist literals: rewrites single quote charlists to ~c" do
     assert_style("'foo'", ~s|~c"foo"|)
     assert_style(~s|'"'|, ~s|~c"\\""|)
+    assert_style("''", ~s|~c""|)
   end
 
   test "Logger.warn to Logger.warning" do
