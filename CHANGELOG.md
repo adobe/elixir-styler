@@ -2,6 +2,10 @@
 
 ## main
 
+### Improvements
+
+* alias: delete noop single-module aliases (`alias Foo`, #87, h/t @mgieger)
+
 ## v0.10.3
 
 ### Improvements
