@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.10.3
+
 ### Improvements
 
 * charlists: leave charlist rewriting to elixir's formatter on elixir >= 1.15
