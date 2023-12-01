@@ -293,4 +293,20 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style("Enum.reverse(foo, bar) ++ bar")
     end
   end
+
+  test "Delete root level alias" do
+    assert_style(
+      """
+      alias unquote(Foo)
+      alias Foo
+      alias Bar, as: Bop
+      alias __MODULE__
+      """,
+      """
+      alias __MODULE__
+      alias Bar, as: Bop
+      alias unquote(Foo)
+      """
+    )
+  end
 end
