@@ -125,6 +125,31 @@ defmodule Styler.Style.PipesTest do
       )
     end
 
+    test "block extraction: names aliased modules" do
+      assert_style(
+        """
+        Foo.bar do
+          :ok
+        end
+        |> case do
+          :ok -> :ok
+          _ -> :error
+        end
+        """,
+        """
+        bar_result =
+          Foo.bar do
+            :ok
+          end
+
+        case tx_result do
+          :ok -> :ok
+          _ -> :error
+        end
+        """
+      )
+    end
+
     test "macro with arg and do block" do
       assert_style("""
       "baz"

@@ -103,7 +103,14 @@ defmodule Styler.Style.Pipes do
       #
       # block_result
       # |> ...
-      variable = {:"#{fun}_result", [line: line], nil}
+      var_name =
+        case fun do
+          fun when is_atom(fun) -> fun
+          {:., _, [{:__aliases__, _, _}, fun]} when is_atom(fun) -> fun
+          _ -> "block"
+        end
+
+      variable = {:"#{var_name}_result", [line: line], nil}
       new_assignment = {:=, [line: line], [variable, lhs]}
       {variable, new_assignment}
     else

@@ -9,6 +9,7 @@
 ### Fixes
 
 * charlists: rewrite empty charlist to use sigil (`''` => `~c""`)
+* pipes: don't blow up extracting fully-qualified macros (`Foo.bar do end |> foo()`, #91, h/t @NikitaNaumenko)
 
 ## v0.10.2
 
