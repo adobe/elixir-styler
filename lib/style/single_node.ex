@@ -30,6 +30,10 @@ defmodule Styler.Style.SingleNode do
   alias Styler.Style
   alias Styler.Zipper
 
+  # Delete root level alias
+  # `alias Foo` -> ``
+  def run({{:alias, _, [{:__aliases__, _, [_]}]}, _} = zipper, ctx), do: {:cont, Zipper.remove(zipper), ctx}
+
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 
   # Our use of the `literal_encoder` option of `Code.string_to_quoted_with_comments!/2` creates
