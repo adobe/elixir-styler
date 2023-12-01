@@ -295,6 +295,8 @@ defmodule Styler.Style.SingleNodeTest do
   end
 
   test "Delete root level alias" do
+    assert_style("alias Foo", "")
+    
     assert_style(
       """
       alias unquote(Foo)

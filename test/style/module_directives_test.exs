@@ -58,7 +58,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         end
 
         defmodule Bar do
-          alias Bop
+          alias Bop.Bop
 
           :ok
         end
@@ -89,7 +89,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
 
         defmodule Bar do
           @moduledoc false
-          alias Bop
+          alias Bop.Bop
 
           :ok
         end
@@ -132,7 +132,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         defmodule Foo do
           @behaviour Lawful
           require A
-          alias A
+          alias A.A
 
           use B
 
@@ -142,25 +142,25 @@ defmodule Styler.Style.ModuleDirectivesTest do
           @behaviour Chaotic
           @doc "d doc"
           def d do
-            alias X
-            alias H
+            alias X.X
+            alias H.H
 
-            alias Z
+            alias Z.Z
             import Ecto.Query
             X.foo()
           end
           @shortdoc "it's pretty short"
           import A
-          alias C
-          alias D
+          alias C.C
+          alias D.D
 
           require C
           require B
 
           use A
 
-          alias C
-          alias A
+          alias C.C
+          alias A.A
 
           @moduledoc "README.md"
                      |> File.read!()
@@ -184,9 +184,9 @@ defmodule Styler.Style.ModuleDirectivesTest do
           import A
           import C
 
-          alias A
-          alias C
-          alias D
+          alias A.A
+          alias C.C
+          alias D.D
 
           require A
           require B
@@ -198,9 +198,9 @@ defmodule Styler.Style.ModuleDirectivesTest do
           def d do
             import Ecto.Query
 
-            alias H
-            alias X
-            alias Z
+            alias H.H
+            alias X.X
+            alias Z.Z
 
             X.foo()
           end
@@ -277,25 +277,25 @@ defmodule Styler.Style.ModuleDirectivesTest do
       for d <- ~w(alias require import) do
         assert_style(
           """
-          #{d} D
+          #{d} D.D
           #{d} A.{B}
           #{d} A.{
-            A,
+            A.A,
             B,
             C
           }
           #{d} A.B
 
-          #{d} B
-          #{d} A
+          #{d} B.B
+          #{d} A.A
           """,
           """
-          #{d} A
           #{d} A.A
+          #{d} A.A.A
           #{d} A.B
           #{d} A.C
-          #{d} B
-          #{d} D
+          #{d} B.B
+          #{d} D.D
           """
         )
       end
@@ -339,20 +339,20 @@ defmodule Styler.Style.ModuleDirectivesTest do
       assert_style(
         """
         @type foo :: :ok
-        alias D
+        alias D.D
         alias A.{B}
         require A.{
           A,
           C
         }
-        alias B
-        alias A
+        alias B.B
+        alias A.A
         """,
         """
-        alias A
+        alias A.A
         alias A.B
-        alias B
-        alias D
+        alias B.B
+        alias D.D
 
         require A.A
         require A.C
@@ -380,7 +380,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
           # mdf
           @moduledoc false
           # B
-          alias B
+          alias B.B
 
           # foo
           def foo do
@@ -388,19 +388,19 @@ defmodule Styler.Style.ModuleDirectivesTest do
             :ok
           end
           # C
-          alias C
+          alias C.C
           # A
-          alias A
+          alias A.A
         end
         """,
         """
         defmodule Foo do
           # mdf
           @moduledoc false
-          alias A
+          alias A.A
           # B
-          alias B
-          alias C
+          alias B.B
+          alias C.C
 
           # foo
           def foo do
