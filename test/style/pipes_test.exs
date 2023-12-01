@@ -142,7 +142,7 @@ defmodule Styler.Style.PipesTest do
             :ok
           end
 
-        case tx_result do
+        case bar_result do
           :ok -> :ok
           _ -> :error
         end
