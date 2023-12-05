@@ -76,7 +76,7 @@ defmodule Styler.Style.Pipes do
         |> Zipper.insert_left(new_assignment)
         |> Zipper.left()
       else
-        {pipe, zmeta}
+        fix_pipe_start({pipe, zmeta})
       end
     end
   end

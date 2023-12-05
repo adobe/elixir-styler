@@ -5,6 +5,7 @@
 ### Improvements
 
 * alias: delete noop single-module aliases (`alias Foo`, #87, h/t @mgieger)
+* pipes: recursively fix pipe starts (`f(g(h(x))) |> j()` => `x |> h() |> g() |> f() |> j()`, #94, h/t @tomjschuster)
 
 ## v0.10.3
 

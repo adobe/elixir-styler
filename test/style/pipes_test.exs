@@ -12,6 +12,10 @@ defmodule Styler.Style.PipesTest do
   use Styler.StyleCase, async: true
 
   describe "big picture" do
+    test "unnests multiple steps" do
+      assert_style("f(g(h(x))) |> j()", "x |> h() |> g() |> f() |> j()")
+    end
+
     test "doesn't modify valid pipe" do
       assert_style("""
       a()
