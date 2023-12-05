@@ -415,4 +415,38 @@ defmodule Styler.Style.ModuleDirectivesTest do
       )
     end
   end
+
+  test "Deletes root level alias" do
+    assert_style("alias Foo", "")
+
+    assert_style(
+      """
+      alias unquote(Foo)
+      alias Foo
+      alias Bar, as: Bop
+      alias __MODULE__
+      """,
+      """
+      alias __MODULE__
+      alias Bar, as: Bop
+      alias unquote(Foo)
+      """
+    )
+
+    assert_style(
+      """
+      alias A.A
+      alias B.B
+      alias C
+
+      require D
+      """,
+      """
+      alias A.A
+      alias B.B
+
+      require D
+      """
+    )
+  end
 end

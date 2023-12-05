@@ -151,10 +151,10 @@ defmodule Styler.Style.ModuleDirectives do
     behaviours = expand_and_sort(directives[:"@behaviour"] || [])
 
     uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> reset_newlines()
-
     imports = expand_and_sort(directives[:import] || [])
-    aliases = expand_and_sort(directives[:alias] || [])
     requires = expand_and_sort(directives[:require] || [])
+    original_aliases = directives[:alias] || []
+    aliases = expand_and_sort(directives[:alias] || [])
 
     directives =
       [
@@ -170,7 +170,8 @@ defmodule Styler.Style.ModuleDirectives do
       |> fix_line_numbers(List.first(nondirectives))
 
     cond do
-      Enum.empty?(directives) ->
+      # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
+      Enum.empty?(directives) and Enum.empty?(original_aliases) ->
         parent
 
       Enum.empty?(nondirectives) ->
@@ -253,10 +254,13 @@ defmodule Styler.Style.ModuleDirectives do
     |> reset_newlines()
   end
 
-  # alias Foo.{Bar, Baz}
+  # Deletes root level aliases ala (`alias Foo` -> ``)
+  defp expand_directive({:alias, _, [{:__aliases__, _, [_]}]}), do: []
+
+  # import Foo.{Bar, Baz}
   # =>
-  # alias Foo.Bar
-  # alias Foo.Baz
+  # import Foo.Bar
+  # import Foo.Baz
   defp expand_directive({directive, _, [{{:., _, [{:__aliases__, _, module}, :{}]}, _, right}]}),
     do: Enum.map(right, fn {_, meta, segments} -> {directive, meta, [{:__aliases__, [], module ++ segments}]} end)
 

@@ -30,10 +30,6 @@ defmodule Styler.Style.SingleNode do
   alias Styler.Style
   alias Styler.Zipper
 
-  # Delete root level alias
-  # `alias Foo` -> ``
-  def run({{:alias, _, [{:__aliases__, _, [_]}]}, _} = zipper, ctx), do: {:cont, Zipper.remove(zipper), ctx}
-
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 
   # as of 1.15, elixir's formatter takes care of this for us.

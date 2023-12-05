@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.10.5
+
+### Fixes
+
+* alias: fix single-module alias deletion newlines bug
+
 ## v0.10.4
 
 ### Improvements
