@@ -4,6 +4,11 @@
 
 ## v0.10.5
 
+After being bitten by two of them in a row, Styler's test suite now makes sure that there are no
+idempotency bugs as part of its tests.
+
+In short, we now have `assert style(x) == style(style(x))` as part of every test. Sorry for not thinking to include this before :)
+
 ### Fixes
 
 * alias: fix single-module alias deletion newlines bug
