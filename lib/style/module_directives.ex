@@ -153,8 +153,8 @@ defmodule Styler.Style.ModuleDirectives do
     uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> reset_newlines()
     imports = expand_and_sort(directives[:import] || [])
     requires = expand_and_sort(directives[:require] || [])
-    original_aliases = directives[:alias] || []
-    aliases = expand_and_sort(directives[:alias] || [])
+    all_aliases = directives[:alias] || []
+    aliases = expand_and_sort(all_aliases)
 
     directives =
       [
@@ -171,7 +171,7 @@ defmodule Styler.Style.ModuleDirectives do
 
     cond do
       # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
-      Enum.empty?(directives) and Enum.empty?(original_aliases) ->
+      Enum.empty?(directives) and Enum.empty?(all_aliases) ->
         parent
 
       Enum.empty?(nondirectives) ->
