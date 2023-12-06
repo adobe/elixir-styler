@@ -50,7 +50,7 @@ defmodule Styler.StyleCase do
 
       assert restyled == styled, """
       expected styling to be idempotent, but a second pass resulted in more changes.
-      
+
       first pass:
       ----
       #{styled}
