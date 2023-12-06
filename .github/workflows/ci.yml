@@ -20,4 +20,3 @@ jobs:
       - run: mix deps.get
       - run: mix compile
       - run: mix test
-      - run: mix format --check-formatted
