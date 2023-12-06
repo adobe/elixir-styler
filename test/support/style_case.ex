@@ -45,7 +45,22 @@ defmodule Styler.StyleCase do
         IO.puts("========================\n")
       end
 
-      assert styled == expected
+      assert expected == styled
+      {_, restyled, _} = style(styled)
+
+      assert restyled == styled, """
+      expected styling to be idempotent, but a second pass resulted in more changes.
+      
+      first pass:
+      ----
+      #{styled}
+      ----
+
+      second pass:
+      ----
+      #{restyled}
+      ----
+      """
     end
   end
 
