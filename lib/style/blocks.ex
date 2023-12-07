@@ -118,8 +118,7 @@ defmodule Styler.Style.Blocks do
   defp style({:if, m, [{negator, _, [expr]}, [{do_, do_body}, {else_, else_body}]]}) when negator in [:!, :not],
     do: style({:if, m, [expr, [{do_, else_body}, {else_, do_body}]]})
 
-  defp style({:if, m, [head, [do_block, {_, {:__block__, _, [nil]}}]]}),
-    do: {:if, m, [head, [do_block]]}
+  defp style({:if, m, [head, [do_block, {_, {:__block__, _, [nil]}}]]}), do: {:if, m, [head, [do_block]]}
 
   defp style(node), do: node
 
@@ -133,14 +132,13 @@ defmodule Styler.Style.Blocks do
 
   defp if_ast({_, meta, _} = head, do_body, else_body) do
     line = meta[:line]
-    # else body gets moved down by a line to give the new `else` keyword its own line
-    # else_body = Style.shift_line(else_body, 1)
     do_body = Macro.update_meta(do_body, &Keyword.delete(&1, :end_of_expression))
     else_body = Macro.update_meta(else_body, &Keyword.delete(&1, :end_of_expression))
 
     max_do_line = max_line(do_body)
     max_else_line = max_line(else_body)
 
+    #@TODO shift comments with Style.shift_line calls
     {do_block, else_block, end_line} =
       if max_do_line >= max_else_line do
         shift = max_else_line - line
@@ -151,10 +149,8 @@ defmodule Styler.Style.Blocks do
         else_block = {{:__block__, [line: max_else_line + 1], [:else]}, else_body}
         {do_block, else_block, max_do_line + 2}
       else
-
         do_block = {{:__block__, [line: line], [:do]}, do_body}
         # move everything down by 1 to put the `else` keyword on its own line
-        #@TODO shift comments w/ this
         else_block = Style.shift_line({{:__block__, [line: max_do_line], [:else]}, else_body}, 1)
         {do_block, else_block, max_else_line + 2}
       end
