@@ -9,7 +9,7 @@
 # governing permissions and limitations under the License.
 
 defmodule Styler.Style.BlocksTest do
-  use Styler.StyleCase, async: true
+  use Styler.StyleCase, strict: true, async: true
 
   describe "case to if" do
     test "rewrites case true false to if else" do
