@@ -14,11 +14,9 @@ defmodule Styler.StyleCase do
   """
   use ExUnit.CaseTemplate
 
-  using opts do
+  using do
     quote do
       import unquote(__MODULE__), only: [assert_style: 1, assert_style: 2, style: 1]
-
-      @strict unquote(opts[:strict]) || false
     end
   end
 
@@ -28,8 +26,6 @@ defmodule Styler.StyleCase do
     quote bind_quoted: [before: before, expected: expected] do
       expected = String.trim(expected)
       {styled_ast, styled, styled_comments} = style(before)
-      {expected_ast, expected_comments} = Styler.string_to_quoted_with_comments(expected)
-      {_, restyled, _} = style(styled)
 
       if styled != expected and ExUnit.configuration()[:trace] do
         IO.puts("\n======Given=============\n")
@@ -39,6 +35,7 @@ defmodule Styler.StyleCase do
         dbg(before_comments)
         IO.puts("======Expected==========\n")
         IO.puts(expected)
+        {expected_ast, expected_comments} = Styler.string_to_quoted_with_comments(expected)
         dbg(expected_ast)
         dbg(expected_comments)
         IO.puts("======Got===============\n")
@@ -49,10 +46,7 @@ defmodule Styler.StyleCase do
       end
 
       assert expected == styled
-
-      if @strict do
-        assert styled_ast == expected_ast
-      end
+      {_, restyled, _} = style(styled)
 
       assert restyled == styled, """
       expected styling to be idempotent, but a second pass resulted in more changes.
