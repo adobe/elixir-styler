@@ -42,7 +42,6 @@ defmodule Styler.Style.Blocks do
   end
 
   # `Credo.Check.Refactor.CondStatements`
-  # This also detects strings and lists...
   def run({{:cond, _, [[{_, [{:->, _, [[head], a]}, {:->, _, [[{:__block__, _, [truthy]}], b]}]}]]}, m}, ctx)
       when is_atom(truthy) and truthy not in [nil, false],
       do: if_ast(head, a, b, ctx, m)
@@ -161,12 +160,10 @@ defmodule Styler.Style.Blocks do
       else
         # much simpler case -- just scootch things in the else down by 1 for the `else` keyword.
         do_block = {{:__block__, [line: line], [:do]}, do_body}
-        comments = Style.shift_comments(comments, max_do_line..max_else_line, 1)
         else_block = Style.shift_line({{:__block__, [line: max_do_line], [:else]}, else_body}, 1)
-        {do_block, else_block, comments}
+        {do_block, else_block, Style.shift_comments(comments, max_do_line..max_else_line, 1)}
       end
 
-    # end line is max_line + 2 to accomodate `else` and `end` both having their own line
     if_ast = style({:if, [do: [line: line], end: [line: end_line], line: line], [head, [do_block, else_block]]})
     {:cont, {if_ast, zipper_meta}, %{ctx | comments: comments}}
   end
