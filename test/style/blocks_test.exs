@@ -57,26 +57,6 @@ defmodule Styler.Style.BlocksTest do
         """
         case foo do
           # a
-          false -> :error
-          # b
-          true -> :ok
-        end
-        """,
-        """
-        if foo do
-          # b
-          :ok
-        else
-          # a
-          :error
-        end
-        """
-      )
-
-      assert_style(
-        """
-        case foo do
-          # a
           true -> :ok
           # b
           false -> nil
@@ -86,8 +66,9 @@ defmodule Styler.Style.BlocksTest do
         if foo do
           # a
           :ok
-          # b
         end
+
+        # b
         """
       )
 
@@ -120,6 +101,138 @@ defmodule Styler.Style.BlocksTest do
         else
           Logger.warning("it's false")
           nil
+        end
+        """
+      )
+    end
+
+    test "block swapping comments" do
+      assert_style(
+        """
+        case foo do
+          false ->
+            # a
+            :error
+          true ->
+            # b
+            :ok
+        end
+        """,
+        """
+        if foo do
+          # b
+          :ok
+        else
+          # a
+          :error
+        end
+        """
+      )
+
+      assert_style(
+        """
+        case foo do
+          # a
+          false ->
+            :error
+          # b
+          true ->
+            :ok
+        end
+        """,
+        """
+        if foo do
+          # b
+          :ok
+        else
+          # a
+          :error
+        end
+        """
+      )
+
+      assert_style(
+        """
+        case foo do
+          # a
+          false -> :error
+          # b
+          true -> :ok
+        end
+        """,
+        """
+        if foo do
+          # b
+          :ok
+        else
+          # a
+          :error
+        end
+        """
+      )
+    end
+
+    test "complex comments" do
+      assert_style(
+        """
+        case foo do
+          false ->
+            #a
+            actual(code)
+
+            #b
+            if foo do
+              #c
+              doing_stuff()
+              #d
+            end
+
+            #e
+            :ok
+          true ->
+            #f
+            Logger.warning("it's false")
+
+            if 1 do
+              # g
+              :yay
+            else
+              # h
+              :ohno
+            end
+
+            # i
+            nil
+        end
+        """,
+        """
+        if foo do
+          # f
+          Logger.warning("it's false")
+
+          if 1 do
+            # g
+            :yay
+          else
+            # h
+            :ohno
+          end
+
+          # i
+          nil
+        else
+          # a
+          actual(code)
+
+          # b
+          if foo do
+            # c
+            doing_stuff()
+            # d
+          end
+
+          # e
+          :ok
         end
         """
       )

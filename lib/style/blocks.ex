@@ -32,11 +32,11 @@ defmodule Styler.Style.Blocks do
 
   # case statement with exactly 2 `->` cases
   # rewrite to `if` if it's any of 3 trivial cases
-  def run({{:case, _, [head, [{_, [{:->, _, [[lhs_a], a]}, {:->, _, [[lhs_b], b]}]}]]}, m} = zipper, ctx) do
+  def run({{:case, _, [head, [{_, [{:->, _, [[lhs_a], a]}, {:->, _, [[lhs_b], b]}]}]]}, zm} = zipper, ctx) do
     case {lhs_a, lhs_b} do
-      {{_, _, [true]}, {_, _, [false]}} -> if_ast(head, a, b, ctx, m)
-      {{_, _, [true]}, {:_, _, _}} -> if_ast(head, a, b, ctx, m)
-      {{_, _, [false]}, {_, _, [true]}} -> if_ast(head, b, a, ctx, m)
+      {{_, _, [true]}, {_, _, [false]}} -> if_ast(head, a, b, ctx, zm)
+      {{_, _, [true]}, {:_, _, _}} -> if_ast(head, a, b, ctx, zm)
+      {{_, _, [false]}, {_, _, [true]}} -> if_ast(head, b, a, ctx, zm)
       _ -> {:cont, zipper, ctx}
     end
   end
@@ -137,37 +137,33 @@ defmodule Styler.Style.Blocks do
 
     max_do_line = max_line(do_body)
     max_else_line = max_line(else_body)
+    end_line = max(max_do_line, max_else_line)
 
     # Change ast meta and comment lines to fit the `if` ast
-    #
-    # all +1s in the following code are to accomodate the `else` keyword adding a line to the code.
-    # +2s accomodates both the `else` keyword and the `end` keyword
-    {do_block, else_block, end_line, comments} =
+    {do_block, else_block, comments} =
       if max_do_line >= max_else_line do
         # we're swapping the ordering of two blocks of code
         # and so must swap the lines of the ast & comments to keep comments where they belong!
         # the math is: move B up by the length of A, and move A down by the length of B plus one (for the else keyword)
         else_size = max_else_line - line
-        do_size = max_do_line - max_else_line + 1
+        do_size = max_do_line - max_else_line
 
         shifts = [
-          # move comments in the `else_body`` down by the size of the `do_body`
+          # move comments in the `else_body` down by the size of the `do_body`
           {line..max_else_line, do_size},
           # move comments in `do_body` up by the size of the `else_body`
           {(max_else_line + 1)..max_do_line, -else_size}
         ]
 
-        comments = Style.shift_comments(comments, shifts)
-
         do_block = {{:__block__, [line: line], [:do]}, Style.shift_line(do_body, -else_size)}
-        else_block = {{:__block__, [line: max_else_line + 1], [:else]}, Style.shift_line(else_body, else_size + 1)}
-        {do_block, else_block, max_do_line + 2, comments}
+        else_block = {{:__block__, [line: max_else_line], [:else]}, Style.shift_line(else_body, else_size + 1)}
+        {do_block, else_block, Style.shift_comments(comments, shifts)}
       else
         # much simpler case -- just scootch things in the else down by 1 for the `else` keyword.
         do_block = {{:__block__, [line: line], [:do]}, do_body}
         comments = Style.shift_comments(comments, max_do_line..max_else_line, 1)
         else_block = Style.shift_line({{:__block__, [line: max_do_line], [:else]}, else_body}, 1)
-        {do_block, else_block, max_else_line + 2, comments}
+        {do_block, else_block, comments}
       end
 
     # end line is max_line + 2 to accomodate `else` and `end` both having their own line
