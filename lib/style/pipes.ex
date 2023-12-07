@@ -209,6 +209,16 @@ defmodule Styler.Style.Pipes do
       else: node
   end
 
+  for mod <- [:Map, :Keyword] do
+    # Map.merge(foo, %{one_key: :bar}) => Map.put(foo, :one_key, :bar)
+    defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [unquote(mod)]} = module, :merge]}, m, [{:%{}, _, [{key, value}]}]}]}),
+      do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
+
+    # Map.merge(foo, one_key: :bar) => Map.put(foo, :one_key, :bar)
+    defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [unquote(mod)]} = module, :merge]}, m, [[{key, value}]]}]}),
+      do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
+  end
+
   defp fix_pipe(node), do: node
 
   # most of these values were lifted directly from credo's pipe_chain_start.ex
