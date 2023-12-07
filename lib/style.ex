@@ -19,7 +19,7 @@ defmodule Styler.Style do
   alias Styler.Zipper
 
   @type context :: %{
-          comment: [map()],
+          comments: [map()],
           file: :stdin | String.t()
         }
 
@@ -112,13 +112,26 @@ defmodule Styler.Style do
   A positive delta will move the lines further down a file, while a negative delta will move them up.
   """
   def shift_comments(comments, range, delta) do
-    Enum.map(comments, fn comment ->
-      if comment.line in range do
+    shift_comments(comments, [{range, delta}])
+  end
+
+  @doc """
+  Perform a series of shifts in a single pass.
+
+  When shifting comments from block A to block B, naively using two passes of `shift_comments/3` would result
+  in all comments ending up in either region A or region B (because A would move to B, then all B back to A)
+  This function exists to make sure that a comment is only moved once during the swap.
+  """
+  def shift_comments(comments, shifts) do
+    comments
+    |> Enum.map(fn comment ->
+      if delta = Enum.find_value(shifts, fn {range, delta} -> comment.line in range && delta end) do
         %{comment | line: comment.line + delta}
       else
         comment
       end
     end)
+    |> Enum.sort_by(& &1.line)
   end
 
   @doc "Returns true if the ast represents an empty map"

@@ -9,21 +9,25 @@
 # governing permissions and limitations under the License.
 
 defmodule Styler.Style.BlocksTest do
-  use Styler.StyleCase, strict: true, async: true
+  use Styler.StyleCase, async: true
 
   describe "case to if" do
     test "rewrites case true false to if else" do
       assert_style(
         """
         case foo do
+          # a
           true -> :ok
+          # b
           false -> :error
         end
         """,
         """
         if foo do
+          # a
           :ok
         else
+          # b
           :error
         end
         """
@@ -32,14 +36,18 @@ defmodule Styler.Style.BlocksTest do
       assert_style(
         """
         case foo do
+          # a
           true -> :ok
+          # b
           _ -> :error
         end
         """,
         """
         if foo do
+          # a
           :ok
         else
+          # b
           :error
         end
         """
@@ -48,14 +56,18 @@ defmodule Styler.Style.BlocksTest do
       assert_style(
         """
         case foo do
+          # a
           false -> :error
+          # b
           true -> :ok
         end
         """,
         """
         if foo do
+          # b
           :ok
         else
+          # a
           :error
         end
         """
@@ -64,13 +76,17 @@ defmodule Styler.Style.BlocksTest do
       assert_style(
         """
         case foo do
+          # a
           true -> :ok
+          # b
           false -> nil
         end
         """,
         """
         if foo do
+          # a
           :ok
+          # b
         end
         """
       )
