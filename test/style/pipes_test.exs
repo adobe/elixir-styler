@@ -468,7 +468,7 @@ defmodule Styler.Style.PipesTest do
   end
 
   describe "simple rewrites" do
-    test "{Keyword/Map}.merge/2 of a single key => *.put/2" do
+    test "{Keyword/Map}.merge/2 of a single key => *.put/3" do
       for module <- ~w(Map Keyword) do
         assert_style "foo |> #{module}.merge(%{one_key: :bar}) |> bop()", "foo |> #{module}.put(:one_key, :bar) |> bop()"
       end

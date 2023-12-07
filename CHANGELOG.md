@@ -2,6 +2,10 @@
 
 ## main
 
+### Improvements
+
+* Rewrite `{Map|Keyword}.merge(single_key: value)` to use `put/3` instead
+
 ## v0.10.5
 
 After being bitten by two of them in a row, Styler's test suite now makes sure that there are no
