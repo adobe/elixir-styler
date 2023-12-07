@@ -210,11 +210,11 @@ defmodule Styler.Style.Pipes do
   end
 
   for mod <- [:Map, :Keyword] do
-    # Map.merge(foo, %{one_key: :bar}) => Map.put(foo, :one_key, :bar)
+    # lhs |> Map.merge(%{key: value}) => lhs |> Map.put(key, value)
     defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [unquote(mod)]} = module, :merge]}, m, [{:%{}, _, [{key, value}]}]}]}),
       do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
 
-    # Map.merge(foo, one_key: :bar) => Map.put(foo, :one_key, :bar)
+    # lhs |> Map.merge(key: value) => lhs |> Map.put(:key, value)
     defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [unquote(mod)]} = module, :merge]}, m, [[{key, value}]]}]}),
       do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
   end
