@@ -19,6 +19,17 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
+  test "{Map/Keyword}.merge with a single static key" do
+    for module <- ~w(Map Keyword) do
+      assert_style("#{module}.merge(foo, %{one_key: :bar})", "#{module}.put(foo, :one_key, :bar)")
+      assert_style("#{module}.merge(foo, one_key: :bar)", "#{module}.put(foo, :one_key, :bar)")
+      # # doesn't rewrite if there's a custom merge strategy
+      assert_style("#{module}.merge(foo, %{one_key: :bar}, custom_merge_strategy)")
+      # # doesn't rewrite if > 1 key
+      assert_style("#{module}.merge(foo, %{a: :b, c: :d})")
+    end
+  end
+
   test "Logger.warn to Logger.warning" do
     assert_style("Logger.warn(foo)", "Logger.warning(foo)")
     assert_style("Logger.warn(foo, bar)", "Logger.warning(foo, bar)")

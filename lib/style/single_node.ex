@@ -82,6 +82,16 @@ defmodule Styler.Style.SingleNode do
     if Style.empty_map?(collectable), do: {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, funm, [enum | rest]}, else: node
   end
 
+  for mod <- [:Map, :Keyword] do
+    # Map.merge(foo, %{one_key: :bar}) => Map.put(foo, :one_key, :bar)
+    defp style({{:., dm, [{_, _, [unquote(mod)]} = module, :merge]}, m, [lhs, {:%{}, _, [{key, value}]}]}),
+      do: {{:., dm, [module, :put]}, m, [lhs, key, value]}
+
+    # Map.merge(foo, one_key: :bar) => Map.put(foo, :one_key, :bar)
+    defp style({{:., dm, [{_, _, [unquote(mod)]} = module, :merge]}, m, [lhs, [{key, value}]]}),
+      do: {{:., dm, [module, :put]}, m, [lhs, key, value]}
+  end
+
   # Logger.warn => Logger.warning
   defp style({{:., dm, [{:__aliases__, am, [:Logger]}, :warn]}, funm, args}),
     do: {{:., dm, [{:__aliases__, am, [:Logger]}, :warning]}, funm, args}
