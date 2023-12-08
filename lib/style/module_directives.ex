@@ -71,6 +71,7 @@ defmodule Styler.Style.ModuleDirectives do
   @directives ~w(alias import require use)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a
 
+  # @TODO put line meta in moduledoc false usages
   @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
 
   def run({{:defmodule, _, children}, _} = zipper, ctx) do
@@ -262,11 +263,17 @@ defmodule Styler.Style.ModuleDirectives do
   # import Foo.Bar
   # import Foo.Baz
   defp expand_directive({directive, _, [{{:., _, [{:__aliases__, _, module}, :{}]}, _, right}]}),
-    do: Enum.map(right, fn {_, meta, segments} -> {directive, meta, [{:__aliases__, [], module ++ segments}]} end)
+    do:
+      Enum.map(right, fn {_, meta, segments} ->
+        {directive, meta, [{:__aliases__, [line: meta[:line]], module ++ segments}]}
+      end)
 
   # alias __MODULE__.{Bar, Baz}
   defp expand_directive({directive, _, [{{:., _, [{:__MODULE__, _, _} = module, :{}]}, _, right}]}),
-    do: Enum.map(right, fn {_, meta, segments} -> {directive, meta, [{:__aliases__, [], [module | segments]}]} end)
+    do:
+      Enum.map(right, fn {_, meta, segments} ->
+        {directive, meta, [{:__aliases__, [line: meta[:line]], [module | segments]}]}
+      end)
 
   defp expand_directive(other), do: [other]
 

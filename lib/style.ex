@@ -92,7 +92,11 @@ defmodule Styler.Style do
   end
 
   # give it a block parent, then step back to the child - we can insert next to it now that it's in a block
-  defp wrap_in_block(zipper), do: zipper |> Zipper.update(&{:__block__, [], [&1]}) |> Zipper.down()
+  defp wrap_in_block(zipper) do
+    zipper
+    |> Zipper.update(fn {_, meta, _} = node -> {:__block__, [line: meta[:line] || 99_999], [node]} end)
+    |> Zipper.down()
+  end
 
   @doc """
   Set the line of all comments with `line` in `range_start..range_end` to instead have line `range_start`
