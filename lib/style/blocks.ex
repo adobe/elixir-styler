@@ -90,8 +90,9 @@ defmodule Styler.Style.Blocks do
         cond do
           # Put the postroll into the body
           Enum.any?(postroll) ->
-            {:__block__, do_body_meta, do_children} = do_body
-            do_body = {:__block__, do_body_meta, Enum.reverse(postroll, do_children)}
+            {node, do_body_meta, do_children} = do_body
+            do_children = if node == :__block__, do: do_children, else: [do_body]
+            do_body = {:__block__, [line: do_body_meta[:line]], Enum.reverse(postroll, do_children)}
             {reversed_clauses, do_body}
 
           # Credo.Check.Refactor.RedundantWithClauseResult

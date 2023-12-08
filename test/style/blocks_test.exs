@@ -475,6 +475,23 @@ defmodule Styler.Style.BlocksTest do
       )
     end
 
+    test "regression: non-block bodies and postrolls" do
+      assert_style(
+        """
+        with {:ok, datetime, 0} <- DateTime.from_iso8601(dt),
+           shifted_datetime <- DateTime.shift_zone!(datetime, full_name) do
+          Calendar.strftime(shifted_datetime, "%Y/%m/%d - %I:%M %p")
+        end
+        """,
+        """
+        with {:ok, datetime, 0} <- DateTime.from_iso8601(dt) do
+          shifted_datetime = DateTime.shift_zone!(datetime, full_name)
+          Calendar.strftime(shifted_datetime, \"%Y/%m/%d - %I:%M %p\")
+        end
+        """
+      )
+    end
+
     test "moves non-arrow clauses from the beginning & end" do
       assert_style(
         """
