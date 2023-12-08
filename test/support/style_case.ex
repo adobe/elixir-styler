@@ -45,6 +45,16 @@ defmodule Styler.StyleCase do
         IO.puts("========================\n")
       end
 
+      styled_ast
+      |> Styler.Zipper.zip()
+      |> Styler.Zipper.traverse(fn {
+        {_, meta, _} = node, _} = zipper ->
+          assert meta[:line], "missing `:line` meta in \nnode:\n#{inspect node} \ntree:\n#{inspect styled_ast}"
+          zipper
+        zipper ->
+          zipper
+      end)
+
       assert expected == styled
       {_, restyled, _} = style(styled)
 
