@@ -6,6 +6,7 @@
 
 * `with`: rewrite trivial `lhs <- rhs` to `lhs = rhs` (#86)
 * `with`: rewrite with statements if statements when appropriate
+* `with`: switch keyword do to do block when adding clauses to the with body (`, do:` => `do end`)
 * Rewrite `{Map|Keyword}.merge(single_key: value)` to use `put/3` instead (#96)
 * Attempt to keep comments in logical places when rewriting trivial `case` and `cond` statments (#97)
 

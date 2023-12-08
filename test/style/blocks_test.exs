@@ -403,6 +403,44 @@ defmodule Styler.Style.BlocksTest do
       )
     end
 
+    test "switches keyword do to block do when adding postroll" do
+      assert_style(
+        """
+        with {:ok, _} <- foo(),
+             _ <- bar(),
+             do: :ok
+        """,
+        """
+        with {:ok, _} <- foo() do
+          bar()
+          :ok
+        end
+        """
+      )
+    end
+
+    test "regression: no weird parens" do
+      assert_style(
+        """
+        foo = bar()
+
+        with bop <- baz(),
+             {:ok, _} <- woo() do
+          :ok
+        end
+        """,
+        """
+        foo = bar()
+
+        bop = baz()
+
+        with {:ok, _} <- woo() do
+          :ok
+        end
+        """
+      )
+    end
+
     test "moves non-arrow clauses from the beginning & end" do
       assert_style(
         """

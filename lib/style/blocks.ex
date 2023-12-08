@@ -61,7 +61,7 @@ defmodule Styler.Style.Blocks do
   # Credo.Check.Refactor.WithClauses
   # Credo.Check.Refactor.RedundantWithClauseResult
   # @TODO shift comments https://github.com/adobe/elixir-styler/issues/99
-  def run({{:with, m, children}, zm} = zipper, ctx) when is_list(children) do
+  def run({{:with, with_meta, children}, _} = zipper, ctx) when is_list(children) do
     if Enum.any?(children, &left_arrow?/1) do
       {preroll, children} =
         children
@@ -103,16 +103,29 @@ defmodule Styler.Style.Blocks do
             {reversed_clauses, do_body}
         end
 
-      with = {:with, m, Enum.reverse(reversed_clauses, [[{do_block, do_body} | elses]])}
+      # disable keyword `, do:` since there will be multiple clauses
+      with_meta =
+        if Enum.any?(postroll),
+          do: Keyword.merge(with_meta, do: [line: with_meta[:line]], end: [line: max_line(children) + 1]),
+          else: with_meta
 
-      # in the case of preroll or postroll, we need to examine this node again to evaluate if further rewrites to
-      # a case or if statement are necessary. preroll will revisit the node as part of normal traversal since it's now
-      # a child of a block (which is where traversal continues from), but postroll needs the explicit recursion.
-      # if the # of clauses didn't change, then we don't need to recurse and can continue from here =)
+      zipper = Zipper.replace(zipper, {:with, with_meta, Enum.reverse(reversed_clauses, [[{do_block, do_body} | elses]])})
+
+      # if there was pre or postroll, the # of `<-` in the statement have changed and so it could be eligible for a `case`
+      # or even `if` rewrite -- so we recurse in both of those cases
       cond do
-        Enum.any?(preroll) -> {:cont, {{:__block__, m, preroll ++ [with]}, zm}, ctx}
-        Enum.any?(postroll) -> run({with, zm}, ctx)
-        true -> {:cont, {with, zm}, ctx}
+        Enum.any?(preroll) ->
+          # put the preroll before the with statement in either a block we create or the existing parent block
+          preroll
+          |> Enum.reduce(Style.ensure_block_parent(zipper), &Zipper.insert_left(&2, &1))
+          |> run(ctx)
+
+        Enum.any?(postroll) ->
+          run(zipper, ctx)
+
+        # if the # of clauses didn't change, then we don't need to recurse and can continue from here =)
+        true ->
+          {:cont, zipper, ctx}
       end
     else
       # maybe this isn't a with statement - could be a function named `with`
