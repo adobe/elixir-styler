@@ -439,6 +439,40 @@ defmodule Styler.Style.BlocksTest do
         end
         """
       )
+
+      assert_style(
+        """
+        with :ok <- foo,
+             bar <- bar() do
+          query =
+            bar
+            |> prepare_query()
+            |> select([rt], fragment("count(*)"))
+
+          if opts[:dry_run] do
+            {:ok, bar, query}
+          else
+            DB.Repo.one(query, timeout: bar["timeout"])
+          end
+        end
+        """,
+        """
+        with :ok <- foo do
+          bar = bar()
+
+          query =
+            bar
+            |> prepare_query()
+            |> select([rt], fragment(\"count(*)\"))
+
+          if opts[:dry_run] do
+            {:ok, bar, query}
+          else
+            DB.Repo.one(query, timeout: bar[\"timeout\"])
+          end
+        end
+        """
+      )
     end
 
     test "moves non-arrow clauses from the beginning & end" do
