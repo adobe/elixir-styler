@@ -46,22 +46,22 @@ defmodule Styler.Style.Blocks do
       when is_atom(truthy) and truthy not in [nil, false],
       do: if_ast(head, a, b, ctx, m)
 
-  # @TODO handle comments https://github.com/adobe/elixir-styler/issues/79
-  def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
-
   # Credo.Check.Readability.WithSingleClause
   # rewrite `with success <- single_statement do body else ...elses end`
   # to `case single_statement do success -> body; ...elses end`
-  defp style({:with, m, [{:<-, am, [success, single_statement]}, [body, elses]]}) do
+  # @TODO shift comments https://github.com/adobe/elixir-styler/issues/99
+  def run({{:with, m, [{:<-, am, [success, single_statement]}, [body, elses]]}, zm}, ctx) do
     {{:__block__, do_meta, [:do]}, body} = body
     {{:__block__, _else_meta, [:else]}, elses} = elses
     clauses = [{{:__block__, am, [:do]}, [{:->, do_meta, [[success], body]} | elses]}]
-    style({:case, m, [single_statement, clauses]})
+    # recurse in case this new case should be rewritten to a `if`, etc
+    run({{:case, m, [single_statement, clauses]}, zm}, ctx)
   end
 
   # Credo.Check.Refactor.WithClauses
   # Credo.Check.Refactor.RedundantWithClauseResult
-  defp style({:with, m, children} = with) when is_list(children) do
+  # @TODO shift comments https://github.com/adobe/elixir-styler/issues/99
+  def run({{:with, m, children}, zm} = zipper, ctx) when is_list(children) do
     if Enum.any?(children, &left_arrow?/1) do
       {preroll, children} =
         children
@@ -101,17 +101,26 @@ defmodule Styler.Style.Blocks do
             {reversed_clauses, do_body}
         end
 
-      children = Enum.reverse(reversed_clauses, [[{do_block, do_body} | elses]])
+      with = {:with, m, Enum.reverse(reversed_clauses, [[{do_block, do_body} | elses]])}
 
-      if Enum.any?(preroll),
-        do: {:__block__, m, preroll ++ [{:with, m, children}]},
-        else: {:with, m, children}
+      # in the case of preroll or postroll, we need to examine this node again to evaluate if further rewrites to
+      # a case or if statement are necessary. preroll will revisit the node as part of normal traversal since it's now
+      # a child of a block (which is where traversal continues from), but postroll needs the explicit recursion.
+      # if the # of clauses didn't change, then we don't need to recurse and can continue from here =)
+      cond do
+        Enum.any?(preroll) -> {:cont, {{:__block__, m, preroll ++ [with]}, zm}, ctx}
+        Enum.any?(postroll) -> run({with, zm}, ctx)
+        true -> {:cont, {with, zm}, ctx}
+      end
     else
       # maybe this isn't a with statement - could be a function named `with`
       # or it's just a with statement with no arrows, but that's too saddening to imagine
-      with
+      {:cont, zipper, ctx}
     end
   end
+
+  # @TODO shift comments https://github.com/adobe/elixir-styler/issues/98
+  def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 
   # Credo.Check.Refactor.UnlessWithElse
   defp style({:unless, m, [{_, hm, _} = head, [_, _] = do_else]}), do: style({:if, m, [{:!, hm, [head]}, do_else]})
