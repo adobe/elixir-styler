@@ -4,6 +4,7 @@
 
 ### Improvements
 
+* `with`: rewrite trivial `lhs <- rhs` to `lhs = rhs` (#86)
 * Rewrite `{Map|Keyword}.merge(single_key: value)` to use `put/3` instead (#96)
 * Attempt to keep comments in logical places when rewriting trivial `case` and `cond` statments (#97)
 

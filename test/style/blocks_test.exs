@@ -295,6 +295,30 @@ defmodule Styler.Style.BlocksTest do
       end
     end
 
+    test "rewrites non-pattern-matching lhs" do
+      assert_style(
+        """
+        with foo <- bar,
+             :ok <- baz,
+             bop <- boop,
+             :ok <- blop,
+             foo <- bar do
+          :ok
+        end
+        """,
+        """
+        foo = bar
+
+        with :ok <- baz,
+             bop = boop,
+             :ok <- blop do
+          foo = bar
+          :ok
+        end
+        """
+      )
+    end
+
     test "moves non-arrow clauses from the beginning & end" do
       assert_style(
         """

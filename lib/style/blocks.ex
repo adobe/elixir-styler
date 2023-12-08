@@ -63,7 +63,15 @@ defmodule Styler.Style.Blocks do
   # Credo.Check.Refactor.RedundantWithClauseResult
   defp style({:with, m, children} = with) when is_list(children) do
     if Enum.any?(children, &left_arrow?/1) do
-      {preroll, children} = Enum.split_while(children, &(not left_arrow?(&1)))
+      {preroll, children} =
+        children
+        |> Enum.map(fn
+          # rewrite trivial assignments like `lhs <- rhs` to `lhs = rhs`
+          {:<-, m, [{atom, _, nil} = lhs, rhs]} when is_atom(atom) -> {:=, m, [lhs, rhs]}
+          child -> child
+        end)
+        |> Enum.split_while(&(not left_arrow?(&1)))
+
       # the do/else keyword macro of the with statement is the last element of the list
       [[{do_block, do_body} | elses] | reversed_clauses] = Enum.reverse(children)
       {postroll, reversed_clauses} = Enum.split_while(reversed_clauses, &(not left_arrow?(&1)))
