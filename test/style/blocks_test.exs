@@ -319,57 +319,88 @@ defmodule Styler.Style.BlocksTest do
       )
     end
 
+    test "rewrites `_ <- rhs` to just rhs" do
+      assert_style(
+        """
+        with _ <- bar,
+             :ok <- baz,
+             _ <- boop(),
+             :ok <- blop,
+             _ <- bar do
+          :ok
+        end
+        """,
+        """
+        bar
+
+        with :ok <- baz,
+             boop(),
+             :ok <- blop do
+          bar
+          :ok
+        end
+        """
+      )
+    end
+
     test "transforms a `with` all the way to an `if` if necessary" do
       # with a preroll
-      assert_style """
-      with foo <- bar,
-        true <- bop do
-        :ok
-      else
-        _ -> :error
-      end
-      """,
-      """
-      foo = bar
+      assert_style(
+        """
+        with foo <- bar,
+          true <- bop do
+          :ok
+        else
+          _ -> :error
+        end
+        """,
+        """
+        foo = bar
 
-      if bop do
-        :ok
-      else
-        :error
-      end
-      """
+        if bop do
+          :ok
+        else
+          :error
+        end
+        """
+      )
+
       # no pre or postroll
-      assert_style """
-      with true <- bop do
-        :ok
-      else
-        _ -> :error
-      end
-      """,
-      """
-      if bop do
-        :ok
-      else
-        :error
-      end
-      """
+      assert_style(
+        """
+        with true <- bop do
+          :ok
+        else
+          _ -> :error
+        end
+        """,
+        """
+        if bop do
+          :ok
+        else
+          :error
+        end
+        """
+      )
 
       # with postroll
-      assert_style """
-      with true <- bop, foo <- bar do
-        :ok
-      else
-        _ -> :error
-      end
-      """,
-      """
-      if bop do
-        foo = bar
-        :ok
-      else
-        :error
-      end
-      """
+      assert_style(
+        """
+        with true <- bop, foo <- bar do
+          :ok
+        else
+          _ -> :error
+        end
+        """,
+        """
+        if bop do
+          foo = bar
+          :ok
+        else
+          :error
+        end
+        """
+      )
     end
 
     test "moves non-arrow clauses from the beginning & end" do

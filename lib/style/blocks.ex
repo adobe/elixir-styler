@@ -66,7 +66,9 @@ defmodule Styler.Style.Blocks do
       {preroll, children} =
         children
         |> Enum.map(fn
-          # rewrite trivial assignments like `lhs <- rhs` to `lhs = rhs`
+          # `_ <- rhs` => `rhs`
+          {:<-, _, [{:_, _, _}, rhs]} -> rhs
+          # `lhs <- rhs` => `lhs = rhs`
           {:<-, m, [{atom, _, nil} = lhs, rhs]} when is_atom(atom) -> {:=, m, [lhs, rhs]}
           child -> child
         end)
