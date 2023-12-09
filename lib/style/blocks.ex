@@ -77,7 +77,7 @@ defmodule Styler.Style.Blocks do
       # the do/else keyword macro of the with statement is the last element of the list
       [[{do_block, do_body} | elses] | reversed_clauses] = Enum.reverse(children)
       {postroll, reversed_clauses} = Enum.split_while(reversed_clauses, &(not left_arrow?(&1)))
-      [{:<-, _, [lhs, rhs]} = _final_clause | rest] = reversed_clauses
+      [{:<-, final_clause_meta, [lhs, rhs]} = _final_clause | rest] = reversed_clauses
 
       # drop singleton identity else clauses like `else foo -> foo end`
       elses =
@@ -103,6 +103,8 @@ defmodule Styler.Style.Blocks do
           true ->
             {reversed_clauses, do_body}
         end
+
+      do_block = Macro.update_meta(do_block, &Keyword.put(&1, :line, final_clause_meta[:line]))
 
       # disable keyword `, do:` since there will be multiple clauses
       with_meta =
