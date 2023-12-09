@@ -247,6 +247,12 @@ defmodule Styler.Style.BlocksTest do
       else
         _ -> h
       end
+      """,
+      """
+      a = b()
+      c = d()
+      e = f()
+      g
       """
     end
 
