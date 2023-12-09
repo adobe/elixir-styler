@@ -240,6 +240,16 @@ defmodule Styler.Style.BlocksTest do
   end
 
   describe "with statements" do
+    test "the saddest edge case of all" do
+      assert_style """
+      with a <- b(), c <- d(), e <- f() do
+        g
+      else
+        _ -> h
+      end
+      """
+    end
+
     test "doesn't false positive with vars" do
       assert_style("""
       if naming_is_hard, do: with
@@ -554,6 +564,31 @@ defmodule Styler.Style.BlocksTest do
         {:ok, b}
       else
         error -> handle(error)
+      end
+      """)
+    end
+
+    test "with comments" do
+      # i think the bug here is that the `do` keyword's ast needs its line number moved up
+      # to be equal to the last arrow's line number
+      assert_style("""
+      with :ok <- foo(),
+          :ok <- bar(),
+          # comment 1
+          # comment 2
+          # comment 3
+          _ <- bop() do
+        :ok
+      end
+      """,
+      """
+      with :ok <- foo(),
+           :ok <- bar() do
+        # comment 1
+        # comment 2
+        # comment 3
+        bop()
+        :ok
       end
       """)
     end
