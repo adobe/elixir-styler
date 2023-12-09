@@ -94,7 +94,7 @@ defmodule Styler.Style.Blocks do
               |> Zipper.remove()
 
             ast ->
-              raise "unexpected `with` parent ast: #{inspect ast}"
+              raise "unexpected `with` parent ast: #{inspect(ast)}"
           end
 
         {:cont, withless_zipper, ctx}
