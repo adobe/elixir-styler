@@ -74,61 +74,87 @@ defmodule Styler.Style.Blocks do
         end)
         |> Enum.split_while(&(not left_arrow?(&1)))
 
-      # the do/else keyword macro of the with statement is the last element of the list
-      [[{do_block, do_body} | elses] | reversed_clauses] = Enum.reverse(children)
-      {postroll, reversed_clauses} = Enum.split_while(reversed_clauses, &(not left_arrow?(&1)))
-      [{:<-, final_clause_meta, [lhs, rhs]} = _final_clause | rest] = reversed_clauses
+      # this is perhaps the saddest with statement maybe -- one with arrows but no pattern matching
+      # `with a <- b(), c <- d(), do: :ok, else: (_ -> :error)` => `a = b(); c = d(); :ok`
+      if Enum.empty?(children) do
+        [[{_do, do_body} | _elses] | preroll] = Enum.reverse(preroll)
+        block = Enum.reverse(preroll, [do_body])
 
-      # drop singleton identity else clauses like `else foo -> foo end`
-      elses =
-        case elses do
-          [{{_, _, [:else]}, [{:->, _, [[left], right]}]}] -> if nodes_equivalent?(left, right), do: [], else: elses
-          _ -> elses
-        end
+        withless_zipper =
+          case Zipper.up(zipper) do
+            nil ->
+              Zipper.zip({:__block__, [], block})
 
-      {reversed_clauses, do_body} =
+            {{:=, _, _}, _} ->
+              Zipper.replace(zipper, {:__block__, Keyword.take(with_meta, [:line]), block})
+
+            {{:__block__, _, _}, _} ->
+              block
+              |> Enum.reduce(zipper, &Zipper.insert_left(&2, &1))
+              |> Zipper.remove()
+
+            ast ->
+              raise "unexpected `with` parent ast: #{inspect ast}"
+          end
+
+        {:cont, withless_zipper, ctx}
+      else
+        [[{do_block, do_body} | elses] | reversed_clauses] = Enum.reverse(children)
+        {postroll, reversed_clauses} = Enum.split_while(reversed_clauses, &(not left_arrow?(&1)))
+        [{:<-, final_clause_meta, [lhs, rhs]} = _final_clause | rest] = reversed_clauses
+
+        # drop singleton identity else clauses like `else foo -> foo end`
+        elses =
+          case elses do
+            [{{_, _, [:else]}, [{:->, _, [[left], right]}]}] -> if nodes_equivalent?(left, right), do: [], else: elses
+            _ -> elses
+          end
+
+        {reversed_clauses, do_body} =
+          cond do
+            # Put the postroll into the body
+            Enum.any?(postroll) ->
+              {node, do_body_meta, do_children} = do_body
+              do_children = if node == :__block__, do: do_children, else: [do_body]
+              do_body = {:__block__, Keyword.take(do_body_meta, [:line]), Enum.reverse(postroll, do_children)}
+              {reversed_clauses, do_body}
+
+            # Credo.Check.Refactor.RedundantWithClauseResult
+            Enum.empty?(elses) and nodes_equivalent?(lhs, do_body) ->
+              {rest, rhs}
+
+            # no change
+            true ->
+              {reversed_clauses, do_body}
+          end
+
+        do_block = Macro.update_meta(do_block, &Keyword.put(&1, :line, final_clause_meta[:line]))
+
+        # disable keyword `, do:` since there will be multiple clauses
+        with_meta =
+          if Enum.any?(postroll),
+            do: Keyword.merge(with_meta, do: [line: with_meta[:line]], end: [line: max_line(children) + 1]),
+            else: with_meta
+
+        zipper =
+          Zipper.replace(zipper, {:with, with_meta, Enum.reverse(reversed_clauses, [[{do_block, do_body} | elses]])})
+
+        # if there was pre or postroll, the # of `<-` in the statement have changed and so it could be eligible for a `case`
+        # or even `if` rewrite -- so we recurse in both of those cases
         cond do
-          # Put the postroll into the body
+          Enum.any?(preroll) ->
+            # put the preroll before the with statement in either a block we create or the existing parent block
+            preroll
+            |> Enum.reduce(Style.ensure_block_parent(zipper), &Zipper.insert_left(&2, &1))
+            |> run(ctx)
+
           Enum.any?(postroll) ->
-            {node, do_body_meta, do_children} = do_body
-            do_children = if node == :__block__, do: do_children, else: [do_body]
-            do_body = {:__block__, Keyword.take(do_body_meta, [:line]), Enum.reverse(postroll, do_children)}
-            {reversed_clauses, do_body}
+            run(zipper, ctx)
 
-          # Credo.Check.Refactor.RedundantWithClauseResult
-          Enum.empty?(elses) and nodes_equivalent?(lhs, do_body) ->
-            {rest, rhs}
-
-          # no change
+          # if the # of clauses didn't change, then we don't need to recurse and can continue from here =)
           true ->
-            {reversed_clauses, do_body}
+            {:cont, zipper, ctx}
         end
-
-      do_block = Macro.update_meta(do_block, &Keyword.put(&1, :line, final_clause_meta[:line]))
-
-      # disable keyword `, do:` since there will be multiple clauses
-      with_meta =
-        if Enum.any?(postroll),
-          do: Keyword.merge(with_meta, do: [line: with_meta[:line]], end: [line: max_line(children) + 1]),
-          else: with_meta
-
-      zipper = Zipper.replace(zipper, {:with, with_meta, Enum.reverse(reversed_clauses, [[{do_block, do_body} | elses]])})
-
-      # if there was pre or postroll, the # of `<-` in the statement have changed and so it could be eligible for a `case`
-      # or even `if` rewrite -- so we recurse in both of those cases
-      cond do
-        Enum.any?(preroll) ->
-          # put the preroll before the with statement in either a block we create or the existing parent block
-          preroll
-          |> Enum.reduce(Style.ensure_block_parent(zipper), &Zipper.insert_left(&2, &1))
-          |> run(ctx)
-
-        Enum.any?(postroll) ->
-          run(zipper, ctx)
-
-        # if the # of clauses didn't change, then we don't need to recurse and can continue from here =)
-        true ->
-          {:cont, zipper, ctx}
       end
     else
       # maybe this isn't a with statement - could be a function named `with`
