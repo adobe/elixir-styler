@@ -71,8 +71,7 @@ defmodule Styler.Style.ModuleDirectives do
   @directives ~w(alias import require use)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a
 
-  # @TODO put line meta in moduledoc false usages
-  @moduledoc_false {:@, [], [{:moduledoc, [], [{:__block__, [], [false]}]}]}
+  @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
 
   def run({{:defmodule, _, children}, _} = zipper, ctx) do
     [name, [{{:__block__, do_meta, [:do]}, _body}]] = children
@@ -80,13 +79,13 @@ defmodule Styler.Style.ModuleDirectives do
     if do_meta[:format] == :keyword do
       {:skip, zipper, ctx}
     else
-      add_moduledoc? = add_moduledoc?(name)
+      moduledoc = moduledoc(name)
       # Move the zipper's focus to the module's body
       body_zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
 
       case Zipper.node(body_zipper) do
         {:__block__, _, _} ->
-          {:skip, organize_directives(body_zipper, add_moduledoc?), ctx}
+          {:skip, organize_directives(body_zipper, moduledoc), ctx}
 
         {:@, _, [{:moduledoc, _, _}]} ->
           # a module whose only child is a moduledoc. nothing to do here!
@@ -95,9 +94,9 @@ defmodule Styler.Style.ModuleDirectives do
 
         only_child ->
           # There's only one child, and it's not a moduledoc. Conditionally add a moduledoc, then style the only_child
-          if add_moduledoc? do
+          if moduledoc do
             body_zipper
-            |> Zipper.replace({:__block__, [], [@moduledoc_false, only_child]})
+            |> Zipper.replace({:__block__, [], [moduledoc, only_child]})
             |> Zipper.down()
             |> Zipper.right()
             |> run(ctx)
@@ -122,16 +121,18 @@ defmodule Styler.Style.ModuleDirectives do
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
 
-  defp add_moduledoc?({:__aliases__, _, aliases}) do
+  defp moduledoc({:__aliases__, m, aliases}) do
     name = aliases |> List.last() |> to_string()
     # module names ending with these suffixes will not have a default moduledoc appended
-    not String.ends_with?(name, ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON))
+    unless String.ends_with?(name, ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)) do
+      Style.set_line(@moduledoc_false, m[:line] + 1)
+    end
   end
 
   # a dynamic module name, like `defmodule my_variable do ... end`
-  defp add_moduledoc?(_), do: false
+  defp moduledoc(_), do: nil
 
-  defp organize_directives(parent, add_moduledoc? \\ false) do
+  defp organize_directives(parent, moduledoc \\ nil) do
     {directives, nondirectives} =
       parent
       |> Zipper.children()
@@ -148,7 +149,7 @@ defmodule Styler.Style.ModuleDirectives do
       end)
 
     shortdocs = directives[:"@shortdoc"] || []
-    moduledocs = directives[:"@moduledoc"] || if add_moduledoc?, do: [@moduledoc_false], else: []
+    moduledocs = directives[:"@moduledoc"] || List.wrap(moduledoc)
     behaviours = expand_and_sort(directives[:"@behaviour"] || [])
 
     uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> reset_newlines()

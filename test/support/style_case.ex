@@ -24,6 +24,8 @@ defmodule Styler.StyleCase do
     expected = expected || before
 
     quote bind_quoted: [before: before, expected: expected] do
+      alias Styler.Zipper
+
       expected = String.trim(expected)
       {styled_ast, styled, styled_comments} = style(before)
 
@@ -44,6 +46,47 @@ defmodule Styler.StyleCase do
         dbg(styled_comments)
         IO.puts("========================\n")
       end
+
+      # Ensure that every node has `line` meta so that we get better comments behaviour
+      styled_ast
+      |> Zipper.zip()
+      |> Zipper.traverse(fn
+        {{node, meta, _} = ast, _} = zipper ->
+          up = Zipper.up(zipper)
+          # body blocks - for example, the block node for an anonymous function - don't have line meta
+          # yes, i just did `&& case`. sometimes it's funny to write ugly things in my project that's all about style.
+          # i believe they calls that one "irony"
+          is_body_block? =
+            node == :__block__ &&
+              case up && Zipper.node(up) do
+                # top of a snippet
+                nil -> true
+                # do/else/etc
+                {{:__block__, _, [_]}, {:__block__, [], _}} -> true
+                # anon fun
+                {:->, _, _} -> true
+                _ -> false
+              end
+
+          unless meta[:line] || is_body_block? do
+            IO.puts("missing `:line` meta in node:")
+            dbg(ast)
+
+            IO.puts("tree:")
+            dbg(styled_ast)
+
+            IO.puts("expected:")
+            dbg(elem(Styler.string_to_quoted_with_comments(expected), 0))
+
+            IO.puts("code:\n#{styled}")
+            flunk("")
+          end
+
+          zipper
+
+        zipper ->
+          zipper
+      end)
 
       assert expected == styled
       {_, restyled, _} = style(styled)

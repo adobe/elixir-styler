@@ -94,7 +94,7 @@ defmodule Styler.Style do
   # give it a block parent, then step back to the child - we can insert next to it now that it's in a block
   defp wrap_in_block(zipper) do
     zipper
-    |> Zipper.update(fn {_, meta, _} = node -> {:__block__, [line: meta[:line] || 99_999], [node]} end)
+    |> Zipper.update(fn {_, meta, _} = node -> {:__block__, Keyword.take(meta, [:line]), [node]} end)
     |> Zipper.down()
   end
 
