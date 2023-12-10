@@ -706,7 +706,7 @@ defmodule Styler.Style.BlocksTest do
     end
   end
 
-  describe "if/else" do
+  describe "if/unless" do
     test "drops if else nil" do
       assert_style("if a, do: b, else: nil", "if a, do: b")
 
@@ -838,6 +838,27 @@ defmodule Styler.Style.BlocksTest do
         end
         """
       )
+    end
+
+    test "comments and flips" do
+      assert_style """
+      if !a do
+        # b
+        b
+      else
+        # c
+        c
+      end
+      """,
+      """
+      if !a do
+        # c
+        c
+      else
+        # b
+        b
+      end
+      """
     end
   end
 end
