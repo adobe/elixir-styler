@@ -74,32 +74,12 @@ defmodule Styler.Style.Blocks do
         end)
         |> Enum.split_while(&(not left_arrow?(&1)))
 
-      # this is perhaps the saddest with statement maybe -- one with arrows but no pattern matching
-      # `with a <- b(), c <- d(), do: :ok, else: (_ -> :error)` => `a = b(); c = d(); :ok`
+      # after rewriting `x <- y()` to `x = y()` there are no more arrows.
+      # this never should've been a with statement at all! we can just replace it with assignments
       if Enum.empty?(children) do
-        [[{_do, do_body} | _elses] | preroll] = Enum.reverse(preroll)
-        block = Enum.reverse(preroll, [do_body])
-
-        withless_zipper =
-          case Zipper.up(zipper) do
-            nil ->
-              Zipper.zip({:__block__, [], block})
-
-            {{:=, _, _}, _} ->
-              Zipper.replace(zipper, {:__block__, Keyword.take(with_meta, [:line]), block})
-
-            {{:__block__, _, _}, _} ->
-              block
-              |> Enum.reduce(zipper, &Zipper.insert_left(&2, &1))
-              |> Zipper.remove()
-
-            ast ->
-              raise "unexpected `with` parent ast: #{inspect(ast)}"
-          end
-
-        {:cont, withless_zipper, ctx}
+        {:cont, replace_with_statement(zipper, preroll), ctx}
       else
-        [[{do_block, do_body} | elses] | reversed_clauses] = Enum.reverse(children)
+        [[{{_, do_meta, _} = do_block, do_body} | elses] | reversed_clauses] = Enum.reverse(children)
         {postroll, reversed_clauses} = Enum.split_while(reversed_clauses, &(not left_arrow?(&1)))
         [{:<-, final_clause_meta, [lhs, rhs]} = _final_clause | rest] = reversed_clauses
 
@@ -128,16 +108,25 @@ defmodule Styler.Style.Blocks do
               {reversed_clauses, do_body}
           end
 
-        do_block = Macro.update_meta(do_block, &Keyword.put(&1, :line, final_clause_meta[:line]))
+        do_line = do_meta[:line]
+        final_clause_line = final_clause_meta[:line]
 
-        # disable keyword `, do:` since there will be multiple clauses
+        do_line =
+          cond do
+            do_meta[:format] == :keyword && final_clause_line + 1 >= do_line -> do_line
+            do_meta[:format] == :keyword -> final_clause_line + 1
+            true -> final_clause_line
+          end
+
+        do_block = Macro.update_meta(do_block, &Keyword.put(&1, :line, do_line))
+        # disable keyword `, do:` since there will be multiple statements in the body
         with_meta =
           if Enum.any?(postroll),
             do: Keyword.merge(with_meta, do: [line: with_meta[:line]], end: [line: max_line(children) + 1]),
             else: with_meta
 
-        zipper =
-          Zipper.replace(zipper, {:with, with_meta, Enum.reverse(reversed_clauses, [[{do_block, do_body} | elses]])})
+        with_children = Enum.reverse(reversed_clauses, [[{do_block, do_body} | elses]])
+        zipper = Zipper.replace(zipper, {:with, with_meta, with_children})
 
         # if there was pre or postroll, the # of `<-` in the statement have changed and so it could be eligible for a `case`
         # or even `if` rewrite -- so we recurse in both of those cases
@@ -149,7 +138,12 @@ defmodule Styler.Style.Blocks do
             |> run(ctx)
 
           Enum.any?(postroll) ->
+            # both of these changed the # of `<-`, so we should have another look at this with statement
             run(zipper, ctx)
+
+          Enum.empty?(reversed_clauses) ->
+            # oops! our other `with` rewrites made one with no `<-`. guess it shouldn't be a with then
+            {:cont, replace_with_statement(zipper, with_children), ctx}
 
           # if the # of clauses didn't change, then we don't need to recurse and can continue from here =)
           true ->
@@ -180,6 +174,30 @@ defmodule Styler.Style.Blocks do
   defp style({:if, m, [head, [do_block, {_, {:__block__, _, [nil]}}]]}), do: {:if, m, [head, [do_block]]}
 
   defp style(node), do: node
+
+  # `with a <- b(), c <- d(), do: :ok, else: (_ -> :error)`
+  # =>
+  # `a = b(); c = d(); :ok`
+  defp replace_with_statement(zipper, preroll) do
+    [[{_do, do_body} | _elses] | preroll] = Enum.reverse(preroll)
+    block = Enum.reverse(preroll, [do_body])
+
+    case Zipper.up(zipper) do
+      nil ->
+        Zipper.zip({:__block__, [], block})
+
+      {{:=, _, _}, _} ->
+        Zipper.update(zipper, fn {:with, meta, _} -> {:__block__, Keyword.take(meta, [:line]), block} end)
+
+      {{:__block__, _, _}, _} ->
+        block
+        |> Enum.reduce(zipper, &Zipper.insert_left(&2, &1))
+        |> Zipper.remove()
+
+      ast ->
+        raise "unexpected `with` parent ast: #{inspect(ast)}"
+    end
+  end
 
   defp left_arrow?({:<-, _, _}), do: true
   defp left_arrow?(_), do: false

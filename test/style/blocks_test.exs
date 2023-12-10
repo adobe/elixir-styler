@@ -362,6 +362,14 @@ defmodule Styler.Style.BlocksTest do
         end
         """)
       end
+
+      assert_style(
+        """
+        with :ok <- foo(),
+          do: :ok
+        """,
+        "foo()"
+      )
     end
 
     test "rewrites non-pattern-matching lhs" do
@@ -386,6 +394,13 @@ defmodule Styler.Style.BlocksTest do
         end
         """
       )
+    end
+
+    test "doesn't move keyword do up when it's just one line" do
+      assert_style("""
+      with :ok <- foo(),
+           do: :error
+      """)
     end
 
     test "rewrites `_ <- rhs` to just rhs" do
