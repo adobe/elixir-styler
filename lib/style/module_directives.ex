@@ -261,18 +261,18 @@ defmodule Styler.Style.ModuleDirectives do
   # =>
   # import Foo.Bar
   # import Foo.Baz
-  defp expand_directive({directive, _, [{{:., _, [{:__aliases__, _, module}, :{}]}, _, right}]}),
-    do:
-      Enum.map(right, fn {_, meta, segments} ->
-        {directive, meta, [{:__aliases__, [line: meta[:line]], module ++ segments}]}
-      end)
+  defp expand_directive({directive, _, [{{:., _, [{:__aliases__, _, module}, :{}]}, _, right}]}) do
+    Enum.map(right, fn {_, meta, segments} ->
+      {directive, meta, [{:__aliases__, [line: meta[:line]], module ++ segments}]}
+    end)
+  end
 
   # alias __MODULE__.{Bar, Baz}
-  defp expand_directive({directive, _, [{{:., _, [{:__MODULE__, _, _} = module, :{}]}, _, right}]}),
-    do:
-      Enum.map(right, fn {_, meta, segments} ->
-        {directive, meta, [{:__aliases__, [line: meta[:line]], [module | segments]}]}
-      end)
+  defp expand_directive({directive, _, [{{:., _, [{:__MODULE__, _, _} = module, :{}]}, _, right}]}) do
+    Enum.map(right, fn {_, meta, segments} ->
+      {directive, meta, [{:__aliases__, [line: meta[:line]], [module | segments]}]}
+    end)
+  end
 
   defp expand_directive(other), do: [other]
 
