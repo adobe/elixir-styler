@@ -4,19 +4,20 @@
 
 ### Improvements
 
+All styles now deal reasonably with comments.
+
 #### With Statements
 
 A slew of improvements for the `with` statement in this release:
 
 * rewrite trivial `lhs <- rhs` to `lhs = rhs` (#86)
-* rewrite with statements if statements when appropriate
-* switch keyword do to do block when adding clauses to the with body (`, do:` => `do end`)
-* put more effort into keeping comments in the right spot
+* rewrite `with` statements all the way to `if` statements when appropriate
+* switch keyword `, do: ` to `do end` rather than wrapping multiple statements in parens
 
 #### Other
 
 * Rewrite `{Map|Keyword}.merge(single_key: value)` to use `put/3` instead (#96)
-* Attempt to keep comments in logical places when rewriting trivial `case` and `cond` statements (#97)
+* Keep comments in logical places when rewriting if/unless/cond/with (#97)
 
 ## v0.10.5
 
