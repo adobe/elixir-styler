@@ -193,7 +193,7 @@ defmodule Styler.Style.Blocks do
         |> Enum.reduce(zipper, &Zipper.insert_left(&2, &1))
         |> Zipper.remove()
 
-      ast ->
+      {ast, _} ->
         raise "unexpected `with` parent ast: #{inspect(ast)}"
     end
   end
