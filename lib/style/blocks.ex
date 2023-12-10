@@ -43,7 +43,7 @@ defmodule Styler.Style.Blocks do
     end
   end
 
-  # `Credo.Check.Refactor.CondStatements`
+  # Credo.Check.Refactor.CondStatements
   def run({{:cond, _, [[{_, [{:->, _, [[head], a]}, {:->, _, [[{:__block__, _, [truthy]}], b]}]}]]}, _} = zipper, ctx)
       when is_atom(truthy) and truthy not in [nil, false],
       do: if_ast(zipper, head, a, b, ctx)
@@ -60,7 +60,6 @@ defmodule Styler.Style.Blocks do
   end
 
   # Credo.Check.Refactor.WithClauses
-  # Credo.Check.Refactor.RedundantWithClauseResult
   def run({{:with, with_meta, children}, _} = zipper, ctx) when is_list(children) do
     if Enum.any?(children, &left_arrow?/1) do
       {preroll, children} =
@@ -156,8 +155,6 @@ defmodule Styler.Style.Blocks do
       {:cont, zipper, ctx}
     end
   end
-
-  # IF / UNLESS
 
   def run({{:unless, m, children}, _} = zipper, ctx) do
     case children do
