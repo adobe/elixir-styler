@@ -240,6 +240,75 @@ defmodule Styler.Style.BlocksTest do
   end
 
   describe "with statements" do
+    test "the saddest edge case of all" do
+      assert_style(
+        """
+        x()
+
+        z =
+          with a <- b(), c <- d(), e <- f() do
+            g
+          else
+            _ -> h
+          end
+
+        y()
+        """,
+        """
+        x()
+
+        z =
+          (
+            a = b()
+            c = d()
+            e = f()
+            g
+          )
+
+        y()
+        """
+      )
+
+      assert_style(
+        """
+        with a <- b(), c <- d(), e <- f() do
+          g
+        else
+          _ -> h
+        end
+        """,
+        """
+        a = b()
+        c = d()
+        e = f()
+        g
+        """
+      )
+
+      assert_style(
+        """
+        x()
+
+        with a <- b(), c <- d(), e <- f() do
+          g
+        else
+          _ -> h
+        end
+
+        y()
+        """,
+        """
+        x()
+
+        a = b()
+        c = d()
+        e = f()
+        g
+        y()
+        """
+      )
+    end
+
     test "doesn't false positive with vars" do
       assert_style("""
       if naming_is_hard, do: with
@@ -293,6 +362,14 @@ defmodule Styler.Style.BlocksTest do
         end
         """)
       end
+
+      assert_style(
+        """
+        with :ok <- foo(),
+          do: :ok
+        """,
+        "foo()"
+      )
     end
 
     test "rewrites non-pattern-matching lhs" do
@@ -317,6 +394,13 @@ defmodule Styler.Style.BlocksTest do
         end
         """
       )
+    end
+
+    test "doesn't move keyword do up when it's just one line" do
+      assert_style("""
+      with :ok <- foo(),
+           do: :error
+      """)
     end
 
     test "rewrites `_ <- rhs` to just rhs" do
@@ -556,6 +640,33 @@ defmodule Styler.Style.BlocksTest do
         error -> handle(error)
       end
       """)
+    end
+
+    test "with comments" do
+      # i think the bug here is that the `do` keyword's ast needs its line number moved up
+      # to be equal to the last arrow's line number
+      assert_style(
+        """
+        with :ok <- foo(),
+            :ok <- bar(),
+            # comment 1
+            # comment 2
+            # comment 3
+            _ <- bop() do
+          :ok
+        end
+        """,
+        """
+        with :ok <- foo(),
+             :ok <- bar() do
+          # comment 1
+          # comment 2
+          # comment 3
+          bop()
+          :ok
+        end
+        """
+      )
     end
   end
 
