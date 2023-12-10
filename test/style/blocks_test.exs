@@ -851,7 +851,7 @@ defmodule Styler.Style.BlocksTest do
       end
       """,
       """
-      if !a do
+      if a do
         # c
         c
       else
