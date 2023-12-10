@@ -174,6 +174,17 @@ defmodule Styler.Zipper do
   def insert_left({tree, meta}, child), do: {tree, %{meta | l: [child | meta.l]}}
 
   @doc """
+  Inserts many siblings to the left.
+
+  Equivalent to
+
+      Enum.reduce(siblings, zipper, &Zipper.insert_left(&2, &1))
+  """
+  @spec prepend_siblings(zipper, [tree]) :: zipper
+  def prepend_siblings({_, nil}, _), do: raise(ArgumentError, message: "Can't insert siblings at the top level.")
+  def prepend_siblings({tree, meta}, siblings), do: {tree, %{meta | l: Enum.reverse(siblings, meta.l)}}
+
+  @doc """
   Inserts the item as the right sibling of the node at this zipper, without
   moving. Raises an `ArgumentError` when attempting to insert a sibling at the
   top level.
@@ -181,6 +192,17 @@ defmodule Styler.Zipper do
   @spec insert_right(zipper, tree) :: zipper
   def insert_right({_, nil}, _), do: raise(ArgumentError, message: "Can't insert siblings at the top level.")
   def insert_right({tree, meta}, child), do: {tree, %{meta | r: [child | meta.r]}}
+
+  @doc """
+  Inserts many siblings to the right.
+
+  Equivalent to
+
+      Enum.reduce(siblings, zipper, &Zipper.insert_right(&2, &1))
+  """
+  @spec append_siblings(zipper, [tree]) :: zipper
+  def append_siblings({_, nil}, _), do: raise(ArgumentError, message: "Can't insert siblings at the top level.")
+  def append_siblings({tree, meta}, siblings), do: {tree, %{meta | r: siblings ++ meta.r}}
 
   @doc """
   Inserts the item as the leftmost child of the node at this zipper,

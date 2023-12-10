@@ -180,13 +180,11 @@ defmodule Styler.Style.ModuleDirectives do
         Zipper.update(parent, &Zipper.replace_children(&1, directives))
 
       true ->
-        {last_directive, meta} =
-          parent
-          |> Zipper.update(&Zipper.replace_children(&1, directives))
-          |> Zipper.down()
-          |> Zipper.rightmost()
-
-        {last_directive, %{meta | r: nondirectives}}
+        parent
+        |> Zipper.update(&Zipper.replace_children(&1, directives))
+        |> Zipper.down()
+        |> Zipper.rightmost()
+        |> Zipper.append_siblings(nondirectives)
     end
   end
 

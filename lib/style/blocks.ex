@@ -132,8 +132,9 @@ defmodule Styler.Style.Blocks do
         cond do
           Enum.any?(preroll) ->
             # put the preroll before the with statement in either a block we create or the existing parent block
-            preroll
-            |> Enum.reduce(Style.ensure_block_parent(zipper), &Zipper.insert_left(&2, &1))
+            zipper
+            |> Style.ensure_block_parent()
+            |> Zipper.prepend_siblings(preroll)
             |> run(ctx)
 
           Enum.any?(postroll) ->
@@ -189,8 +190,8 @@ defmodule Styler.Style.Blocks do
         Zipper.update(zipper, fn {:with, meta, _} -> {:__block__, Keyword.take(meta, [:line]), block} end)
 
       {{:__block__, _, _}, _} ->
-        block
-        |> Enum.reduce(zipper, &Zipper.insert_left(&2, &1))
+        zipper
+        |> Zipper.prepend_siblings(block)
         |> Zipper.remove()
 
       {ast, _} ->
