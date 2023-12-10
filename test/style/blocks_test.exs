@@ -643,8 +643,6 @@ defmodule Styler.Style.BlocksTest do
     end
 
     test "with comments" do
-      # i think the bug here is that the `do` keyword's ast needs its line number moved up
-      # to be equal to the last arrow's line number
       assert_style(
         """
         with :ok <- foo(),
