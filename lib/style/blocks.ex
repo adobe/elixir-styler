@@ -182,11 +182,11 @@ defmodule Styler.Style.Blocks do
       [head, [do_block, {_, {:__block__, _, [nil]}}]] ->
         {:cont, Zipper.replace(zipper, {:if, m, [head, [do_block]]}), ctx}
 
-      [head, [{_do, do_body}, {_else, else_body}]] ->
-        if max_line(do_body) >= max_line(else_body) do
+      [head, [do_, else_]] ->
+        if max_line(do_) > max_line(else_) do
           # we inverted the if/else blocks of this `if` statement in a previous pass (due to negators or unless)
           # shift comments etc to make it happy now
-          if_ast(zipper, head, do_body, else_body, ctx)
+          if_ast(zipper, head, do_, else_, ctx)
         else
           {:cont, zipper, ctx}
         end
@@ -230,8 +230,15 @@ defmodule Styler.Style.Blocks do
     Style.update_all_meta(a, fn _ -> nil end) == Style.update_all_meta(b, fn _ -> nil end)
   end
 
-  defp if_ast(zipper, {_, meta, _} = head, do_body, else_body, ctx) do
+  defp if_ast(zipper, head, {_, _, _} = do_body, {_, _, _} = else_body, ctx) do
+    do_ = {{:__block__, [line: nil], [:do]}, do_body}
+    else_ = {{:__block__, [line: nil], [:else]}, else_body}
+    if_ast(zipper, head, do_, else_, ctx)
+  end
+
+  defp if_ast(zipper, {_, meta, _} = head, {do_kw, do_body}, {else_kw, else_body}, ctx) do
     line = meta[:line]
+    # ... why am i doing this again? hmm.
     do_body = Macro.update_meta(do_body, &Keyword.delete(&1, :end_of_expression))
     else_body = Macro.update_meta(else_body, &Keyword.delete(&1, :end_of_expression))
 
@@ -240,7 +247,7 @@ defmodule Styler.Style.Blocks do
     end_line = max(max_do_line, max_else_line)
 
     # Change ast meta and comment lines to fit the `if` ast
-    {do_block, else_block, comments} =
+    {do_, else_, comments} =
       if max_do_line >= max_else_line do
         # we're swapping the ordering of two blocks of code
         # and so must swap the lines of the ast & comments to keep comments where they belong!
@@ -255,18 +262,18 @@ defmodule Styler.Style.Blocks do
           {(max_else_line + 1)..max_do_line, -else_size}
         ]
 
-        do_block = {{:__block__, [line: line], [:do]}, Style.shift_line(do_body, -else_size)}
-        else_block = {{:__block__, [line: max_else_line], [:else]}, Style.shift_line(else_body, else_size + 1)}
-        {do_block, else_block, Style.shift_comments(ctx.comments, shifts)}
+        do_ = {Style.set_line(do_kw, line), Style.shift_line(do_body, -else_size)}
+        else_ = {Style.set_line(else_kw, max_else_line), Style.shift_line(else_body, do_size)}
+        {do_, else_, Style.shift_comments(ctx.comments, shifts)}
       else
         # much simpler case -- just scootch things in the else down by 1 for the `else` keyword.
-        do_block = {{:__block__, [line: line], [:do]}, do_body}
-        else_block = Style.shift_line({{:__block__, [line: max_do_line], [:else]}, else_body}, 1)
-        {do_block, else_block, Style.shift_comments(ctx.comments, max_do_line..max_else_line, 1)}
+        do_ = {{:__block__, [line: line], [:do]}, do_body}
+        else_ = Style.shift_line({{:__block__, [line: max_do_line], [:else]}, else_body}, 1)
+        {do_, else_, Style.shift_comments(ctx.comments, max_do_line..max_else_line, 1)}
       end
 
     zipper
-    |> Zipper.replace({:if, [do: [line: line], end: [line: end_line], line: line], [head, [do_block, else_block]]})
+    |> Zipper.replace({:if, [do: [line: line], end: [line: end_line], line: line], [head, [do_, else_]]})
     |> run(%{ctx | comments: comments})
   end
 
