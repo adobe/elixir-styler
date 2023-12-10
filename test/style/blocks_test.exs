@@ -643,8 +643,6 @@ defmodule Styler.Style.BlocksTest do
     end
 
     test "with comments" do
-      # i think the bug here is that the `do` keyword's ast needs its line number moved up
-      # to be equal to the last arrow's line number
       assert_style(
         """
         with :ok <- foo(),
@@ -708,7 +706,7 @@ defmodule Styler.Style.BlocksTest do
     end
   end
 
-  describe "if/else" do
+  describe "if/unless" do
     test "drops if else nil" do
       assert_style("if a, do: b, else: nil", "if a, do: b")
 
@@ -836,6 +834,29 @@ defmodule Styler.Style.BlocksTest do
         if true do
           a
         else
+          b
+        end
+        """
+      )
+    end
+
+    test "comments and flips" do
+      assert_style(
+        """
+        if !a do
+          # b
+          b
+        else
+          # c
+          c
+        end
+        """,
+        """
+        if a do
+          # c
+          c
+        else
+          # b
           b
         end
         """

@@ -30,26 +30,27 @@ defmodule Styler.Style.Blocks do
   alias Styler.Style
   alias Styler.Zipper
 
+  defguardp is_negator(n) when n in [:!, :not]
+
   # case statement with exactly 2 `->` cases
   # rewrite to `if` if it's any of 3 trivial cases
-  def run({{:case, _, [head, [{_, [{:->, _, [[lhs_a], a]}, {:->, _, [[lhs_b], b]}]}]]}, zm} = zipper, ctx) do
+  def run({{:case, _, [head, [{_, [{:->, _, [[lhs_a], a]}, {:->, _, [[lhs_b], b]}]}]]}, _} = zipper, ctx) do
     case {lhs_a, lhs_b} do
-      {{_, _, [true]}, {_, _, [false]}} -> if_ast(head, a, b, ctx, zm)
-      {{_, _, [true]}, {:_, _, _}} -> if_ast(head, a, b, ctx, zm)
-      {{_, _, [false]}, {_, _, [true]}} -> if_ast(head, b, a, ctx, zm)
+      {{_, _, [true]}, {_, _, [false]}} -> if_ast(zipper, head, a, b, ctx)
+      {{_, _, [true]}, {:_, _, _}} -> if_ast(zipper, head, a, b, ctx)
+      {{_, _, [false]}, {_, _, [true]}} -> if_ast(zipper, head, b, a, ctx)
       _ -> {:cont, zipper, ctx}
     end
   end
 
-  # `Credo.Check.Refactor.CondStatements`
-  def run({{:cond, _, [[{_, [{:->, _, [[head], a]}, {:->, _, [[{:__block__, _, [truthy]}], b]}]}]]}, m}, ctx)
+  # Credo.Check.Refactor.CondStatements
+  def run({{:cond, _, [[{_, [{:->, _, [[head], a]}, {:->, _, [[{:__block__, _, [truthy]}], b]}]}]]}, _} = zipper, ctx)
       when is_atom(truthy) and truthy not in [nil, false],
-      do: if_ast(head, a, b, ctx, m)
+      do: if_ast(zipper, head, a, b, ctx)
 
   # Credo.Check.Readability.WithSingleClause
   # rewrite `with success <- single_statement do body else ...elses end`
   # to `case single_statement do success -> body; ...elses end`
-  # @TODO shift comments https://github.com/adobe/elixir-styler/issues/99
   def run({{:with, m, [{:<-, am, [success, single_statement]}, [body, elses]]}, zm}, ctx) do
     {{:__block__, do_meta, [:do]}, body} = body
     {{:__block__, _else_meta, [:else]}, elses} = elses
@@ -59,8 +60,6 @@ defmodule Styler.Style.Blocks do
   end
 
   # Credo.Check.Refactor.WithClauses
-  # Credo.Check.Refactor.RedundantWithClauseResult
-  # @TODO shift comments https://github.com/adobe/elixir-styler/issues/99
   def run({{:with, with_meta, children}, _} = zipper, ctx) when is_list(children) do
     if Enum.any?(children, &left_arrow?/1) do
       {preroll, children} =
@@ -157,23 +156,46 @@ defmodule Styler.Style.Blocks do
     end
   end
 
-  # @TODO shift comments https://github.com/adobe/elixir-styler/issues/98
-  def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
+  def run({{:unless, m, children}, _} = zipper, ctx) do
+    case children do
+      # Credo.Check.Refactor.UnlessWithElse
+      [{_, hm, _} = head, [_, _] = do_else] ->
+        zipper |> Zipper.replace({:if, m, [{:!, hm, [head]}, do_else]}) |> run(ctx)
 
-  # Credo.Check.Refactor.UnlessWithElse
-  defp style({:unless, m, [{_, hm, _} = head, [_, _] = do_else]}), do: style({:if, m, [{:!, hm, [head]}, do_else]})
+      # Credo.Check.Refactor.NegatedConditionsInUnless
+      [{negator, _, [expr]}, [{do_, do_body}]] when is_negator(negator) ->
+        zipper |> Zipper.replace({:if, m, [expr, [{do_, do_body}]]}) |> run(ctx)
 
-  # Credo.Check.Refactor.NegatedConditionsInUnless
-  defp style({:unless, m, [{negator, _, [expr]}, [{do_, do_body}]]}) when negator in [:!, :not],
-    do: style({:if, m, [expr, [{do_, do_body}]]})
+      _ ->
+        {:cont, zipper, ctx}
+    end
+  end
 
-  # Credo.Check.Refactor.NegatedConditionsWithElse
-  defp style({:if, m, [{negator, _, [expr]}, [{do_, do_body}, {else_, else_body}]]}) when negator in [:!, :not],
-    do: style({:if, m, [expr, [{do_, else_body}, {else_, do_body}]]})
+  def run({{:if, m, children}, _} = zipper, ctx) do
+    case children do
+      # Credo.Check.Refactor.NegatedConditionsWithElse
+      [{negator, _, [expr]}, [{do_, do_body}, {else_, else_body}]] when is_negator(negator) ->
+        zipper |> Zipper.replace({:if, m, [expr, [{do_, else_body}, {else_, do_body}]]}) |> run(ctx)
 
-  defp style({:if, m, [head, [do_block, {_, {:__block__, _, [nil]}}]]}), do: {:if, m, [head, [do_block]]}
+      # drop `else: nil`
+      [head, [do_block, {_, {:__block__, _, [nil]}}]] ->
+        {:cont, Zipper.replace(zipper, {:if, m, [head, [do_block]]}), ctx}
 
-  defp style(node), do: node
+      [head, [do_, else_]] ->
+        if max_line(do_) > max_line(else_) do
+          # we inverted the if/else blocks of this `if` statement in a previous pass (due to negators or unless)
+          # shift comments etc to make it happy now
+          if_ast(zipper, head, do_, else_, ctx)
+        else
+          {:cont, zipper, ctx}
+        end
+
+      _ ->
+        {:cont, zipper, ctx}
+    end
+  end
+
+  def run(zipper, ctx), do: {:cont, zipper, ctx}
 
   # `with a <- b(), c <- d(), do: :ok, else: (_ -> :error)`
   # =>
@@ -207,9 +229,15 @@ defmodule Styler.Style.Blocks do
     Style.update_all_meta(a, fn _ -> nil end) == Style.update_all_meta(b, fn _ -> nil end)
   end
 
-  defp if_ast({_, meta, _} = head, do_body, else_body, ctx, zipper_meta) do
-    comments = ctx.comments
+  defp if_ast(zipper, head, {_, _, _} = do_body, {_, _, _} = else_body, ctx) do
+    do_ = {{:__block__, [line: nil], [:do]}, do_body}
+    else_ = {{:__block__, [line: nil], [:else]}, else_body}
+    if_ast(zipper, head, do_, else_, ctx)
+  end
+
+  defp if_ast(zipper, {_, meta, _} = head, {do_kw, do_body}, {else_kw, else_body}, ctx) do
     line = meta[:line]
+    # ... why am i doing this again? hmm.
     do_body = Macro.update_meta(do_body, &Keyword.delete(&1, :end_of_expression))
     else_body = Macro.update_meta(else_body, &Keyword.delete(&1, :end_of_expression))
 
@@ -218,7 +246,7 @@ defmodule Styler.Style.Blocks do
     end_line = max(max_do_line, max_else_line)
 
     # Change ast meta and comment lines to fit the `if` ast
-    {do_block, else_block, comments} =
+    {do_, else_, comments} =
       if max_do_line >= max_else_line do
         # we're swapping the ordering of two blocks of code
         # and so must swap the lines of the ast & comments to keep comments where they belong!
@@ -233,18 +261,19 @@ defmodule Styler.Style.Blocks do
           {(max_else_line + 1)..max_do_line, -else_size}
         ]
 
-        do_block = {{:__block__, [line: line], [:do]}, Style.shift_line(do_body, -else_size)}
-        else_block = {{:__block__, [line: max_else_line], [:else]}, Style.shift_line(else_body, else_size + 1)}
-        {do_block, else_block, Style.shift_comments(comments, shifts)}
+        do_ = {Style.set_line(do_kw, line), Style.shift_line(do_body, -else_size)}
+        else_ = {Style.set_line(else_kw, max_else_line), Style.shift_line(else_body, do_size)}
+        {do_, else_, Style.shift_comments(ctx.comments, shifts)}
       else
         # much simpler case -- just scootch things in the else down by 1 for the `else` keyword.
-        do_block = {{:__block__, [line: line], [:do]}, do_body}
-        else_block = Style.shift_line({{:__block__, [line: max_do_line], [:else]}, else_body}, 1)
-        {do_block, else_block, Style.shift_comments(comments, max_do_line..max_else_line, 1)}
+        do_ = {{:__block__, [line: line], [:do]}, do_body}
+        else_ = Style.shift_line({{:__block__, [line: max_do_line], [:else]}, else_body}, 1)
+        {do_, else_, Style.shift_comments(ctx.comments, max_do_line..max_else_line, 1)}
       end
 
-    if_ast = style({:if, [do: [line: line], end: [line: end_line], line: line], [head, [do_block, else_block]]})
-    {:cont, {if_ast, zipper_meta}, %{ctx | comments: comments}}
+    zipper
+    |> Zipper.replace({:if, [do: [line: line], end: [line: end_line], line: line], [head, [do_, else_]]})
+    |> run(%{ctx | comments: comments})
   end
 
   defp max_line(ast) do
