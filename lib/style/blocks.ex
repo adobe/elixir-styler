@@ -164,9 +164,11 @@ defmodule Styler.Style.Blocks do
       # Credo.Check.Refactor.UnlessWithElse
       [{_, hm, _} = head, [_, _] = do_else] ->
         zipper |> Zipper.replace({:if, m, [{:!, hm, [head]}, do_else]}) |> run(ctx)
+
       # Credo.Check.Refactor.NegatedConditionsInUnless
       [{negator, _, [expr]}, [{do_, do_body}]] when is_negator(negator) ->
         zipper |> Zipper.replace({:if, m, [expr, [{do_, do_body}]]}) |> run(ctx)
+
       _ ->
         {:cont, zipper, ctx}
     end

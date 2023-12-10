@@ -841,24 +841,26 @@ defmodule Styler.Style.BlocksTest do
     end
 
     test "comments and flips" do
-      assert_style """
-      if !a do
-        # b
-        b
-      else
-        # c
-        c
-      end
-      """,
-      """
-      if a do
-        # c
-        c
-      else
-        # b
-        b
-      end
-      """
+      assert_style(
+        """
+        if !a do
+          # b
+          b
+        else
+          # c
+          c
+        end
+        """,
+        """
+        if a do
+          # c
+          c
+        else
+          # b
+          b
+        end
+        """
+      )
     end
   end
 end
