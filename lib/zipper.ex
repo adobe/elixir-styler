@@ -200,9 +200,9 @@ defmodule Styler.Zipper do
 
       Enum.reduce(siblings, zipper, &Zipper.insert_right(&2, &1))
   """
-  @spec append_siblings(zipper, [tree]) :: zipper
-  def append_siblings({_, nil}, _), do: raise(ArgumentError, message: "Can't insert siblings at the top level.")
-  def append_siblings({tree, meta}, siblings), do: {tree, %{meta | r: siblings ++ meta.r}}
+  @spec insert_siblings(zipper, [tree]) :: zipper
+  def insert_siblings({_, nil}, _), do: raise(ArgumentError, message: "Can't insert siblings at the top level.")
+  def insert_siblings({tree, meta}, siblings), do: {tree, %{meta | r: siblings ++ meta.r}}
 
   @doc """
   Inserts the item as the leftmost child of the node at this zipper,

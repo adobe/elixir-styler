@@ -184,7 +184,7 @@ defmodule Styler.Style.ModuleDirectives do
         |> Zipper.update(&Zipper.replace_children(&1, directives))
         |> Zipper.down()
         |> Zipper.rightmost()
-        |> Zipper.append_siblings(nondirectives)
+        |> Zipper.insert_siblings(nondirectives)
     end
   end
 
