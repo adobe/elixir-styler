@@ -71,7 +71,8 @@ defmodule Styler.Style.ModuleDirectives do
   @directives ~w(alias import require use)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a
 
-  @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
+  @moduledoc_false {:@, [end_of_expression: [newlines: 2, line: nil], line: nil],
+                    [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
 
   def run({{:defmodule, _, children}, _} = zipper, ctx) do
     [name, [{{:__block__, do_meta, [:do]}, _body}]] = children
@@ -149,7 +150,7 @@ defmodule Styler.Style.ModuleDirectives do
       end)
 
     shortdocs = directives[:"@shortdoc"] || []
-    moduledocs = directives[:"@moduledoc"] || List.wrap(moduledoc)
+    moduledocs = (directives[:"@moduledoc"] || List.wrap(moduledoc)) |> reset_newlines()
     behaviours = expand_and_sort(directives[:"@behaviour"] || [])
 
     uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> reset_newlines()
