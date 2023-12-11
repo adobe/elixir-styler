@@ -86,7 +86,7 @@ defmodule Styler.Style.ModuleDirectives do
       case Zipper.node(body_zipper) do
         {:__block__, _, _} ->
           {zipper, comments} = organize_directives(body_zipper, moduledoc, ctx.comments)
-          {:skip, zipper, %{ctx | comments: comments}
+          {:skip, zipper, %{ctx | comments: comments}}
 
         {:@, _, [{:moduledoc, _, _}]} ->
           # a module whose only child is a moduledoc. nothing to do here!
@@ -118,7 +118,7 @@ defmodule Styler.Style.ModuleDirectives do
   def run({{directive, _, children}, _} = zipper, ctx) when directive in @directives and is_list(children) do
     parent = zipper |> Style.ensure_block_parent() |> Zipper.up()
     {zipper, comments} = organize_directives(parent, ctx.comments)
-    {:skip, zipper, %{ctx | comments: comments}
+    {:skip, zipper, %{ctx | comments: comments}}
   end
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
@@ -160,7 +160,7 @@ defmodule Styler.Style.ModuleDirectives do
     all_aliases = directives[:alias] || []
     aliases = expand_and_sort(all_aliases)
 
-    directives =
+    {directives, comments} =
       [
         shortdocs,
         moduledocs,
@@ -171,23 +171,26 @@ defmodule Styler.Style.ModuleDirectives do
         requires
       ]
       |> Enum.concat()
-      |> fix_line_numbers(List.first(nondirectives))
+      |> fix_line_numbers(List.first(nondirectives), comments)
 
-    cond do
-      # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
-      Enum.empty?(directives) and Enum.empty?(all_aliases) ->
-        parent
+    zipper =
+      cond do
+        # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
+        Enum.empty?(directives) and Enum.empty?(all_aliases) ->
+          parent
 
-      Enum.empty?(nondirectives) ->
-        Zipper.update(parent, &Zipper.replace_children(&1, directives))
+        Enum.empty?(nondirectives) ->
+          Zipper.update(parent, &Zipper.replace_children(&1, directives))
 
-      true ->
-        parent
-        |> Zipper.update(&Zipper.replace_children(&1, directives))
-        |> Zipper.down()
-        |> Zipper.rightmost()
-        |> Zipper.insert_siblings(nondirectives)
-    end
+        true ->
+          parent
+          |> Zipper.update(&Zipper.replace_children(&1, directives))
+          |> Zipper.down()
+          |> Zipper.rightmost()
+          |> Zipper.insert_siblings(nondirectives)
+      end
+
+    {zipper, comments}
   end
 
   # This is the step that ensures that comments don't get wrecked as part of us moving AST nodes willy-nilly.
@@ -219,12 +222,12 @@ defmodule Styler.Style.ModuleDirectives do
   defp fix_line_numbers(directives, acc \\ [], first_non_directive, comments)
 
   defp fix_line_numbers([this, next | rest], acc, first_non_directive, comments) do
-    {this, comments} = cap_line(this, next)
+    {this, comments} = cap_line(this, next, comments)
     fix_line_numbers([next | rest], [this | acc], first_non_directive, comments)
   end
 
   defp fix_line_numbers([last], acc, first_non_directive, comments) do
-    {last, comments} = if first_non_directive, do: cap_line(last, first_non_directive), else: {last, comments}
+    {last, comments} = if first_non_directive, do: cap_line(last, first_non_directive, comments), else: {last, comments}
     {Enum.reverse([last | acc]), comments}
   end
 
