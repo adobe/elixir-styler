@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.11.0
+
 ### Improvements
 
 #### Comments
@@ -26,7 +28,6 @@ This release has a slew of improvements for `with` statements. It's not surprisi
 ### Fixes
 
 * `with`: various edge cases we can only hope no one's encountered and thus never reported
-
 
 ## v0.10.5
 
