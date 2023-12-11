@@ -235,6 +235,16 @@ defmodule Styler.Style.ModuleDirectives do
     next_line = next_meta[:line]
 
     if this_line > next_line do
+      # it's not enought to say "give me comments from previous lines"
+      # because the precious line could be
+      # alias A # this is A
+      # and so we'd steal the alias from A!
+      # instead, we need to annotate each node with the line number of the preceding line of ast
+      # not sure what the best way to do tha tis. it needs to be Zipper.prev, not left, unless I use max_line to get the max from each prev...
+      # once things are annotated, we can know exactly what range to look for comments to attach to this node
+      # (preceding_ast_line + 1).. this_line
+      # the comments need to be popped out of place and put back into comments list as a group,
+      # to make sure i don't intersperse comments
       comments = Style.move_preceding_comments(comments, this_line, next_line - 2)
       this = Style.set_line(this, next_line - 2, delete_newlines: false)
       {this, comments}
