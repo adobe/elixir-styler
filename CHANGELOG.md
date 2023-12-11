@@ -4,20 +4,29 @@
 
 ### Improvements
 
-All styles now deal reasonably with comments.
+#### Comments
+
+Styler will no longer make comments jump around in any situation, and will move comments with the appropriate node in all cases but module directive rearrangement (where they'll just be left behind - sorry! we're still working on it).
+
+* Keep comments in logical places when rewriting if/unless/cond/with (#79, #97, #101, #103)
 
 #### With Statements
 
-A slew of improvements for the `with` statement in this release:
+This release has a slew of improvements for `with` statements. It's not surprising that there's lots of style rules for `with` given that just about any `case`, `if`, or even `cond do` could also be expressed as a `with`. They're very powerful! And with great power...
 
-* rewrite trivial `lhs <- rhs` to `lhs = rhs` (#86)
-* rewrite `with` statements all the way to `if` statements when appropriate
-* switch keyword `, do: ` to `do end` rather than wrapping multiple statements in parens
+* style trivial pattern matches ala `lhs <- rhs` to `lhs = rhs` (#86)
+* style `_ <- rhs` to `rhs`
+* style keyword `, do: ` to `do end` rather than wrapping multiple statements in parens
+* style statements all the way to `if` statements when appropriate (#100)
 
 #### Other
 
 * Rewrite `{Map|Keyword}.merge(single_key: value)` to use `put/3` instead (#96)
-* Keep comments in logical places when rewriting if/unless/cond/with (#97)
+
+### Fixes
+
+* `with`: various edge cases we can only hope no one's encountered and thus never reported
+
 
 ## v0.10.5
 
@@ -29,6 +38,7 @@ In short, we now have `assert style(x) == style(style(x))` as part of every test
 ### Fixes
 
 * alias: fix single-module alias deletion newlines bug
+* comments: ensure all generated nodes always include line meta (#101)
 
 ## v0.10.4
 
