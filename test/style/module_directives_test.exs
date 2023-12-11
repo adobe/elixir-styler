@@ -397,9 +397,11 @@ defmodule Styler.Style.ModuleDirectivesTest do
         defmodule Foo do
           # mdf
           @moduledoc false
+          # A
           alias A.A
           # B
           alias B.B
+          # C
           alias C.C
 
           # foo
@@ -407,9 +409,6 @@ defmodule Styler.Style.ModuleDirectivesTest do
             # ok
             :ok
           end
-
-          # C
-          # A
         end
         """
       )

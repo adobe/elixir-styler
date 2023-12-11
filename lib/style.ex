@@ -98,6 +98,11 @@ defmodule Styler.Style do
     |> Zipper.down()
   end
 
+  def move_preceding_comments(comments, _, _) do
+    IO.puts "impl plz!"
+    comments
+  end
+
   @doc """
   Set the line of all comments with `line` in `range_start..range_end` to instead have line `range_start`
   """

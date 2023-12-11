@@ -85,7 +85,8 @@ defmodule Styler.Style.ModuleDirectives do
 
       case Zipper.node(body_zipper) do
         {:__block__, _, _} ->
-          {:skip, organize_directives(body_zipper, moduledoc), ctx}
+          {zipper, comments} = organize_directives(body_zipper, moduledoc, ctx.comments)
+          {:skip, zipper, %{ctx | comments: comments}
 
         {:@, _, [{:moduledoc, _, _}]} ->
           # a module whose only child is a moduledoc. nothing to do here!
@@ -116,7 +117,8 @@ defmodule Styler.Style.ModuleDirectives do
 
   def run({{directive, _, children}, _} = zipper, ctx) when directive in @directives and is_list(children) do
     parent = zipper |> Style.ensure_block_parent() |> Zipper.up()
-    {:skip, organize_directives(parent), ctx}
+    {zipper, comments} = organize_directives(parent, ctx.comments)
+    {:skip, zipper, %{ctx | comments: comments}
   end
 
   def run(zipper, ctx), do: {:cont, zipper, ctx}
@@ -132,7 +134,7 @@ defmodule Styler.Style.ModuleDirectives do
   # a dynamic module name, like `defmodule my_variable do ... end`
   defp moduledoc(_), do: nil
 
-  defp organize_directives(parent, moduledoc \\ nil) do
+  defp organize_directives(parent, moduledoc \\ nil, comments) do
     {directives, nondirectives} =
       parent
       |> Zipper.children()
@@ -214,32 +216,30 @@ defmodule Styler.Style.ModuleDirectives do
   # This fixes that error by ensuring the following property:
   # A given node of AST cannot have a line number greater than the next AST node.
   # Et voila! Comments behave much better.
-  defp fix_line_numbers(directives, acc \\ [], first_non_directive)
+  defp fix_line_numbers(directives, acc \\ [], first_non_directive, comments)
 
-  defp fix_line_numbers([this, next | rest], acc, first_non_directive) do
-    this = cap_line(this, next)
-    fix_line_numbers([next | rest], [this | acc], first_non_directive)
+  defp fix_line_numbers([this, next | rest], acc, first_non_directive, comments) do
+    {this, comments} = cap_line(this, next)
+    fix_line_numbers([next | rest], [this | acc], first_non_directive, comments)
   end
 
-  defp fix_line_numbers([last], acc, first_non_directive) do
-    last = if first_non_directive, do: cap_line(last, first_non_directive), else: last
-    Enum.reverse([last | acc])
+  defp fix_line_numbers([last], acc, first_non_directive, comments) do
+    {last, comments} = if first_non_directive, do: cap_line(last, first_non_directive), else: {last, comments}
+    {Enum.reverse([last | acc]), comments}
   end
 
-  defp fix_line_numbers([], [], _), do: []
+  defp fix_line_numbers([], [], _, comments), do: {[], comments}
 
-  defp cap_line({_, this_meta, _} = this, {_, next_meta, _}) do
+  defp cap_line({_, this_meta, _} = this, {_, next_meta, _}, comments) do
     this_line = this_meta[:line]
     next_line = next_meta[:line]
 
     if this_line > next_line do
-      # Subtracting 2 helps the behaviour with one-liner comments preceding the next node. It's a bit of a hack.
-      # TODO: look into the comments list and
-      # 1. move comment blocks preceding `this` up with it
-      # 2. find the earliest comment before `next` and set `new_line` to that value - 1
-      Style.set_line(this, next_line - 2, delete_newlines: false)
+      comments = Style.move_preceding_comments(comments, this_line, next_line - 2)
+      this = Style.set_line(this, next_line - 2, delete_newlines: false)
+      {this, comments}
     else
-      this
+      {this, comments}
     end
   end
 
