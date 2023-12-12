@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.11.1
+
 ### Fixes
 
 * `with`: fix `with` replacement when it's the only child of a `do` or `->` block (Closes #107, h/t @kerryb -- turns out those edge cases _did_ exist in the wild!)
