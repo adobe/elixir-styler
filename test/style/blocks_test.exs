@@ -307,6 +307,36 @@ defmodule Styler.Style.BlocksTest do
         y()
         """
       )
+
+      assert_style(
+        """
+        def run() do
+          with value <- arg do
+            value
+          end
+        end
+        """,
+        """
+        def run do
+          arg
+        end
+        """
+      )
+
+      assert_style(
+        """
+        fn ->
+          with value <- arg do
+            value
+          end
+        end
+        """,
+        """
+        fn ->
+          arg
+        end
+        """
+      )
     end
 
     test "doesn't false positive with vars" do

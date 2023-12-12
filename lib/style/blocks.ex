@@ -202,22 +202,47 @@ defmodule Styler.Style.Blocks do
   # `a = b(); c = d(); :ok`
   defp replace_with_statement(zipper, preroll) do
     [[{_do, do_body} | _elses] | preroll] = Enum.reverse(preroll)
-    block = Enum.reverse(preroll, [do_body])
+
+    # RedundantWithClauseResult except we rewrote the `<-` to an `=`
+    # with a, b, x <- y(), do: x
+    # =>
+    # a; b; y
+    block =
+      case preroll do
+        [{:=, _, [lhs, rhs]} | rest] ->
+          if nodes_equivalent?(lhs, do_body),
+            do: [rhs | rest],
+            else: [do_body | preroll]
+
+        _ ->
+          [do_body | preroll]
+      end
+
+    block = Enum.reverse(block)
 
     case Zipper.up(zipper) do
-      nil ->
-        Zipper.zip({:__block__, [], block})
-
+      # x = with a, b, c, do: d
+      # =>
+      # x =
+      #   (
+      #     a
+      #     b
+      #     c
+      #     d
+      #   )
+      # @TODO would be nice to changeto
+      # a
+      # b
+      # c
+      # x = d
       {{:=, _, _}, _} ->
         Zipper.update(zipper, fn {:with, meta, _} -> {:__block__, Keyword.take(meta, [:line]), block} end)
 
-      {{:__block__, _, _}, _} ->
+      _ ->
         zipper
+        |> Style.ensure_block_parent()
         |> Zipper.prepend_siblings(block)
         |> Zipper.remove()
-
-      {ast, _} ->
-        raise "unexpected `with` parent ast: #{inspect(ast)}"
     end
   end
 
