@@ -209,8 +209,13 @@ defmodule Styler.Style.Blocks do
     # a; b; y
     block =
       case preroll do
-        [{:=, _, [lhs, rhs]} | rest] -> if nodes_equivalent?(lhs, do_body), do: [rhs | rest], else: [do_body | preroll]
-        _ -> [do_body | preroll]
+        [{:=, _, [lhs, rhs]} | rest] ->
+          if nodes_equivalent?(lhs, do_body),
+            do: [rhs | rest],
+            else: [do_body | preroll]
+
+        _ ->
+          [do_body | preroll]
       end
 
     block = Enum.reverse(block)
