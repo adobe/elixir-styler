@@ -271,6 +271,7 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style("-543213", "-543_213")
       assert_style("123456789", "123_456_789")
       assert_style("55333.22", "55_333.22")
+      assert_style("149_1491", "1_491_491")
       assert_style("-123456728.0001", "-123_456_728.0001")
     end
 
@@ -282,6 +283,8 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style("0x123456")
       assert_style("0b1111_1111_1111_1111")
       assert_style("0o777_7777")
+      assert_style("149_45")
+      assert_style("1_149_00")
     end
   end
 

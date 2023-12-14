@@ -45,6 +45,10 @@ defmodule Styler.Style.SingleNode do
   # Add / Correct `_` location in large numbers. Formatter handles large number (>5 digits) rewrites,
   # but doesn't rewrite typos like `100_000_0`, so it's worthwhile to have Styler do this
   #
+  # Styler does allow tokens to end with a `_` followed by two digit characters. In this case
+  # no rewrite will happen. While conflicting with Credo, this exception allows numbers to be written
+  # as `149_00` to represent a price in cents for ease of readability.
+  #
   # `?-` isn't part of the number node - it's its parent - so all numbers are positive at this point
   defp style({:__block__, meta, [number]}) when is_number(number) and number >= 10_000 do
     # Checking here rather than in the anon function due to compiler bug https://github.com/elixir-lang/elixir/issues/10485
@@ -62,7 +66,9 @@ defmodule Styler.Style.SingleNode do
           token
 
         token when integer? ->
-          delimit(token)
+          if Regex.match?(~r/^.+\_\d{2}$/, token),
+            do: token,
+            else: delimit(token)
 
         # is float
         token ->
