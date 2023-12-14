@@ -27,8 +27,16 @@ defmodule Styler.Style.SingleNode do
 
   @behaviour Styler.Style
 
+  import Styler.Style.Blocks, only: [is_negator: 1]
+
   alias Styler.Style
   alias Styler.Zipper
+
+  @enum_functions [:any?, :empty?]
+  @enum_functions_mapper %{
+    any?: :empty?,
+    empty?: :any?
+  }
 
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 
@@ -138,6 +146,18 @@ defmodule Styler.Style.SingleNode do
   defp style({{:__block__, _, [:else]} = else_, arrows}), do: {else_, rewrite_arrows(arrows)}
   defp style({:case, cm, [head, [{do_, arrows}]]}), do: {:case, cm, [head, [{do_, rewrite_arrows(arrows)}]]}
   defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
+
+  # Negation of Enum.any? => Enum.empty? and Negation of Enum.empty? => Enum.any?
+  defp style({negator, _, [{{:., dm, [{:__aliases__, am, [:Enum]}, enum_function]}, funm, [arg]}]})
+       when enum_function in @enum_functions and is_negator(negator) do
+    {{:., dm, [{:__aliases__, am, [:Enum]}, Map.get(@enum_functions_mapper, enum_function)]}, funm, [arg]}
+  end
+
+  defp style({:unless, m, [{{:., dm, [{:__aliases__, am, [:Enum]}, enum_function]}, funm, [arg]}, block]})
+       when enum_function in @enum_functions do
+    {:if, m,
+     [{{:., dm, [{:__aliases__, am, [:Enum]}, Map.get(@enum_functions_mapper, enum_function)]}, funm, [arg]}, block]}
+  end
 
   defp style(node), do: node
 
