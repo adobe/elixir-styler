@@ -27,7 +27,7 @@ defmodule Styler.Style.SingleNode do
 
   @behaviour Styler.Style
 
-  import Styler.Style.Blocks, only: [is_negator: 1]
+  import Styler.Style, only: [is_negator: 1]
 
   alias Styler.Style
   alias Styler.Zipper
