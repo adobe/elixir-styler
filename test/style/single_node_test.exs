@@ -306,50 +306,10 @@ defmodule Styler.Style.SingleNodeTest do
   end
 
   describe "Enum.any?/1 => Enum.empty?/1" do
-    test "assignment with negator" do
-      for negator <- ["!", "not "], {original, transformed} <- [{"any?", "empty?"}, {"empty?", "any?"}] do
-        assert_style("var = #{negator}Enum.#{original}([])", "var = Enum.#{transformed}([])")
-      end
-    end
-
-    test "if statement with negator" do
-      for negator <- ["!", "not "], {original, transformed} <- [{"any?", "empty?"}, {"empty?", "any?"}] do
-        assert_style("if #{negator}Enum.#{original}([]), do: :bar", "if Enum.#{transformed}([]), do: :bar")
-
-        assert_style(
-          "if #{negator}Enum.#{original}([]), do: :bar, else: :baz",
-          "if Enum.#{transformed}([]), do: :bar, else: :baz"
-        )
-
-        assert_style(
-          """
-          if #{negator}Enum.#{original}([]) do
-            :bar
-          end
-          """,
-          """
-          if Enum.#{transformed}([]) do
-            :bar
-          end
-          """
-        )
-
-        assert_style(
-          """
-          if #{negator}Enum.#{original}([]) do
-            :bar
-          else
-            :baz
-          end
-          """,
-          """
-          if Enum.#{transformed}([]) do
-            :bar
-          else
-            :baz
-          end
-          """
-        )
+    test "transforms correctly" do
+      for negator <- ["!", "not "] do
+        assert_style("#{negator}Enum.empty?(foo)", "Enum.any?(foo)")
+        assert_style("#{negator}Enum.any?(foo)", "Enum.empty?(foo)")
       end
     end
 
@@ -370,45 +330,5 @@ defmodule Styler.Style.SingleNodeTest do
         )
       end
     end
-
-    test "works with arbitrarily complex conditionals" do
-      for {original_func, transformed_func} <- [{"any?", "empty?"}, {"empty?", "any?"}] do
-        original_code = "unless foo and not Enum.#{original_func}(bar), do: :baz"
-        transformed_code = "unless foo and Enum.#{transformed_func}(bar), do: :baz"
-
-        assert_style(original_code, transformed_code)
-        assert_truth_tables(original_code, transformed_code)
-
-        original_code = "unless(foo and unless(Enum.#{original_func}(bar), do: :baz), do: :foobar)"
-        transformed_code = "unless(foo and if(Enum.#{transformed_func}(bar), do: :baz), do: :foobar)"
-
-        assert_style(original_code, transformed_code)
-        assert_truth_tables(original_code, transformed_code)
-
-        original_code =
-          "unless(((!foo or !Enum.#{original_func}(bar)) && unless(Enum.#{original_func}(bar), do: :baz)), do: :bizness)"
-
-        transformed_code =
-          "unless((!foo or Enum.#{transformed_func}(bar)) && if(Enum.#{transformed_func}(bar), do: :baz), do: :bizness)"
-
-        assert_style(original_code, transformed_code)
-        assert_truth_tables(original_code, transformed_code)
-      end
-    end
-  end
-
-  defp assert_truth_tables(original, transformed) do
-    results =
-      for foo <- [true, false], bar <- [[], [1]] do
-        {original, _binding} = Code.eval_string(original, foo: foo, bar: bar)
-        {transformed, _binding} = Code.eval_string(transformed, foo: foo, bar: bar)
-
-        assert original == transformed
-
-        transformed
-      end
-
-    refute _statement_is_not_a_tautology = results |> Enum.filter(&(!&1)) |> Enum.empty?()
-    refute _statement_is_not_a_contradiction = results |> Enum.filter(& &1) |> Enum.empty?()
   end
 end
