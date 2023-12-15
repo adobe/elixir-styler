@@ -313,7 +313,7 @@ defmodule Styler.Style.SingleNodeTest do
       end
     end
 
-    test "unless Enum.any? without else block" do
+    test "within unless clause without else block" do
       # When there is an Unless with an `else` block, the Credo.Check.Refactor.UnlessWithElse rule will be applied
       assert_style(
         """
