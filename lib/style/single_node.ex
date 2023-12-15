@@ -32,12 +32,6 @@ defmodule Styler.Style.SingleNode do
   alias Styler.Style
   alias Styler.Zipper
 
-  @enum_functions [:any?, :empty?]
-  @enum_functions_mapper %{
-    any?: :empty?,
-    empty?: :any?
-  }
-
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 
   # as of 1.15, elixir's formatter takes care of this for us.
@@ -148,15 +142,24 @@ defmodule Styler.Style.SingleNode do
   defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
 
   # Negation of Enum.any? => Enum.empty? and Negation of Enum.empty? => Enum.any?
-  defp style({negator, _, [{{:., dm, [{:__aliases__, am, [:Enum]}, enum_function]}, funm, [arg]}]})
-       when enum_function in @enum_functions and is_negator(negator) do
-    {{:., dm, [{:__aliases__, am, [:Enum]}, Map.get(@enum_functions_mapper, enum_function)]}, funm, [arg]}
+  defp style({negator, _, [{{:., dm, [{:__aliases__, am, [:Enum]}, :any?]}, funm, [arg]}]})
+       when is_negator(negator) do
+    {{:., dm, [{:__aliases__, am, [:Enum]}, :empty?]}, funm, [arg]}
   end
 
-  defp style({:unless, m, [{{:., dm, [{:__aliases__, am, [:Enum]}, enum_function]}, funm, [arg]}, block]})
-       when enum_function in @enum_functions do
+  defp style({negator, _, [{{:., dm, [{:__aliases__, am, [:Enum]}, :empty?]}, funm, [arg]}]})
+    when is_negator(negator) do
+    {{:., dm, [{:__aliases__, am, [:Enum]}, :any?]}, funm, [arg]}
+  end
+
+  defp style({:unless, m, [{{:., dm, [{:__aliases__, am, [:Enum]}, :any?]}, funm, [arg]}, block]}) do
     {:if, m,
-     [{{:., dm, [{:__aliases__, am, [:Enum]}, Map.get(@enum_functions_mapper, enum_function)]}, funm, [arg]}, block]}
+     [{{:., dm, [{:__aliases__, am, [:Enum]}, :empty?]}, funm, [arg]}, block]}
+  end
+
+  defp style({:unless, m, [{{:., dm, [{:__aliases__, am, [:Enum]}, :empty?]}, funm, [arg]}, block]}) do
+    {:if, m,
+     [{{:., dm, [{:__aliases__, am, [:Enum]}, :any?]}, funm, [arg]}, block]}
   end
 
   defp style(node), do: node
