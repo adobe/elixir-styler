@@ -314,21 +314,32 @@ defmodule Styler.Style.SingleNodeTest do
     end
 
     test "unless Enum.any? without else block" do
-      for {original, transformed} <- [{"any?", "empty?"}, {"empty?", "any?"}] do
-        # When there is an Unless with an `else` block, the Credo.Check.Refactor.UnlessWithElse rule will be applied
-        assert_style(
-          """
-          unless Enum.#{original}([]) do
-            a
-          end
-          """,
-          """
-          if Enum.#{transformed}([]) do
-            a
-          end
-          """
-        )
-      end
+      # When there is an Unless with an `else` block, the Credo.Check.Refactor.UnlessWithElse rule will be applied
+      assert_style(
+        """
+        unless Enum.any?([]) do
+          a
+        end
+        """,
+        """
+        if Enum.empty?([]) do
+          a
+        end
+        """
+      )
+
+      assert_style(
+        """
+        unless Enum.empty?([]) do
+          a
+        end
+        """,
+        """
+        if Enum.any?([]) do
+          a
+        end
+        """
+      )
     end
   end
 end
