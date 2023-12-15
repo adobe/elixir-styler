@@ -304,4 +304,42 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style("Enum.reverse(foo, bar) ++ bar")
     end
   end
+
+  describe "Enum.any?/1 => Enum.empty?/1" do
+    test "transforms correctly" do
+      for negator <- ["!", "not "] do
+        assert_style("#{negator}Enum.empty?(foo)", "Enum.any?(foo)")
+        assert_style("#{negator}Enum.any?(foo)", "Enum.empty?(foo)")
+      end
+    end
+
+    test "within unless clause without else block" do
+      # When there is an Unless with an `else` block, the Credo.Check.Refactor.UnlessWithElse rule will be applied
+      assert_style(
+        """
+        unless Enum.any?([]) do
+          a
+        end
+        """,
+        """
+        if Enum.empty?([]) do
+          a
+        end
+        """
+      )
+
+      assert_style(
+        """
+        unless Enum.empty?([]) do
+          a
+        end
+        """,
+        """
+        if Enum.any?([]) do
+          a
+        end
+        """
+      )
+    end
+  end
 end
