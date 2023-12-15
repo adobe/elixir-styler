@@ -142,24 +142,20 @@ defmodule Styler.Style.SingleNode do
   defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
 
   # Negation of Enum.any? => Enum.empty? and Negation of Enum.empty? => Enum.any?
-  defp style({negator, _, [{{:., dm, [{:__aliases__, am, [:Enum]}, :any?]}, funm, [arg]}]})
-       when is_negator(negator) do
+  defp style({negator, _, [{{:., dm, [{:__aliases__, am, [:Enum]}, :any?]}, funm, [arg]}]}) when is_negator(negator) do
     {{:., dm, [{:__aliases__, am, [:Enum]}, :empty?]}, funm, [arg]}
   end
 
-  defp style({negator, _, [{{:., dm, [{:__aliases__, am, [:Enum]}, :empty?]}, funm, [arg]}]})
-    when is_negator(negator) do
+  defp style({negator, _, [{{:., dm, [{:__aliases__, am, [:Enum]}, :empty?]}, funm, [arg]}]}) when is_negator(negator) do
     {{:., dm, [{:__aliases__, am, [:Enum]}, :any?]}, funm, [arg]}
   end
 
   defp style({:unless, m, [{{:., dm, [{:__aliases__, am, [:Enum]}, :any?]}, funm, [arg]}, block]}) do
-    {:if, m,
-     [{{:., dm, [{:__aliases__, am, [:Enum]}, :empty?]}, funm, [arg]}, block]}
+    {:if, m, [{{:., dm, [{:__aliases__, am, [:Enum]}, :empty?]}, funm, [arg]}, block]}
   end
 
   defp style({:unless, m, [{{:., dm, [{:__aliases__, am, [:Enum]}, :empty?]}, funm, [arg]}, block]}) do
-    {:if, m,
-     [{{:., dm, [{:__aliases__, am, [:Enum]}, :any?]}, funm, [arg]}, block]}
+    {:if, m, [{{:., dm, [{:__aliases__, am, [:Enum]}, :any?]}, funm, [arg]}, block]}
   end
 
   defp style(node), do: node
