@@ -315,31 +315,9 @@ defmodule Styler.Style.SingleNodeTest do
 
     test "within unless clause without else block" do
       # When there is an Unless with an `else` block, the Credo.Check.Refactor.UnlessWithElse rule will be applied
-      assert_style(
-        """
-        unless Enum.any?([]) do
-          a
-        end
-        """,
-        """
-        if Enum.empty?([]) do
-          a
-        end
-        """
-      )
-
-      assert_style(
-        """
-        unless Enum.empty?([]) do
-          a
-        end
-        """,
-        """
-        if Enum.any?([]) do
-          a
-        end
-        """
-      )
+      assert_style("unless Enum.any?(foo), do: a", "if Enum.empty?(foo), do: a")
+      assert_style("unless Enum.empty?([]), do: a", "if Enum.any?([]), do: a")
+      assert_style("unless !Enum.any?([]), do: a", "if Enum.any?([]), do: a")
     end
   end
 end
