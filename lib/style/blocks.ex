@@ -27,10 +27,10 @@ defmodule Styler.Style.Blocks do
 
   @behaviour Styler.Style
 
-  import Styler.Style, only: [is_negator: 1]
-
   alias Styler.Style
   alias Styler.Zipper
+
+  defguardp is_negator(n) when n in [:!, :not]
 
   # case statement with exactly 2 `->` cases
   # rewrite to `if` if it's any of 3 trivial cases
