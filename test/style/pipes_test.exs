@@ -672,4 +672,34 @@ defmodule Styler.Style.PipesTest do
       end
     end
   end
+
+  describe "configurable" do
+    test "filename prefix is ignored" do
+      assert_style("f(g(h(x))) |> j()", "f(g(h(x))) |> j()", "lib/test.exs",
+        config: [
+          {Styler.Style.Pipes, ignore_prefixes: ["lib/"]}
+        ]
+      )
+    end
+
+    test "filename not in prefix is styled" do
+      assert_style("f(g(h(x))) |> j()", "x |> h() |> g() |> f() |> j()", "test/test.exs",
+        config: [
+          {Styler.Style.Pipes, ignore_prefixes: ["lib/"]}
+        ]
+      )
+    end
+
+    test "filename prefix is ignored with multiple prefixes" do
+      assert_style("f(g(h(x))) |> j()", "f(g(h(x))) |> j()", "lib/test.exs",
+        config: [
+          {Styler.Style.Pipes, ignore_prefixes: ["lib/", "test/"]}
+        ]
+      )
+    end
+
+    test "if style is not present, no changes are made" do
+      assert_style("f(g(h(x))) |> j()", "f(g(h(x))) |> j()", "lib/test.exs", config: [])
+    end
+  end
 end

@@ -29,11 +29,28 @@ defmodule Styler do
   @doc false
   def style({ast, comments}, file, opts) do
     on_error = opts[:on_error] || :log
+    enabled_styles = opts[:config] || @styles
     zipper = Zipper.zip(ast)
     context = %{comments: comments, file: file}
 
     {{ast, _}, %{comments: comments}} =
-      Enum.reduce(@styles, {zipper, context}, fn style, {zipper, context} ->
+      enabled_styles
+      |> Enum.filter(fn
+        {_style, opts} ->
+          if Keyword.has_key?(opts, :ignore_prefixes) do
+            !Enum.any?(opts[:ignore_prefixes], &String.starts_with?(file, Path.join(File.cwd!(), &1)))
+          else
+            true
+          end
+
+        _style ->
+          true
+      end)
+      |> Enum.map(fn
+        {style, _opts} -> style
+        style -> style
+      end)
+      |> Enum.reduce({zipper, context}, fn style, {zipper, context} ->
         try do
           Zipper.traverse_while(zipper, context, &style.run/2)
         rescue
@@ -56,9 +73,26 @@ defmodule Styler do
   @impl Mix.Tasks.Format
   def features(_opts), do: [sigils: [], extensions: [".ex", ".exs"]]
 
+  @doc """
+  Options is a list of styles, that can have options, à la credo:
+
+  Example `.formatter.exs`:
+
+  [
+    plugins: [Styler],
+    styler: [
+      {Styler.Style.ModuleDirectives, ignore_prefixes: ["lib/"]},
+      {Styler.Style.Pipes, ignore_prefixes: ["test/"]},
+    ]
+  ]
+
+  For now, the only config is `ignore_prefixes`, which is a list of file
+  prefixes to ignore when styling.
+  """
   @impl Mix.Tasks.Format
   def format(input, formatter_opts, opts \\ []) do
     file = formatter_opts[:file]
+    opts = Keyword.put(opts, :config, formatter_opts[:styler])
 
     {ast, comments} =
       input

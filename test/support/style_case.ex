@@ -16,18 +16,18 @@ defmodule Styler.StyleCase do
 
   using do
     quote do
-      import unquote(__MODULE__), only: [assert_style: 1, assert_style: 2, style: 1]
+      import unquote(__MODULE__), only: [assert_style: 1, assert_style: 2, assert_style: 3, assert_style: 4, style: 3]
     end
   end
 
-  defmacro assert_style(before, expected \\ nil) do
+  defmacro assert_style(before, expected \\ nil, filename \\ "testfile", opts \\ []) do
     expected = expected || before
 
-    quote bind_quoted: [before: before, expected: expected] do
+    quote bind_quoted: [before: before, expected: expected, filename: filename, opts: opts] do
       alias Styler.Zipper
 
       expected = String.trim(expected)
-      {styled_ast, styled, styled_comments} = style(before)
+      {styled_ast, styled, styled_comments} = style(before, filename, opts)
 
       if styled != expected and ExUnit.configuration()[:trace] do
         IO.puts("\n======Given=============\n")
@@ -89,7 +89,7 @@ defmodule Styler.StyleCase do
       end)
 
       assert expected == styled
-      {_, restyled, _} = style(styled)
+      {_, restyled, _} = style(styled, filename, opts)
 
       assert restyled == styled, """
       expected styling to be idempotent, but a second pass resulted in more changes.
@@ -107,9 +107,12 @@ defmodule Styler.StyleCase do
     end
   end
 
-  def style(code) do
+  def style(code, filename, opts) do
     {ast, comments} = Styler.string_to_quoted_with_comments(code)
-    {styled_ast, comments} = Styler.style({ast, comments}, "testfile", on_error: :raise)
+
+    opts = Keyword.put(opts, :on_error, :raise)
+
+    {styled_ast, comments} = Styler.style({ast, comments}, Path.join(File.cwd!(), filename), opts)
 
     try do
       styled_code = styled_ast |> Styler.quoted_to_string(comments) |> String.trim_trailing("\n")
