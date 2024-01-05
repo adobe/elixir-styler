@@ -75,19 +75,17 @@ defmodule Styler.Style do
   """
   def ensure_block_parent(zipper) do
     case Zipper.up(zipper) do
-      # Pipes and assignments have exactly two children - keep going up
-      {{:|>, _, _}, _} = parent -> ensure_block_parent(parent)
-      {{:=, _, _}, _} = parent -> ensure_block_parent(parent)
-      # the current zipper is an only-child of an arrow ala `true -> :ok`
-      # we need to change the body of the arrow to be a `:__block__` so our `:ok` can have siblings
+      # parent is a block!
+      {{:__block__, _, _}, _} -> zipper
+      # when a statement is an only child, it doesn't get a block wrapper
+      # only child of a right arrow
       {{:->, _, _}, _} -> wrap_in_block(zipper)
-      # parent is an only-child of a `do` block
+      # only child of a `do` block
       {{_, _}, _} -> wrap_in_block(zipper)
-      # a snippet or script where the zipper is a single child with no parent above it
+      # one line snippet
       nil -> wrap_in_block(zipper)
-      # since its parent isn't one of the problem AST above, the current zipper's parent can have multiple children, so we're done
-      # could be `:def`, `:__block__`, ...
-      _ -> zipper
+      # we're in a pipe, assignment, function call, etc. gotta keep going up looking for a block
+      parent -> ensure_block_parent(parent)
     end
   end
 

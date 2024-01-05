@@ -2,6 +2,13 @@
 
 ## main
 
+## v0.11.2
+
+### Fixes
+
+* `pipes`: fix unpiping do-blocks into variables when the parent expression is a function invocation
+    like `a(if x do y end |> z(), b)` (Closes #114, h/t @wkirschbaum)
+
 ## v0.11.1
 
 ### Fixes

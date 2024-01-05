@@ -81,6 +81,20 @@ defmodule Styler.Style.PipesTest do
   end
 
   describe "block pipe starts" do
+    test "parent is a function invocation" do
+      assert_style(
+        "a(if x do y end |> foo(), b)",
+        """
+        if_result =
+          if x do
+            y
+          end
+
+        a(foo(if_result), b)
+        """
+      )
+    end
+
     test "handles arbitrary do-block macros" do
       assert_style("""
       IO.puts(
