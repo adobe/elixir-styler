@@ -211,8 +211,16 @@ defmodule Styler.Style.ModuleDirectivesTest do
   end
 
   describe "strange parents!" do
-    test "regression: doesn't trigger on variables" do
+    test "regression: only triggers on SpecialForms, ignoring functions and vars" do
       assert_style("def foo(alias), do: Foo.bar(alias)")
+
+      assert_style("""
+      defmodule Foo do
+        @moduledoc false
+        @spec import(any(), any(), any()) :: any()
+        def import(a, b, c), do: nil
+      end
+      """)
     end
 
     test "anon function" do

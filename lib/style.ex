@@ -64,14 +64,19 @@ defmodule Styler.Style do
     |> Zipper.root()
   end
 
+  def in_block?(zipper) do
+    case Zipper.up(zipper) do
+      {{node, _, _}, _} when node in [:__block__, :->] -> true
+      {{_, _}, _} -> true
+      nil -> true
+      _ -> false
+    end
+  end
+
   @doc """
-  Ensure the parent node can have multiple children.
+  Returns a zipper focused on the nearest node where additional nodes can be inserted (a "block").
 
-  If a context-changing node (a `do end` block or an `->` arrow block) is encountered
-  the child is wrapped in a `:__block__`
-
-  Other nodes (pipes, assignments) can only have a fixed number of children. This function
-  will recursively traverse up the zipper until it's found the parents of those nodes.
+  The nearest node is either the current node, an ancestor, or one of those two but wrapped in a new `:__block__`
   """
   def ensure_block_parent(zipper) do
     case Zipper.up(zipper) do

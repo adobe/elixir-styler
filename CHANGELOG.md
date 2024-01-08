@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.11.3
+
+### Fixes
+
+* `directives`: fix infinite loop when encountering `@spec import(...) :: ...` (Closes #115, h/t @kerryb)
+
 ## v0.11.2
 
 ### Fixes
