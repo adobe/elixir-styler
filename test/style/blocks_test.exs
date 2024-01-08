@@ -240,7 +240,7 @@ defmodule Styler.Style.BlocksTest do
   end
 
   describe "with statements" do
-    test "the saddest edge case of all" do
+    test "replacement due to no (or all removed) arrows" do
       assert_style(
         """
         x()
@@ -335,6 +335,26 @@ defmodule Styler.Style.BlocksTest do
         fn ->
           arg
         end
+        """
+      )
+
+      assert_style(
+        """
+        foo(with a <- b(), c <- d(), e <- f() do
+          g
+        else
+          _ -> h
+        end)
+        """,
+        """
+        foo(
+          (
+            a = b()
+            c = d()
+            e = f()
+            g
+          )
+        )
         """
       )
     end
