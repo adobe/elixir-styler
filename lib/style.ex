@@ -64,6 +64,12 @@ defmodule Styler.Style do
     |> Zipper.root()
   end
 
+  @doc """
+  Is the current node a valid place to insert additional nodes? (a "block")
+
+  `ensure_block_parent/1` must be called even when this function returns true, in case the current node is a single child
+  """
+  # TODO There must be some better way to combine this + ensure_block_parent, but for now complexity wins out
   def in_block?(zipper) do
     case Zipper.up(zipper) do
       {{node, _, _}, _} when node in [:__block__, :->] -> true

@@ -2,11 +2,10 @@
 
 ## main
 
-## v0.11.3
-
 ### Fixes
 
-* `directives`: fix infinite loop when encountering `@spec import(...) :: ...` (Closes #115, h/t @kerryb)
+* directives: fix infinite loop when encountering `@spec import(...) :: ...` (Closes #115, h/t @kerryb)
+* `with`: fix deletion of arrow-less `with` statements within function invocations
 
 ## v0.11.2
 

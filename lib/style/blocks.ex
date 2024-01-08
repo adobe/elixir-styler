@@ -220,7 +220,14 @@ defmodule Styler.Style.Blocks do
 
     block = Enum.reverse(block)
 
-    case Zipper.up(zipper) do
+    if Style.in_block?(zipper) do
+      zipper
+      |> Style.ensure_block_parent()
+      |> Zipper.prepend_siblings(block)
+      |> Zipper.remove()
+    else
+      # this is a very sad case, where the `with` is an arg to a function or the rhs of an assignment.
+      # for now, just hacking a block with parens where the with use to be
       # x = with a, b, c, do: d
       # =>
       # x =
@@ -235,14 +242,7 @@ defmodule Styler.Style.Blocks do
       # b
       # c
       # x = d
-      {{:=, _, _}, _} ->
-        Zipper.update(zipper, fn {:with, meta, _} -> {:__block__, Keyword.take(meta, [:line]), block} end)
-
-      _ ->
-        zipper
-        |> Style.ensure_block_parent()
-        |> Zipper.prepend_siblings(block)
-        |> Zipper.remove()
+      Zipper.update(zipper, fn {:with, meta, _} -> {:__block__, Keyword.take(meta, [:line]), block} end)
     end
   end
 
