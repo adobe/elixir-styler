@@ -34,6 +34,7 @@ defmodule Styler.Zipper do
           }
 
   @type zipper :: {tree, path | nil}
+  @type t :: zipper
   @type command :: :cont | :skip | :halt
 
   @doc """

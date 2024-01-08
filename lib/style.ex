@@ -29,7 +29,7 @@ defmodule Styler.Style do
   You can skip traversing parts of the tree by returning a Zipper that's further along in the traversal, for example
   by calling `Zipper.skip(zipper)` to skip an entire subtree you know is of no interest to your Style.
   """
-  @callback run(Zipper.zipper(), context()) :: {Zipper.command(), Zipper.zipper(), context()}
+  @callback run(Zipper.t(), context()) :: {Zipper.command(), Zipper.t(), context()}
 
   @doc "Recursively sets `:line` meta to `line`. Deletes `:newlines` unless `delete_lines: false` is passed"
   def set_line(ast_node, line, opts \\ []) do
