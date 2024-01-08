@@ -132,7 +132,7 @@ defmodule Styler.Style.Blocks do
           Enum.any?(preroll) ->
             # put the preroll before the with statement in either a block we create or the existing parent block
             zipper
-            |> Style.ensure_block_parent()
+            |> Style.find_nearest_block()
             |> Zipper.prepend_siblings(preroll)
             |> run(ctx)
 
@@ -220,29 +220,30 @@ defmodule Styler.Style.Blocks do
 
     block = Enum.reverse(block)
 
-    if Style.in_block?(zipper) do
-      zipper
-      |> Style.ensure_block_parent()
-      |> Zipper.prepend_siblings(block)
-      |> Zipper.remove()
-    else
-      # this is a very sad case, where the `with` is an arg to a function or the rhs of an assignment.
-      # for now, just hacking a block with parens where the with use to be
-      # x = with a, b, c, do: d
-      # =>
-      # x =
-      #   (
-      #     a
-      #     b
-      #     c
-      #     d
-      #   )
-      # @TODO would be nice to changeto
-      # a
-      # b
-      # c
-      # x = d
-      Zipper.update(zipper, fn {:with, meta, _} -> {:__block__, Keyword.take(meta, [:line]), block} end)
+    case Style.ensure_block_parent(zipper) do
+      {:ok, zipper} ->
+        zipper
+        |> Zipper.prepend_siblings(block)
+        |> Zipper.remove()
+
+      :error ->
+        # this is a very sad case, where the `with` is an arg to a function or the rhs of an assignment.
+        # for now, just hacking a block with parens where the with use to be
+        # x = with a, b, c, do: d
+        # =>
+        # x =
+        #   (
+        #     a
+        #     b
+        #     c
+        #     d
+        #   )
+        # @TODO would be nice to changeto
+        # a
+        # b
+        # c
+        # x = d
+        Zipper.update(zipper, fn {:with, meta, _} -> {:__block__, Keyword.take(meta, [:line]), block} end)
     end
   end
 

@@ -72,7 +72,7 @@ defmodule Styler.Style.Pipes do
         # It's important to note that with this branch, we're no longer
         # focused on the pipe! We'll return to it in a future iteration of traverse_while
         {pipe, zmeta}
-        |> Style.ensure_block_parent()
+        |> Style.find_nearest_block()
         |> Zipper.insert_left(new_assignment)
         |> Zipper.left()
       else

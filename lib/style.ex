@@ -65,26 +65,33 @@ defmodule Styler.Style do
   end
 
   @doc """
-  Is the current node a valid place to insert additional nodes? (a "block")
-
-  `ensure_block_parent/1` must be called even when this function returns true, in case the current node is a single child
+  Returns the current node (wrapped in a `__block__` if necessary) if it's a valid place to insert additional nodes
   """
-  # TODO There must be some better way to combine this + ensure_block_parent, but for now complexity wins out
-  def in_block?(zipper) do
-    case Zipper.up(zipper) do
-      {{node, _, _}, _} when node in [:__block__, :->] -> true
-      {{_, _}, _} -> true
-      nil -> true
-      _ -> false
+  @spec ensure_block_parent(Zipper.t()) :: {:ok, Zipper.t()} | :error
+  def ensure_block_parent(zipper) do
+    valid_block_location? =
+      case Zipper.up(zipper) do
+        {{:__block__, _, _}, _} -> true
+        {{:->, _, _}, _} -> true
+        {{_, _}, _} -> true
+        nil -> true
+        _ -> false
+      end
+
+    if valid_block_location? do
+      {:ok, find_nearest_block(zipper)}
+    else
+      :error
     end
   end
 
   @doc """
   Returns a zipper focused on the nearest node where additional nodes can be inserted (a "block").
 
-  The nearest node is either the current node, an ancestor, or one of those two but wrapped in a new `:__block__`
+  The nearest node is either the current node, an ancestor, or one of those two but wrapped in a new `:__block__` node.
   """
-  def ensure_block_parent(zipper) do
+  @spec find_nearest_block(Zipper.t()) :: Zipper.t()
+  def find_nearest_block(zipper) do
     case Zipper.up(zipper) do
       # parent is a block!
       {{:__block__, _, _}, _} -> zipper
@@ -96,7 +103,7 @@ defmodule Styler.Style do
       # one line snippet
       nil -> wrap_in_block(zipper)
       # we're in a pipe, assignment, function call, etc. gotta keep going up looking for a block
-      parent -> ensure_block_parent(parent)
+      parent -> find_nearest_block(parent)
     end
   end
 

@@ -110,12 +110,10 @@ defmodule Styler.Style.ModuleDirectives do
   # Style directives inside of snippets or function defs.
   def run({{directive, _, children}, _} = zipper, ctx) when directive in @directives and is_list(children) do
     # Need to be careful that we aren't getting false positives on variables or fns like `def import(foo)` or `alias = 1`
-    if Style.in_block?(zipper) do
-      parent = zipper |> Style.ensure_block_parent() |> Zipper.up()
-      {:skip, organize_directives(parent), ctx}
-    else
+    case Style.ensure_block_parent(zipper) do
+      {:ok, zipper} -> {:skip, zipper |> Zipper.up() |> organize_directives(), ctx}
       # not actually a directive! carry on.
-      {:cont, zipper, ctx}
+      :error -> {:cont, zipper, ctx}
     end
   end
 
