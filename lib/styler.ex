@@ -32,8 +32,10 @@ defmodule Styler do
     zipper = Zipper.zip(ast)
     context = %{comments: comments, file: file}
 
+    styles = if opts[:dictate], do: [Styler.Dictum | @styles], else: @styles
+
     {{ast, _}, %{comments: comments}} =
-      Enum.reduce(@styles, {zipper, context}, fn style, {zipper, context} ->
+      Enum.reduce(styles, {zipper, context}, fn style, {zipper, context} ->
         try do
           Zipper.traverse_while(zipper, context, &style.run/2)
         rescue
@@ -57,8 +59,9 @@ defmodule Styler do
   def features(_opts), do: [sigils: [], extensions: [".ex", ".exs"]]
 
   @impl Mix.Tasks.Format
-  def format(input, formatter_opts, opts \\ []) do
+  def format(input, formatter_opts) do
     file = formatter_opts[:file]
+    opts = formatter_opts[:styler] || []
 
     {ast, comments} =
       input
