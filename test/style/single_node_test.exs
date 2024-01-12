@@ -30,11 +30,6 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
-  test "Logger.warn to Logger.warning" do
-    assert_style("Logger.warn(foo)", "Logger.warning(foo)")
-    assert_style("Logger.warn(foo, bar)", "Logger.warning(foo, bar)")
-  end
-
   describe "Timex.now/0,1" do
     test "Timex.now/0 => DateTime.utc_now/0" do
       assert_style("Timex.now()", "DateTime.utc_now()")

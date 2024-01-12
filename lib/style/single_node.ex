@@ -92,10 +92,6 @@ defmodule Styler.Style.SingleNode do
       do: {{:., dm, [module, :put]}, m, [lhs, key, value]}
   end
 
-  # Logger.warn => Logger.warning
-  defp style({{:., dm, [{:__aliases__, am, [:Logger]}, :warn]}, funm, args}),
-    do: {{:., dm, [{:__aliases__, am, [:Logger]}, :warning]}, funm, args}
-
   # Timex.now() => DateTime.utc_now()
   defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, []}),
     do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :utc_now]}, funm, []}
