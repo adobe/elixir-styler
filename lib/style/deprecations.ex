@@ -37,17 +37,28 @@ defmodule Styler.Style.Deprecations do
          when is_list(modes),
          do: {{:., dm, [{:__aliases__, am, [:File]}, :stream!]}, funm, [path, line_or_bytes, options]}
 
+    # For ranges where `start > stop`, you need to explicit mark them as increasing
     # Enum.slice(enumerable, 1..-2) => Enum.slice(enumerable, 1..-2//1)
     defp style(
-           {{:., dm, [{:__aliases__, am, [:Enum]}, :slice]}, funm,
-            [enumerable, {:.., rm, [{:__block__, _, _} = first, {:-, lm, _} = last]}]}
+           {{:., dm, [{:__aliases__, am, [:Enum]}, :slice]}, funm, [enumerable, {:.., rm, [first, {_, lm, _} = last]}]} =
+             block
          ) do
-      line = Keyword.fetch!(lm, :line)
-      step = {:__block__, [token: "1", line: line], [1]}
-      range_with_step = {:"..//", rm, [first, last, step]}
-      {{:., dm, [{:__aliases__, am, [:Enum]}, :slice]}, funm, [enumerable, range_with_step]}
+      start = extract_value_from_range(first)
+      stop = extract_value_from_range(last)
+
+      if start > stop do
+        line = Keyword.fetch!(lm, :line)
+        step = {:__block__, [token: "1", line: line], [1]}
+        range_with_step = {:"..//", rm, [first, last, step]}
+        {{:., dm, [{:__aliases__, am, [:Enum]}, :slice]}, funm, [enumerable, range_with_step]}
+      else
+        block
+      end
     end
   end
 
   defp style(node), do: node
+
+  def extract_value_from_range({:__block__, _, [value]}), do: value
+  def extract_value_from_range({:-, _, [{:__block__, _, [value]}]}), do: -value
 end
