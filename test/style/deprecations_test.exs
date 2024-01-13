@@ -30,6 +30,9 @@ defmodule Styler.Style.DeprecationsTest do
 
     test "negative steps with Enum.slice/2" do
       assert_style("Enum.slice([1, 2, 3, 4], 1..-2)", "Enum.slice([1, 2, 3, 4], 1..-2//1)")
+      assert_style("Enum.slice([1, 2, 3, 4], -1..-2)", "Enum.slice([1, 2, 3, 4], -1..-2//1)")
+      assert_style("Enum.slice([1, 2, 3, 4], 2..1)", "Enum.slice([1, 2, 3, 4], 2..1//1)")
+      assert_style("Enum.slice([1, 2, 3, 4, 5], 1..3)", "Enum.slice([1, 2, 3, 4, 5], 1..3)")
     end
   end
 end
