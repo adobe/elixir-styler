@@ -91,10 +91,9 @@ defmodule Styler.Speedo do
     {zipper, Map.update!(ctx, :errors, &[[pascal | errors] | &1])}
   end
 
-  # TODO all sorts of problems here. mostly, doesn't detect variable creation in case / cond / fn head etc.
   # Credo.Check.Readability.VariableNames
-
-  def run({{assignment_op, _, [lhs, _]}, _} = zipper, ctx) when assignment_op in ~w(<- ->)a do
+  # the `=` here will double report when nested in a case. need to move it to its own clause w/ "in block"
+  def run({{assignment_op, _, [lhs, _]}, _} = zipper, ctx) when assignment_op in ~w(= <- ->)a do
     {_, errors} = lhs |> Zipper.zip() |> Zipper.traverse([], &find_vars_with_bad_names(&1, &2, ctx.file))
     {zipper, Map.update!(ctx, :errors, &[errors | &1])}
   end
@@ -143,12 +142,14 @@ defmodule Styler.Speedo do
   def naughtyFun(naughtyParam) do
     IO.inspect(@badName)
 
+    naughtyAssignment = :ok
+
     with {:ugh, naughtyVar} <- {:ugh, naughtyParam} do
       naughtyVar
     end
   end
 
-  def foo(naughtyVar, %{bar: :x = naughtyVar}) do
+  def foo(naughtyParam2, %{bar: :x = naughtyParam3}) do
   end
 
   defexception [:foo]
