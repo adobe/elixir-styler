@@ -12,10 +12,10 @@ defmodule Styler.Speedo do
   alias Styler.Zipper
 
   @definer ~w(def defp defmacro defmacrop defguard defguardp)a
-  def run({{def, _, [{name, m, _} | _]}, _} = zipper, context) when def in @definer and is_atom(name) do
+  def run({{def, _, [{name, m, args} | _]}, _} = zipper, ctx) when def in @definer and is_atom(name) do
     line = m[:line]
     name = to_string(name)
-    error = %{file: context.file, line: line, check: nil, message: nil}
+    error = %{file: ctx.file, line: line, check: nil, message: nil}
 
     snake_error =
       unless snake_case?(name), do: %{error | check: FunctionNames, message: "`#{def} #{name}` is not snake case"}
@@ -37,24 +37,66 @@ defmodule Styler.Speedo do
           []
       end
 
-    context = Map.update!(context, :errors, &[snake_error, predicate_error | &1])
-    {zipper, context}
+    var_errors =
+      Enum.map(args || [], fn arg ->
+        {_, var_errors} = arg |> Zipper.zip() |> Zipper.traverse([], &find_vars_with_bad_names(&1, &2, ctx.file))
+        var_errors
+      end)
+
+    ctx = Map.update!(ctx, :errors, &[snake_error, predicate_error, var_errors | &1])
+    {zipper, ctx}
   end
 
-  # Credo.Check.Readability.VariableNames
-  def run({{name, m, nil}, _} = zipper, ctx) do
-    # probably get false positives here if people haven't run their pipes thru first
-    # also, when we start reporting multiple errors this'll need updating to only report at the place a var is created 🤔
-    error =
-      if not Styler.Style.in_block?(zipper) or snake_case?(name) or
-           name in [:__STACKTRACE__, :__CALLER__, :__DIR__, :__ENV__, :__MODULE__] do
-        []
-      else
-        %{file: ctx.file, line: m[:line], check: VariableNames, message: "`#{name}`: variables must be snake case"}
-      end
+  # Credo.Check.Readability.ModuleNames
+  def run({{:defmodule, _, [{:__aliases__, m, aliases} | _]}, _} = zipper, ctx) do
+    name = Enum.map_join(aliases, ".", &to_string/1)
+    error = %{file: ctx.file, line: m[:line], check: nil, message: nil}
 
-    ctx = Map.update!(ctx, :errors, &[error | &1])
-    {zipper, ctx}
+    pascal =
+      unless pascal_case?(name),
+        do: %{error | check: ModuleNames, message: "`defmodule #{inspect(name)}` is not pascal case"}
+
+    errors =
+      zipper
+      |> Zipper.down()
+      |> Zipper.right()
+      |> Zipper.down()
+      |> Zipper.down()
+      |> Zipper.right()
+      |> Zipper.children()
+      |> Enum.flat_map(fn
+        {:defexception, _, _} ->
+          if String.ends_with?(name, "Error"),
+            do: [],
+            else: [
+              %{
+                error
+                | check: Credo.Check.Consistency.ExceptionNames,
+                  message: "`#{name}`: exception modules must end in `Error`"
+              }
+            ]
+
+        {:@, _, [{:impl, m, [true]}]} ->
+          [%{error | line: m[:line], check: ImplTrue, message: "`@impl true` not allowed"}]
+
+        {:@, _, [{name, m, _}]} ->
+          if snake_case?(name),
+            do: [],
+            else: [%{error | line: m[:line], check: ModuleAttributeNames, message: "`@#{name}` is not snake case"}]
+
+        _ ->
+          []
+      end)
+
+    {zipper, Map.update!(ctx, :errors, &[[pascal | errors] | &1])}
+  end
+
+  # TODO all sorts of problems here. mostly, doesn't detect variable creation in case / cond / fn head etc.
+  # Credo.Check.Readability.VariableNames
+
+  def run({{assignment_op, _, [lhs, _]}, _} = zipper, ctx) when assignment_op in ~w(<- ->)a do
+    {_, errors} = lhs |> Zipper.zip() |> Zipper.traverse([], &find_vars_with_bad_names(&1, &2, ctx.file))
+    {zipper, Map.update!(ctx, :errors, &[errors | &1])}
   end
 
   def run(zipper, context) do
@@ -65,22 +107,17 @@ defmodule Styler.Speedo do
     end
   end
 
-  # Credo.Check.Readability.ImplTru
-  defp run!({:@, _, [{:impl, m, [true]}]}, file),
-    do: %{file: file, line: m[:line], check: ImplTrue, message: "`@impl true` not allowed"}
-
-  # Credo.Check.Readability.ModuleAttributeNames
-  defp run!({:@, _, [{name, m, _}]}, file) do
-    unless snake_case?(name),
-      do: %{file: file, line: m[:line], check: ModuleAttributeNames, message: "`@#{inspect(name)}` is not snake case"}
+  defp find_vars_with_bad_names({{name, m, nil}, _} = zipper, errors, file) do
+    if name in [:__CALLER__, :__DIR__, :__ENV__, :__MODULE__] or snake_case?(name) do
+      {zipper, errors}
+    else
+      error = %{file: file, line: m[:line], check: VariableNames, message: to_string(name)}
+      {zipper, [error | errors]}
+    end
   end
 
-  # Credo.Check.Readability.ModuleNames
-  defp run!({:defmodule, _, [{:__aliases__, m, aliases} | _]}, file) do
-    name = Enum.map_join(aliases, ".", &to_string/1)
-
-    unless pascal_case?(name),
-      do: %{file: file, line: m[:line], check: ModuleNames, message: "`defmodule #{inspect(name)}` is not pascal case"}
+  defp find_vars_with_bad_names(zipper, errors, _) do
+    {zipper, errors}
   end
 
   # Credo.Check.Readability.StringSigils
@@ -102,11 +139,19 @@ defmodule Styler.Speedo do
 
   defp run!(_, _), do: []
 
-  def naughtyFun(naughtyVar) do
-    with {:ugh, naughty_var} <- {:ugh, naughtyVar} do
-      naughty_var
+  @badName :bad
+  def naughtyFun(naughtyParam) do
+    IO.inspect(@badName)
+
+    with {:ugh, naughtyVar} <- {:ugh, naughtyParam} do
+      naughtyVar
     end
   end
+
+  def foo(naughtyVar, %{bar: :x = naughtyVar}) do
+  end
+
+  defexception [:foo]
 
   defp snake_case?(name), do: to_string(name) =~ ~r/^[[:lower:]\d\_\!\?]+$/u
   defp pascal_case?(name), do: to_string(name) =~ ~r/^[A-Z][a-zA-Z0-9\.]*$/
