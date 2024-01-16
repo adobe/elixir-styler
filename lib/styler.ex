@@ -32,10 +32,8 @@ defmodule Styler do
     zipper = Zipper.zip(ast)
     context = %{comments: comments, file: file}
 
-    styles = if opts[:dictate], do: [Styler.Dictum | @styles], else: @styles
-
     {{ast, _}, %{comments: comments}} =
-      Enum.reduce(styles, {zipper, context}, fn style, {zipper, context} ->
+      Enum.reduce(@styles, {zipper, context}, fn style, {zipper, context} ->
         try do
           Zipper.traverse_while(zipper, context, &style.run/2)
         rescue
@@ -69,6 +67,17 @@ defmodule Styler do
       |> style(file, opts)
 
     quoted_to_string(ast, comments, formatter_opts)
+  end
+
+  def lint(input, file) do
+    {ast, comments} = string_to_quoted_with_comments(input, file)
+    context = %{comments: comments, file: file, errors: []}
+    {_, %{errors: errors}} =
+      ast
+      |> Zipper.zip()
+      |> Zipper.traverse(context, &Styler.Speedo.run/2)
+
+    errors
   end
 
   @doc false
