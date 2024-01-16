@@ -72,6 +72,7 @@ defmodule Styler do
   def lint(input, file) do
     {ast, comments} = string_to_quoted_with_comments(input, file)
     context = %{comments: comments, file: file, errors: []}
+
     {_, %{errors: errors}} =
       ast
       |> Zipper.zip()

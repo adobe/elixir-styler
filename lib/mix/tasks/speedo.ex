@@ -36,11 +36,8 @@ defmodule Mix.Tasks.Speedo do
       |> Path.wildcard(match_dot: true)
       |> Enum.filter(&String.ends_with?(&1, [".ex", "exs"]))
     end)
-    |> Task.async_stream(fn file ->
-      input = file |> File.read!() |> String.trim()
-      IO.inspect file
-      Styler.lint(input, file)
-    end,
+    |> Task.async_stream(
+      fn file -> file |> File.read!() |> Styler.lint(file) end,
       ordered: false,
       timeout: :infinity
     )
@@ -54,12 +51,17 @@ defmodule Mix.Tasks.Speedo do
 
   defp check!(errors) do
     errors
+    |> Enum.reject(&is_nil/1)
     |> Enum.group_by(& &1.check)
+    |> Enum.sort_by(fn {check, _} -> check end)
     |> Enum.each(fn {check, errors} ->
-      Mix.shell().error("#{check} violations")
+      check = check |> to_string() |> String.trim_leading("Elixir.")
+      Mix.shell().error("\n#{check} violations")
       Mix.shell().error("--------------------------------------------------------------")
-      for %{file: file, line: line} <- errors do
-        Mix.shell().error("#{Path.relative_to_cwd(file)}:#{line}")
+
+      for %{file: file, line: line, message: message} <- errors do
+        Mix.shell().info([IO.ANSI.light_yellow(), message, IO.ANSI.reset()])
+        Mix.shell().info("  #{Path.relative_to_cwd(file)}:#{line}")
       end
     end)
 

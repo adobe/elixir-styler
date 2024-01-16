@@ -64,21 +64,22 @@ defmodule Styler.Style do
     |> Zipper.root()
   end
 
+  def in_block?(zipper) do
+    case Zipper.up(zipper) do
+      {{:__block__, _, _}, _} -> true
+      {{:->, _, _}, _} -> true
+      {{_, _}, _} -> true
+      nil -> true
+      _ -> false
+    end
+  end
+
   @doc """
   Returns the current node (wrapped in a `__block__` if necessary) if it's a valid place to insert additional nodes
   """
   @spec ensure_block_parent(Zipper.t()) :: {:ok, Zipper.t()} | :error
   def ensure_block_parent(zipper) do
-    valid_block_location? =
-      case Zipper.up(zipper) do
-        {{:__block__, _, _}, _} -> true
-        {{:->, _, _}, _} -> true
-        {{_, _}, _} -> true
-        nil -> true
-        _ -> false
-      end
-
-    if valid_block_location? do
+    if in_block?(zipper) do
       {:ok, find_nearest_block(zipper)}
     else
       :error

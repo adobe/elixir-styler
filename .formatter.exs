@@ -8,6 +8,5 @@
     assert_style: 2
   ],
   plugins: [Styler],
-  styler: [dictate: true],
   line_length: 122
 ]
