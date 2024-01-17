@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.11.4
+
 ### Improvements
 
 Shoutout @milmazz for all the deprecation work below =)
