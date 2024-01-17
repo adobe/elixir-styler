@@ -69,7 +69,7 @@ defmodule Styler do
     quoted_to_string(ast, comments, formatter_opts)
   end
 
-  def lint(input, file) do
+  def lint(input, file \\ "nofile") do
     {ast, comments} = string_to_quoted_with_comments(input, file)
     context = %{comments: comments, file: file, errors: []}
 

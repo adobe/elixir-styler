@@ -13,6 +13,7 @@ defmodule Styler.Speedo do
 
   @definer ~w(def defp defmacro defmacrop defguard defguardp)a
   def run({{def, _, [{name, m, args} | _]}, _} = zipper, ctx) when def in @definer and is_atom(name) do
+    {name, m, args} = if name == :when, do: hd(args), else: {name, m, args}
     line = m[:line]
     name = to_string(name)
     error = %{file: ctx.file, line: line, check: nil, message: nil}
@@ -24,9 +25,6 @@ defmodule Styler.Speedo do
 
     predicate_error =
       cond do
-        String.starts_with?(name, "is_") && String.ends_with?(name, "?") ->
-          %{predicate_error | message: "`#{def} #{name}` wow choose `?` or `is_`, you monster"}
-
         def in ~w(def defp)a and String.starts_with?(name, "is_") ->
           %{predicate_error | message: "`#{def} #{name}` is invalid -- use `?` not `is_` for defs"}
 
@@ -39,7 +37,7 @@ defmodule Styler.Speedo do
 
     var_errors =
       Enum.map(args || [], fn arg ->
-        {_, var_errors} = arg |> Zipper.zip() |> Zipper.traverse([], &find_vars_with_bad_names(&1, &2, ctx.file))
+        {_, var_errors} = arg |> Zipper.zip() |> Zipper.traverse([], &readability_variable_names(&1, &2, ctx.file))
         var_errors
       end)
 
@@ -63,6 +61,9 @@ defmodule Styler.Speedo do
       |> Zipper.down()
       |> Zipper.down()
       |> Zipper.right()
+      # coerce single-child defmodules to have the same shape as multi-child
+      |> Styler.Style.find_nearest_block()
+      |> Zipper.up()
       |> Zipper.children()
       |> Enum.flat_map(fn
         {:defexception, _, _} ->
@@ -76,7 +77,7 @@ defmodule Styler.Speedo do
               }
             ]
 
-        {:@, _, [{:impl, m, [true]}]} ->
+        {:@, m, [{:impl, _, [{:__block__, _, [true]}]}]} ->
           [%{error | line: m[:line], check: ImplTrue, message: "`@impl true` not allowed"}]
 
         {:@, _, [{name, m, _}]} ->
@@ -91,11 +92,38 @@ defmodule Styler.Speedo do
     {zipper, Map.update!(ctx, :errors, &[[pascal | errors] | &1])}
   end
 
+  def run({{:<-, m, [lhs, _] = args}, _} = zipper, ctx) do
+    # Credo.Check.Readability.WithCustomTaggedTuple
+    tag_error =
+      case args do
+        [{:__block__, _, [{{:__block__, _, [tag]}, _}]}, {:__block__, _, [{{:__block__, _, [tag]}, _}]}] ->
+          msg = "tagging tuples with things like `#{inspect(tag)}` is known to be evil"
+          %{file: ctx.file, line: m[:line], check: WithCustomTaggedTuple, message: msg}
+
+        _ ->
+          []
+      end
+
+    {_, assignment_errors} = lhs |> Zipper.zip() |> Zipper.traverse([], &readability_variable_names(&1, &2, ctx.file))
+    {zipper, Map.update!(ctx, :errors, &[[tag_error | assignment_errors] | &1])}
+  end
+
   # Credo.Check.Readability.VariableNames
   # the `=` here will double report when nested in a case. need to move it to its own clause w/ "in block"
-  def run({{assignment_op, _, [lhs, _]}, _} = zipper, ctx) when assignment_op in ~w(= <- ->)a do
-    {_, errors} = lhs |> Zipper.zip() |> Zipper.traverse([], &find_vars_with_bad_names(&1, &2, ctx.file))
+  def run({{assignment_op, _, [lhs, _]}, _} = zipper, ctx) when assignment_op in ~w(= ->)a do
+    {_, errors} = lhs |> Zipper.zip() |> Zipper.traverse([], &readability_variable_names(&1, &2, ctx.file))
     {zipper, Map.update!(ctx, :errors, &[errors | &1])}
+  end
+
+  # Credo.Check.Readability.StringSigils
+  def run({{:__block__, [{:delimiter, ~s|"|} | _] = m, [string]}, _} = zipper, ctx) when is_binary(string) do
+    if string =~ ~r/".*".*".*"/ do
+      msg = "use a sigil for #{inspect(string)}, it has too many quotes"
+      error = %{file: ctx.file, line: m[:line], check: StringSigils, message: msg}
+      {zipper, Map.update!(ctx, :errors, &[error | &1])}
+    else
+      {zipper, ctx}
+    end
   end
 
   def run(zipper, context) do
@@ -106,7 +134,7 @@ defmodule Styler.Speedo do
     end
   end
 
-  defp find_vars_with_bad_names({{name, m, nil}, _} = zipper, errors, file) do
+  defp readability_variable_names({{name, m, nil}, _} = zipper, errors, file) do
     if name in [:__CALLER__, :__DIR__, :__ENV__, :__MODULE__] or snake_case?(name) do
       {zipper, errors}
     else
@@ -115,44 +143,11 @@ defmodule Styler.Speedo do
     end
   end
 
-  defp find_vars_with_bad_names(zipper, errors, _) do
+  defp readability_variable_names(zipper, errors, _) do
     {zipper, errors}
   end
 
-  # Credo.Check.Readability.StringSigils
-  defp run!({:__block__, [{:delimiter, ~s|"|} | _] = m, [string]}, file) when is_binary(string) do
-    if string =~ ~r/".*".*"/ do
-      msg = "use a sigil for #{inspect(string)}, it has too many quotes"
-      %{file: file, line: m[:line], check: StringSigils, message: msg}
-    end
-  end
-
-  # Credo.Check.Readability.WithCustomTaggedTuple
-  defp run!(
-         {:<-, m, [{:__block__, _, [{{:__block__, _, [tag]}, _}]}, {:__block__, _, [{{:__block__, _, [tag]}, _}]}]},
-         file
-       ) do
-    msg = "tagging tuples with things like `#{inspect(tag)}` is known to be evil"
-    %{file: file, line: m[:line], check: WithCustomTaggedTuple, message: msg}
-  end
-
   defp run!(_, _), do: []
-
-  @badName :bad
-  def naughtyFun(naughtyParam) do
-    IO.inspect(@badName)
-
-    naughtyAssignment = :ok
-
-    with {:ugh, naughtyVar} <- {:ugh, naughtyParam} do
-      naughtyVar
-    end
-  end
-
-  def foo(naughtyParam2, %{bar: :x = naughtyParam3}) do
-  end
-
-  defexception [:foo]
 
   defp snake_case?(name), do: to_string(name) =~ ~r/^[[:lower:]\d\_\!\?]+$/u
   defp pascal_case?(name), do: to_string(name) =~ ~r/^[A-Z][a-zA-Z0-9\.]*$/
