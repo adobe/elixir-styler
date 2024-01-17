@@ -37,7 +37,7 @@ defmodule Styler.Style.Deprecations do
          when is_list(modes),
          do: {{:., dm, [{:__aliases__, am, [:File]}, :stream!]}, funm, [path, line_or_bytes, options]}
 
-    # For ranges where `start > stop`, you need to explicit mark them as increasing
+    # For ranges where `start > stop`, you need to explicitly include the step
     # Enum.slice(enumerable, 1..-2) => Enum.slice(enumerable, 1..-2//1)
     defp style(
            {{:., dm, [{:__aliases__, am, [:Enum]}, :slice]}, funm, [enumerable, {:.., rm, [first, {_, lm, _} = last]}]} =
