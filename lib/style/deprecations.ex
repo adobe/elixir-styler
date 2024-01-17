@@ -28,6 +28,12 @@ defmodule Styler.Style.Deprecations do
   defp style({{:., dm, [{_, _, [:Path]} = mod, :safe_relative_to]}, funm, args}),
     do: {{:., dm, [mod, :safe_relative]}, funm, args}
 
+  # Path.safe_relative_to/2 => Path.safe_relative/2
+  # Path.safe_relative/2 is available since v1.14
+  # TODO: Remove after Elixir v1.19
+  defp style({:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Path]}, :safe_relative_to]}, funm, args}]}),
+    do: {:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Path]}, :safe_relative]}, funm, args}]}
+
   if Version.match?(System.version(), ">= 1.16.0-dev") do
     # File.stream!(file, options, line_or_bytes) => File.stream!(file, line_or_bytes, options)
     defp style({{:., _, [{_, _, [:File]}, :stream!]} = f, fm, [path, {:__block__, _, [modes]} = opts, lob]})
@@ -40,15 +46,7 @@ defmodule Styler.Style.Deprecations do
     defp style({{:., _, [{_, _, [module]}, :slice]} = f, funm, [enumerable, {:.., _, [_, _]} = range]})
          when module in [:Enum, :String],
          do: {f, funm, [enumerable, add_step_to_decreasing_range(range)]}
-  end
 
-  # Path.safe_relative_to/2 => Path.safe_relative/2
-  # Path.safe_relative/2 is available since v1.14
-  # TODO: Remove after Elixir v1.19
-  defp style({:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Path]}, :safe_relative_to]}, funm, args}]}),
-    do: {:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Path]}, :safe_relative]}, funm, args}]}
-
-  if Version.match?(System.version(), ">= 1.16.0-dev") do
     # File.stream!(file, options, line_or_bytes) => File.stream!(file, line_or_bytes, options)
     defp style({:|>, m, [lhs, {{_, _, [{_, _, [:File]}, :stream!]} = f, fm, [{:__block__, _, [modes]} = opts, lob]}]})
          when is_list(modes),
@@ -64,19 +62,22 @@ defmodule Styler.Style.Deprecations do
 
   defp style(node), do: node
 
-  defp add_step_to_decreasing_range({:.., rm, [first, {_, lm, _} = last]} = range) do
-    start = extract_value_from_range(first)
-    stop = extract_value_from_range(last)
+  # silences "function is unused warnings" on ex < 1.16
+  if Version.match?(System.version(), ">= 1.16.0-dev") do
+    defp add_step_to_decreasing_range({:.., rm, [first, {_, lm, _} = last]} = range) do
+      start = extract_value_from_range(first)
+      stop = extract_value_from_range(last)
 
-    if start > stop do
-      step = {:__block__, [token: "1", line: lm[:line]], [1]}
-      {:"..//", rm, [first, last, step]}
-    else
-      range
+      if start > stop do
+        step = {:__block__, [token: "1", line: lm[:line]], [1]}
+        {:"..//", rm, [first, last, step]}
+      else
+        range
+      end
     end
-  end
 
-  # Extracts the positive or negative integer from the given range block
-  defp extract_value_from_range({:__block__, _, [value]}), do: value
-  defp extract_value_from_range({:-, _, [{:__block__, _, [value]}]}), do: -value
+    # Extracts the positive or negative integer from the given range block
+    defp extract_value_from_range({:__block__, _, [value]}), do: value
+    defp extract_value_from_range({:-, _, [{:__block__, _, [value]}]}), do: -value
+  end
 end
