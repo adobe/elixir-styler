@@ -689,5 +689,67 @@ defmodule Styler.Style.PipesTest do
         """
       )
     end
+
+    test "Path.safe_relative_to/2 to Path.safe_relative/2" do
+      assert_style(
+        """
+        "FOO"
+        |> String.downcase()
+        |> Path.safe_relative_to("/")
+        """,
+        """
+        "FOO"
+        |> String.downcase()
+        |> Path.safe_relative("/")
+        """
+      )
+    end
+
+    if Version.match?(System.version(), ">= 1.16.0-dev") do
+      test "File.stream!(path, modes, line_or_bytes) to File.stream!(path, line_or_bytes, modes)" do
+        assert_style(
+          "f |> File.stream!([encoding: :utf8, trim_bom: true], :line) |> Enum.take(2)",
+          "f |> File.stream!(:line, encoding: :utf8, trim_bom: true) |> Enum.take(2)"
+        )
+      end
+
+      test "negative steps with Enum.slice/2" do
+        assert_style(
+          "enumerable |> Enum.map(& &1) |> Enum.slice(1..-2)",
+          "enumerable |> Enum.map(& &1) |> Enum.slice(1..-2//1)"
+        )
+
+        assert_style(
+          "enumerable |> Enum.map(& &1) |> Enum.slice(-1..-2)",
+          "enumerable |> Enum.map(& &1) |> Enum.slice(-1..-2//1)"
+        )
+
+        assert_style(
+          "enumerable |> Enum.map(& &1) |> Enum.slice(2..1)",
+          "enumerable |> Enum.map(& &1) |> Enum.slice(2..1//1)"
+        )
+
+        assert_style(
+          "enumerable |> Enum.map(& &1) |> Enum.slice(1..3)",
+          "enumerable |> Enum.map(& &1) |> Enum.slice(1..3)"
+        )
+      end
+
+      test "negative steps with String.slice/2" do
+        assert_style(
+          ~s{"ELIXIR" |> String.downcase() |> String.slice(2..-1)},
+          ~s{"ELIXIR" |> String.downcase() |> String.slice(2..-1//1)}
+        )
+
+        assert_style(
+          ~s{"ELIXIR" |> String.downcase() |> String.slice(1..-2)},
+          ~s{"ELIXIR" |> String.downcase() |> String.slice(1..-2//1)}
+        )
+
+        assert_style(~s{"ELIXIR" |> String.downcase() |> String.slice(-4..-1)})
+        assert_style(~s{"ELIXIR" |> String.downcase() |> String.slice(..)})
+        assert_style(~s{"ELIXIR" |> String.downcase() |> String.slice(0..-1//2)})
+      end
+    end
   end
 end
