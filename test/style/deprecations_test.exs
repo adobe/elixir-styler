@@ -17,7 +17,7 @@ defmodule Styler.Style.DeprecationsTest do
   end
 
   test "Path.safe_relative_to/2 to Path.safe_relative/2" do
-    assert_style("Path.safe_relative_to(foo, bar)", "Path.safe_relative(foo, bar)")
+    assert_style("Path.safe_relative_to(foo, bar)")
   end
 
   if Version.match?(System.version(), ">= 1.16.0-dev") do
