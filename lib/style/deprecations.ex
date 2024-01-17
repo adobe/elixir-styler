@@ -39,10 +39,10 @@ defmodule Styler.Style.Deprecations do
 
     # For ranges where `start > stop`, you need to explicitly include the step
     # Enum.slice(enumerable, 1..-2) => Enum.slice(enumerable, 1..-2//1)
-    defp style(
-           {{:., dm, [{:__aliases__, am, [:Enum]}, :slice]}, funm, [enumerable, {:.., rm, [first, {_, lm, _} = last]}]} =
-             block
-         ) do
+    # String.slice("elixir", 2..-1) => String.slice("elixir", 2..-1//1)
+    defp style({{:., dm, [{:__aliases__, am, [module]}, :slice]}, funm, [_, {:.., _, [_, _]}] = args} = block)
+         when module in [:Enum, :String] do
+      [enumerable, {:.., rm, [first, {_, lm, _} = last]}] = args
       start = extract_value_from_range(first)
       stop = extract_value_from_range(last)
 
@@ -50,7 +50,7 @@ defmodule Styler.Style.Deprecations do
         line = Keyword.fetch!(lm, :line)
         step = {:__block__, [token: "1", line: line], [1]}
         range_with_step = {:"..//", rm, [first, last, step]}
-        {{:., dm, [{:__aliases__, am, [:Enum]}, :slice]}, funm, [enumerable, range_with_step]}
+        {{:., dm, [{:__aliases__, am, [module]}, :slice]}, funm, [enumerable, range_with_step]}
       else
         block
       end
