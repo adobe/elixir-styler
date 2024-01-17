@@ -18,13 +18,33 @@ defmodule Styler.Style.DeprecationsTest do
 
   test "Path.safe_relative_to/2 to Path.safe_relative/2" do
     assert_style("Path.safe_relative_to(foo, bar)", "Path.safe_relative(foo, bar)")
+
+    assert_style(
+      """
+      "FOO"
+      |> String.downcase()
+      |> Path.safe_relative_to("/")
+      """,
+      """
+      "FOO"
+      |> String.downcase()
+      |> Path.safe_relative("/")
+      """
+    )
   end
 
-  if Version.match?(System.version(), ">= 1.16.0-dev") do
+  describe "1.16 deprecations" do
+    @describetag skip: Version.match?(System.version(), "< 1.16.0-dev")
+
     test "File.stream!(path, modes, line_or_bytes) to File.stream!(path, line_or_bytes, modes)" do
       assert_style(
         "File.stream!(path, [encoding: :utf8, trim_bom: true], :line)",
         "File.stream!(path, :line, encoding: :utf8, trim_bom: true)"
+      )
+
+      assert_style(
+        "f |> File.stream!([encoding: :utf8, trim_bom: true], :line) |> Enum.take(2)",
+        "f |> File.stream!(:line, encoding: :utf8, trim_bom: true) |> Enum.take(2)"
       )
     end
 
@@ -33,6 +53,26 @@ defmodule Styler.Style.DeprecationsTest do
       assert_style("Enum.slice([1, 2, 3, 4], -1..-2)", "Enum.slice([1, 2, 3, 4], -1..-2//1)")
       assert_style("Enum.slice([1, 2, 3, 4], 2..1)", "Enum.slice([1, 2, 3, 4], 2..1//1)")
       assert_style("Enum.slice([1, 2, 3, 4, 5], 1..3)", "Enum.slice([1, 2, 3, 4, 5], 1..3)")
+
+      assert_style(
+        "enumerable |> Enum.map(& &1) |> Enum.slice(1..-2)",
+        "enumerable |> Enum.map(& &1) |> Enum.slice(1..-2//1)"
+      )
+
+      assert_style(
+        "enumerable |> Enum.map(& &1) |> Enum.slice(-1..-2)",
+        "enumerable |> Enum.map(& &1) |> Enum.slice(-1..-2//1)"
+      )
+
+      assert_style(
+        "enumerable |> Enum.map(& &1) |> Enum.slice(2..1)",
+        "enumerable |> Enum.map(& &1) |> Enum.slice(2..1//1)"
+      )
+
+      assert_style(
+        "enumerable |> Enum.map(& &1) |> Enum.slice(1..3)",
+        "enumerable |> Enum.map(& &1) |> Enum.slice(1..3)"
+      )
     end
 
     test "negative steps with String.slice/2" do
@@ -41,6 +81,20 @@ defmodule Styler.Style.DeprecationsTest do
       assert_style(~s|String.slice("elixir", -4..-1)|)
       assert_style(~s|String.slice("elixir", ..)|)
       assert_style(~s|String.slice("elixir", 0..-1//2)|)
+
+      assert_style(
+        ~s{"ELIXIR" |> String.downcase() |> String.slice(2..-1)},
+        ~s{"ELIXIR" |> String.downcase() |> String.slice(2..-1//1)}
+      )
+
+      assert_style(
+        ~s{"ELIXIR" |> String.downcase() |> String.slice(1..-2)},
+        ~s{"ELIXIR" |> String.downcase() |> String.slice(1..-2//1)}
+      )
+
+      assert_style(~s{"ELIXIR" |> String.downcase() |> String.slice(-4..-1)})
+      assert_style(~s{"ELIXIR" |> String.downcase() |> String.slice(..)})
+      assert_style(~s{"ELIXIR" |> String.downcase() |> String.slice(0..-1//2)})
     end
   end
 end
