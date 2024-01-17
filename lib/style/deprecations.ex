@@ -59,6 +59,7 @@ defmodule Styler.Style.Deprecations do
 
   defp style(node), do: node
 
+  @doc "Extracts the positive or negative integer from the given range block"
   def extract_value_from_range({:__block__, _, [value]}), do: value
   def extract_value_from_range({:-, _, [{:__block__, _, [value]}]}), do: -value
 end

@@ -27,6 +27,7 @@ defmodule Styler.Style.Pipes do
   @behaviour Styler.Style
 
   alias Styler.Style
+  alias Styler.Style.Deprecations
   alias Styler.Zipper
 
   def run({{:|>, _, _}, _} = zipper, ctx) do
@@ -150,6 +151,47 @@ defmodule Styler.Style.Pipes do
   # `|> Timex.now()` => `|> DateTime.now!()`
   defp fix_pipe({:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, []}]}),
     do: {:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:DateTime]}, :now!]}, funm, []}]}
+
+  # Path.safe_relative_to/2 => Path.safe_relative/2
+  # Path.safe_relative/2 is available since v1.14
+  # TODO: Remove after Elixir v1.19
+  defp fix_pipe({:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Path]}, :safe_relative_to]}, funm, args}]}),
+    do: {:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Path]}, :safe_relative]}, funm, args}]}
+
+  if Version.match?(System.version(), ">= 1.16.0-dev") do
+    # File.stream!(file, options, line_or_bytes) => File.stream!(file, line_or_bytes, options)
+    defp fix_pipe(
+           {:|>, m,
+            [
+              lhs,
+              {{:., dm, [{:__aliases__, am, [:File]}, :stream!]}, funm,
+               [{:__block__, _, [modes]} = options, line_or_bytes]}
+            ]}
+         )
+         when is_list(modes),
+         do: {:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:File]}, :stream!]}, funm, [line_or_bytes, options]}]}
+
+    # For ranges where `start > stop`, you need to explicitly include the step
+    # Enum.slice(enumerable, 1..-2) => Enum.slice(enumerable, 1..-2//1)
+    # String.slice("elixir", 2..-1) => String.slice("elixir", 2..-1//1)
+    defp fix_pipe(
+           {:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [module]}, :slice]}, funm, [{:.., _, [_, _]}] = args}]} = block
+         )
+         when module in [:Enum, :String] do
+      [{:.., rm, [first, {_, lm, _} = last]}] = args
+      start = Deprecations.extract_value_from_range(first)
+      stop = Deprecations.extract_value_from_range(last)
+
+      if start > stop do
+        line = Keyword.fetch!(lm, :line)
+        step = {:__block__, [token: "1", line: line], [1]}
+        range_with_step = {:"..//", rm, [first, last, step]}
+        {:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [module]}, :slice]}, funm, [range_with_step]}]}
+      else
+        block
+      end
+    end
+  end
 
   # `lhs |> Enum.reverse() |> Enum.concat(enum)` => `lhs |> Enum.reverse(enum)`
   defp fix_pipe(
