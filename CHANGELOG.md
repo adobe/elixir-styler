@@ -2,6 +2,15 @@
 
 ## main
 
+### Improvements
+
+Shoutout @milmazz for all the deprecation work below =)
+
+* Deprecations: Rewrite 1.16 Deprecations (h/t @milmazz for all the work here)
+  * add `//1` step to `Enum.slice/2|String.slice/2` with decreasing ranges
+  * `File.stream!(file, options, line_or_bytes)` => `File.stream!(file, line_or_bytes, options)`
+* Deprecations `Path.safe_relative_to/2` => `Path.safe_relative/2`
+
 ## v0.11.3
 
 ### Fixes
