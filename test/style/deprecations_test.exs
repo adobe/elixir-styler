@@ -17,7 +17,7 @@ defmodule Styler.Style.DeprecationsTest do
   end
 
   test "Path.safe_relative_to/2 to Path.safe_relative/2" do
-    assert_style("Path.safe_relative_to(foo, bar)")
+    assert_style("Path.safe_relative_to(foo, bar)", "Path.safe_relative(foo, bar)")
   end
 
   if Version.match?(System.version(), ">= 1.16.0-dev") do
@@ -33,6 +33,14 @@ defmodule Styler.Style.DeprecationsTest do
       assert_style("Enum.slice([1, 2, 3, 4], -1..-2)", "Enum.slice([1, 2, 3, 4], -1..-2//1)")
       assert_style("Enum.slice([1, 2, 3, 4], 2..1)", "Enum.slice([1, 2, 3, 4], 2..1//1)")
       assert_style("Enum.slice([1, 2, 3, 4, 5], 1..3)", "Enum.slice([1, 2, 3, 4, 5], 1..3)")
+    end
+
+    test "negative steps with String.slice/2" do
+      assert_style(~s|String.slice("elixir", 2..-1)|, ~s|String.slice("elixir", 2..-1//1)|)
+      assert_style(~s|String.slice("elixir", 1..-2)|, ~s|String.slice("elixir", 1..-2//1)|)
+      assert_style(~s|String.slice("elixir", -4..-1)|)
+      assert_style(~s|String.slice("elixir", ..)|)
+      assert_style(~s|String.slice("elixir", 0..-1//2)|)
     end
   end
 end
