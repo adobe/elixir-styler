@@ -65,19 +65,19 @@ defmodule Styler.Style.Deprecations do
   # silences "function is unused warnings" on ex < 1.16
   if Version.match?(System.version(), ">= 1.16.0-dev") do
     defp add_step_to_decreasing_range({:.., rm, [first, {_, lm, _} = last]} = range) do
-      start = extract_value_from_range(first)
-      stop = extract_value_from_range(last)
-
-      if start > stop do
+      with {:ok, start} <- extract_value_from_range(first),
+           {:ok, stop} <- extract_value_from_range(last),
+           true <- start > stop do
         step = {:__block__, [token: "1", line: lm[:line]], [1]}
         {:"..//", rm, [first, last, step]}
       else
-        range
+        _ -> range
       end
     end
 
     # Extracts the positive or negative integer from the given range block
-    defp extract_value_from_range({:__block__, _, [value]}), do: value
-    defp extract_value_from_range({:-, _, [{:__block__, _, [value]}]}), do: -value
+    defp extract_value_from_range({:__block__, _, [value]}) when is_integer(value), do: {:ok, value}
+    defp extract_value_from_range({:-, _, [{:__block__, _, [value]}]}) when is_integer(value), do: {:ok, -value}
+    defp extract_value_from_range(_), do: :non_int
   end
 end

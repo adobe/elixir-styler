@@ -48,53 +48,25 @@ defmodule Styler.Style.DeprecationsTest do
       )
     end
 
-    test "negative steps with Enum.slice/2" do
-      assert_style("Enum.slice([1, 2, 3, 4], 1..-2)", "Enum.slice([1, 2, 3, 4], 1..-2//1)")
-      assert_style("Enum.slice([1, 2, 3, 4], -1..-2)", "Enum.slice([1, 2, 3, 4], -1..-2//1)")
-      assert_style("Enum.slice([1, 2, 3, 4], 2..1)", "Enum.slice([1, 2, 3, 4], 2..1//1)")
-      assert_style("Enum.slice([1, 2, 3, 4, 5], 1..3)", "Enum.slice([1, 2, 3, 4, 5], 1..3)")
+    test "negative steps with [Enum|String].slice/2" do
+      for mod <- ~w(Enum String) do
+        assert_style("#{mod}.slice(x, 1..-2)", "#{mod}.slice(x, 1..-2//1)")
+        assert_style("#{mod}.slice(x, -1..-2)", "#{mod}.slice(x, -1..-2//1)")
+        assert_style("#{mod}.slice(x, 2..1)", "#{mod}.slice(x, 2..1//1)")
+        assert_style("#{mod}.slice(x, 1..3)")
+        assert_style("#{mod}.slice(x, ..)")
 
-      assert_style(
-        "enumerable |> Enum.map(& &1) |> Enum.slice(1..-2)",
-        "enumerable |> Enum.map(& &1) |> Enum.slice(1..-2//1)"
-      )
+        # piped
+        assert_style("foo |> bar() |> #{mod}.slice(1..-2)", "foo |> bar() |> #{mod}.slice(1..-2//1)")
+        assert_style("foo |> bar() |> #{mod}.slice(-1..-2)", "foo |> bar() |> #{mod}.slice(-1..-2//1)")
+        assert_style("foo |> bar() |> #{mod}.slice(2..1)", "foo |> bar() |> #{mod}.slice(2..1//1)")
+        assert_style("foo |> bar() |> #{mod}.slice(1..3)")
 
-      assert_style(
-        "enumerable |> Enum.map(& &1) |> Enum.slice(-1..-2)",
-        "enumerable |> Enum.map(& &1) |> Enum.slice(-1..-2//1)"
-      )
-
-      assert_style(
-        "enumerable |> Enum.map(& &1) |> Enum.slice(2..1)",
-        "enumerable |> Enum.map(& &1) |> Enum.slice(2..1//1)"
-      )
-
-      assert_style(
-        "enumerable |> Enum.map(& &1) |> Enum.slice(1..3)",
-        "enumerable |> Enum.map(& &1) |> Enum.slice(1..3)"
-      )
-    end
-
-    test "negative steps with String.slice/2" do
-      assert_style(~s|String.slice("elixir", 2..-1)|, ~s|String.slice("elixir", 2..-1//1)|)
-      assert_style(~s|String.slice("elixir", 1..-2)|, ~s|String.slice("elixir", 1..-2//1)|)
-      assert_style(~s|String.slice("elixir", -4..-1)|)
-      assert_style(~s|String.slice("elixir", ..)|)
-      assert_style(~s|String.slice("elixir", 0..-1//2)|)
-
-      assert_style(
-        ~s{"ELIXIR" |> String.downcase() |> String.slice(2..-1)},
-        ~s{"ELIXIR" |> String.downcase() |> String.slice(2..-1//1)}
-      )
-
-      assert_style(
-        ~s{"ELIXIR" |> String.downcase() |> String.slice(1..-2)},
-        ~s{"ELIXIR" |> String.downcase() |> String.slice(1..-2//1)}
-      )
-
-      assert_style(~s{"ELIXIR" |> String.downcase() |> String.slice(-4..-1)})
-      assert_style(~s{"ELIXIR" |> String.downcase() |> String.slice(..)})
-      assert_style(~s{"ELIXIR" |> String.downcase() |> String.slice(0..-1//2)})
+        # non-trivial ranges
+        assert_style "#{mod}.slice(x, y..z)"
+        assert_style "#{mod}.slice(x, (y - 1)..f)"
+        assert_style("foo |> bar() |> #{mod}.slice(x..y)")
+      end
     end
   end
 end
