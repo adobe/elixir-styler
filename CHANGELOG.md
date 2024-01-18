@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.11.5
+
+### Fixes
+
+* fix parsing ranges with non-trivial integer bounds like `x..y` (Closes #119, h/t @maennchen)
+
 ## v0.11.4
 
 ### Improvements
