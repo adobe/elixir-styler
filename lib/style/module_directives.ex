@@ -69,8 +69,8 @@ defmodule Styler.Style.ModuleDirectives do
   alias Styler.Zipper
 
   @directives ~w(alias import require use)a
-  @callback_directives ~w(before_compile after_compile after_verify)a
-  @attr_directives ~w(moduledoc shortdoc behaviour)a ++ @callback_directives
+  @callback_attrs ~w(before_compile after_compile after_verify)a
+  @attr_directives ~w(moduledoc shortdoc behaviour)a ++ @callback_attrs
 
   @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
 
@@ -145,7 +145,7 @@ defmodule Styler.Style.ModuleDirectives do
       Enum.group_by(directives, fn
         # callbacks are essentially the same as `use` -- they invoke macros.
         # so, we need to group / order them with `use` statements to make sure we don't break things!
-        {:@, _, [{callback, _, _}]} when callback in @callback_directives -> :use
+        {:@, _, [{callback, _, _}]} when callback in @callback_attrs -> :use
         {:@, _, [{attr_name, _, _}]} -> :"@#{attr_name}"
         {directive, _, _} -> directive
       end)
