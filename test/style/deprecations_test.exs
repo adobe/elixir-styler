@@ -58,6 +58,18 @@ defmodule Styler.Style.DeprecationsTest do
       assert_style("Date.range(~D[1999-01-01], ~D[1999-01-01])")
     end
 
+    test "use :eof instead of :all in IO.read/2 and IO.binread/2" do
+      assert_style("IO.read(:all)", "IO.read(:eof)")
+      assert_style("IO.read(device, :all)", "IO.read(device, :eof)")
+      assert_style("IO.binread(:all)", "IO.binread(:eof)")
+      assert_style("IO.binread(device, :all)", "IO.binread(device, :eof)")
+
+      assert_style(
+        "file |> IO.binread(:all) |> :binary.bin_to_list()",
+        "file |> IO.binread(:eof) |> :binary.bin_to_list()"
+      )
+    end
+
     test "negative steps with [Enum|String].slice/2" do
       for mod <- ~w(Enum String) do
         assert_style("#{mod}.slice(x, 1..-2)", "#{mod}.slice(x, 1..-2//1)")

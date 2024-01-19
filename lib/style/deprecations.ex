@@ -74,6 +74,15 @@ defmodule Styler.Style.Deprecations do
     end
   end
 
+  # use :eof instead of :all in IO.read/2 and IO.binread/2
+  defp style({{:., _, [{:__aliases__, _, [:IO]}, fun]} = fm, dm, [{:__block__, am, [:all]}]})
+       when fun in [:read, :binread],
+       do: {fm, dm, [{:__block__, am, [:eof]}]}
+
+  defp style({{:., _, [{:__aliases__, _, [:IO]}, fun]} = fm, dm, [device, {:__block__, am, [:all]}]})
+       when fun in [:read, :binread],
+       do: {fm, dm, [device, {:__block__, am, [:eof]}]}
+
   defp style(node), do: node
 
   # silences "function is unused warnings" on ex < 1.16
