@@ -48,6 +48,16 @@ defmodule Styler.Style.DeprecationsTest do
       )
     end
 
+    test "~R is deprecated in favor of ~r" do
+      assert_style(~s|Regex.match?(~R/foo/, "foo")|, ~s|Regex.match?(~r/foo/, "foo")|)
+    end
+
+    test "replace Date.range/2 with Date.range/3 when first > last" do
+      assert_style("Date.range(~D[2000-01-01], ~D[1999-01-01])", "Date.range(~D[2000-01-01], ~D[1999-01-01], -1)")
+      assert_style("Date.range(~D[1999-01-01], ~D[2000-01-01])")
+      assert_style("Date.range(~D[1999-01-01], ~D[1999-01-01])")
+    end
+
     test "negative steps with [Enum|String].slice/2" do
       for mod <- ~w(Enum String) do
         assert_style("#{mod}.slice(x, 1..-2)", "#{mod}.slice(x, 1..-2//1)")

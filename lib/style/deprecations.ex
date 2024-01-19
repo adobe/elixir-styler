@@ -58,6 +58,21 @@ defmodule Styler.Style.Deprecations do
     defp style({:|>, m, [lhs, {{:., _, [{_, _, [mod]}, :slice]} = f, funm, [{:.., _, [_, _]} = range]}]})
          when mod in [:Enum, :String],
          do: {:|>, m, [lhs, {f, funm, [add_step_to_decreasing_range(range)]}]}
+
+    # ~R is deprecated in favor of ~r
+    defp style({:sigil_R, m, args}), do: {:sigil_r, m, args}
+
+    # For a decreasing range, we must use Date.range/3 instead of Date.range/2
+    defp style({{:., _, [{:__aliases__, _, [:Date]}, :range]} = funm, dm, [first, last]} = block) do
+      with {:ok, f} <- extract_date_value(first),
+           {:ok, l} <- extract_date_value(last),
+           :gt <- Date.compare(f, l) do
+        {funm, dm, [first, last, -1]}
+      else
+        _ ->
+          block
+      end
+    end
   end
 
   defp style(node), do: node
@@ -79,5 +94,8 @@ defmodule Styler.Style.Deprecations do
     defp extract_value_from_range({:__block__, _, [value]}) when is_integer(value), do: {:ok, value}
     defp extract_value_from_range({:-, _, [{:__block__, _, [value]}]}) when is_integer(value), do: {:ok, -value}
     defp extract_value_from_range(_), do: :non_int
+
+    defp extract_date_value({:sigil_D, _, [{:<<>>, _, [date]}, []]}), do: Date.from_iso8601(date)
+    defp extract_date_value(_), do: :unknown
   end
 end
