@@ -2,6 +2,12 @@
 
 ## main
 
+## v0.11.6
+
+### Fixes
+
+* directives: maintain order of module compilation callbacks (`@before_compile` etc) relative to `use` statements (Closes #120, h/t @frankdugan3)
+
 ## v0.11.5
 
 ### Fixes
