@@ -69,8 +69,7 @@ defmodule Styler.Style.Deprecations do
            :gt <- Date.compare(f, l) do
         {funm, dm, [first, last, -1]}
       else
-        _ ->
-          block
+        _ -> block
       end
     end
   end
