@@ -72,6 +72,16 @@ defmodule Styler.Style.Deprecations do
     end
   end
 
+  defp style({:|>, pm, [first, {{:., _, [{:__aliases__, _, [:Date]}, :range]} = funm, dm, [last]}]} = block) do
+    with {:ok, f} <- extract_date_value(first),
+         {:ok, l} <- extract_date_value(last),
+         :gt <- Date.compare(f, l) do
+      {:|>, pm, [first, {funm, dm, [last, -1]}]}
+    else
+      _ -> block
+    end
+  end
+
   # use :eof instead of :all in IO.read/2 and IO.binread/2
   defp style({{:., _, [{:__aliases__, _, [:IO]}, fun]} = fm, dm, [{:__block__, am, [:all]}]})
        when fun in [:read, :binread],
