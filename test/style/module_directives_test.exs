@@ -343,6 +343,17 @@ defmodule Styler.Style.ModuleDirectivesTest do
       )
     end
 
+    test "groups module callbacks with uses, keeping ordering" do
+      assert_style """
+      defmacro __using__(_) do
+        quote do
+          @after_compile Foo
+          use Bar
+        end
+      end
+      """
+    end
+
     test "interwoven directives w/o the context of a module" do
       assert_style(
         """
