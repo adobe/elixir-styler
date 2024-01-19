@@ -28,9 +28,8 @@ defmodule Styler.Style.Deprecations do
   defp style({{:., dm, [{_, _, [:Path]} = mod, :safe_relative_to]}, funm, args}),
     do: {{:., dm, [mod, :safe_relative]}, funm, args}
 
+  # Pipe version for:
   # Path.safe_relative_to/2 => Path.safe_relative/2
-  # Path.safe_relative/2 is available since v1.14
-  # TODO: Remove after Elixir v1.19
   defp style({:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Path]}, :safe_relative_to]}, funm, args}]}),
     do: {:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Path]}, :safe_relative]}, funm, args}]}
 
@@ -39,14 +38,7 @@ defmodule Styler.Style.Deprecations do
        when is_list(modes),
        do: {f, fm, [path, lob, opts]}
 
-  # For ranges where `start > stop`, you need to explicitly include the step
-  # Enum.slice(enumerable, 1..-2) => Enum.slice(enumerable, 1..-2//1)
-  # String.slice("elixir", 2..-1) => String.slice("elixir", 2..-1//1)
-  defp style({{:., _, [{_, _, [module]}, :slice]} = f, funm, [enumerable, {:.., _, [_, _]} = range]})
-       when module in [:Enum, :String],
-       do: {f, funm, [enumerable, add_step_to_decreasing_range(range)]}
-
-  # File.stream!(file, options, line_or_bytes) => File.stream!(file, line_or_bytes, options)
+  # Pipe version for File.stream!
   defp style({:|>, m, [lhs, {{_, _, [{_, _, [:File]}, :stream!]} = f, fm, [{:__block__, _, [modes]} = opts, lob]}]})
        when is_list(modes),
        do: {:|>, m, [lhs, {f, fm, [lob, opts]}]}
@@ -54,6 +46,11 @@ defmodule Styler.Style.Deprecations do
   # For ranges where `start > stop`, you need to explicitly include the step
   # Enum.slice(enumerable, 1..-2) => Enum.slice(enumerable, 1..-2//1)
   # String.slice("elixir", 2..-1) => String.slice("elixir", 2..-1//1)
+  defp style({{:., _, [{_, _, [module]}, :slice]} = f, funm, [enumerable, {:.., _, [_, _]} = range]})
+       when module in [:Enum, :String],
+       do: {f, funm, [enumerable, add_step_to_decreasing_range(range)]}
+
+  # Pipe version for {Enum,String}.slice
   defp style({:|>, m, [lhs, {{:., _, [{_, _, [mod]}, :slice]} = f, funm, [{:.., _, [_, _]} = range]}]})
        when mod in [:Enum, :String],
        do: {:|>, m, [lhs, {f, funm, [add_step_to_decreasing_range(range)]}]}
@@ -72,6 +69,7 @@ defmodule Styler.Style.Deprecations do
     end
   end
 
+  # Pipe version for Date.range/2
   defp style({:|>, pm, [first, {{:., _, [{:__aliases__, _, [:Date]}, :range]} = funm, dm, [last]}]} = block) do
     with {:ok, f} <- extract_date_value(first),
          {:ok, l} <- extract_date_value(last),
@@ -93,7 +91,6 @@ defmodule Styler.Style.Deprecations do
 
   defp style(node), do: node
 
-  # silences "function is unused warnings" on ex < 1.16
   defp add_step_to_decreasing_range({:.., rm, [first, {_, lm, _} = last]} = range) do
     with {:ok, start} <- extract_value_from_range(first),
          {:ok, stop} <- extract_value_from_range(last),
