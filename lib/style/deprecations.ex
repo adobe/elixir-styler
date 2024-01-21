@@ -64,7 +64,7 @@ defmodule Styler.Style.Deprecations do
   defp style({{:., _, [{:__aliases__, _, [:Date]}, :range]} = funm, dm, [first, last]} = block) do
     with {:ok, f} <- extract_date_value(first),
          {:ok, l} <- extract_date_value(last),
-         :gt <- Date.compare(f, l) do
+         true <- Date.after?(f, l) do
       {funm, dm, [first, last, -1]}
     else
       _ -> block
