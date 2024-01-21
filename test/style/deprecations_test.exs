@@ -33,16 +33,20 @@ defmodule Styler.Style.DeprecationsTest do
     )
   end
 
-  test "File.stream!(path, modes, line_or_bytes) to File.stream!(path, line_or_bytes, modes)" do
-    assert_style(
-      "File.stream!(path, [encoding: :utf8, trim_bom: true], :line)",
-      "File.stream!(path, :line, encoding: :utf8, trim_bom: true)"
-    )
+  describe "1.16 deprecations" do
+    @describetag skip: Version.match?(System.version(), "< 1.16.0-dev")
 
-    assert_style(
-      "f |> File.stream!([encoding: :utf8, trim_bom: true], :line) |> Enum.take(2)",
-      "f |> File.stream!(:line, encoding: :utf8, trim_bom: true) |> Enum.take(2)"
-    )
+    test "File.stream!(path, modes, line_or_bytes) to File.stream!(path, line_or_bytes, modes)" do
+      assert_style(
+        "File.stream!(path, [encoding: :utf8, trim_bom: true], :line)",
+        "File.stream!(path, :line, encoding: :utf8, trim_bom: true)"
+      )
+
+      assert_style(
+        "f |> File.stream!([encoding: :utf8, trim_bom: true], :line) |> Enum.take(2)",
+        "f |> File.stream!(:line, encoding: :utf8, trim_bom: true) |> Enum.take(2)"
+      )
+    end
   end
 
   test "~R is deprecated in favor of ~r" do

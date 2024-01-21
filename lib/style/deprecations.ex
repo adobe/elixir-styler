@@ -33,15 +33,17 @@ defmodule Styler.Style.Deprecations do
   defp style({:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Path]}, :safe_relative_to]}, funm, args}]}),
     do: {:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Path]}, :safe_relative]}, funm, args}]}
 
-  # File.stream!(file, options, line_or_bytes) => File.stream!(file, line_or_bytes, options)
-  defp style({{:., _, [{_, _, [:File]}, :stream!]} = f, fm, [path, {:__block__, _, [modes]} = opts, lob]})
-       when is_list(modes),
-       do: {f, fm, [path, lob, opts]}
+  if Version.match?(System.version(), ">= 1.16.0-dev") do
+    # File.stream!(file, options, line_or_bytes) => File.stream!(file, line_or_bytes, options)
+    defp style({{:., _, [{_, _, [:File]}, :stream!]} = f, fm, [path, {:__block__, _, [modes]} = opts, lob]})
+         when is_list(modes),
+         do: {f, fm, [path, lob, opts]}
 
-  # Pipe version for File.stream!
-  defp style({:|>, m, [lhs, {{_, _, [{_, _, [:File]}, :stream!]} = f, fm, [{:__block__, _, [modes]} = opts, lob]}]})
-       when is_list(modes),
-       do: {:|>, m, [lhs, {f, fm, [lob, opts]}]}
+    # Pipe version for File.stream!
+    defp style({:|>, m, [lhs, {{_, _, [{_, _, [:File]}, :stream!]} = f, fm, [{:__block__, _, [modes]} = opts, lob]}]})
+         when is_list(modes),
+         do: {:|>, m, [lhs, {f, fm, [lob, opts]}]}
+  end
 
   # For ranges where `start > stop`, you need to explicitly include the step
   # Enum.slice(enumerable, 1..-2) => Enum.slice(enumerable, 1..-2//1)
