@@ -87,8 +87,10 @@ defmodule Styler.Style.Deprecations do
 
   defp add_step_to_date_range?(first, last) do
     with {:ok, f} <- extract_date_value(first),
-         {:ok, l} <- extract_date_value(last) do
-      Date.after?(f, l)
+         {:ok, l} <- extract_date_value(last),
+         # for ex1.14 compat, use compare instead of after?
+         :gt <- Date.compare(f, l) do
+      true
     else
       _ -> false
     end
