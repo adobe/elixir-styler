@@ -62,7 +62,7 @@ defmodule Mix.Tasks.Speedo do
       errors = Enum.sort_by(errors, &{&1.file, &1.line})
 
       for %{file: file, line: line, message: message} <- errors do
-        Mix.shell().info([IO.ANSI.light_yellow(), message, IO.ANSI.reset()])
+        Mix.shell().info([IO.ANSI.light_yellow(), inspect(message), IO.ANSI.reset()])
         Mix.shell().info("  #{Path.relative_to_cwd(file)}:#{line}")
       end
     end)

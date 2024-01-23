@@ -16,25 +16,30 @@ defmodule Styler.Linter.Speedo do
   @definer ~w(def defp defmacro defmacrop defguard defguardp)a
   def run({{def, _, [{name, m, args} | _]}, _} = zipper, ctx) when def in @definer and is_atom(name) do
     {name, m, args} = if name == :when, do: hd(args), else: {name, m, args}
-    line = m[:line]
-    name = to_string(name)
-    error = %{file: ctx.file, line: line, check: nil, message: nil}
 
-    snake_error =
-      unless snake_case?(name), do: %{error | check: FunctionNames, message: "`#{def} #{name}` is not snake case"}
+    name_errors =
+      # :when clause means this might not be an atom :/
+      if is_atom(name) do
+        error = %{file: ctx.file, line: m[:line], check: nil, message: nil}
+        name = to_string(name)
+        snake_error =
+          unless snake_case?(name), do: %{error | check: FunctionNames, message: "`#{def} #{name}` is not snake case"}
 
-    predicate_error = %{error | check: PredicateFunctionNames, message: nil}
+        predicate_error = %{error | check: PredicateFunctionNames, message: nil}
 
-    predicate_error =
-      cond do
-        def in ~w(def defp)a and String.starts_with?(name, "is_") ->
-          %{predicate_error | message: "`#{def} #{name}` is invalid -- use `?` not `is_` for defs"}
+        predicate_error =
+          cond do
+            def in ~w(def defp)a and String.starts_with?(name, "is_") ->
+              %{predicate_error | message: "`#{def} #{name}` is invalid -- use `?` not `is_` for defs"}
 
-        def in ~w(defmacro defmacrop defguard defguardp)a and String.ends_with?(name, "?") ->
-          %{predicate_error | message: "`#{def} #{name}`: use `is_*` not `*?` for things that can be used in guards"}
+            def in ~w(defmacro defmacrop defguard defguardp)a and String.ends_with?(name, "?") ->
+              %{predicate_error | message: "`#{def} #{name}`: use `is_*` not `*?` for things that can be used in guards"}
 
-        true ->
-          []
+            true ->
+              []
+          end
+
+        [snake_error, predicate_error]
       end
 
     var_errors =
@@ -43,7 +48,7 @@ defmodule Styler.Linter.Speedo do
         var_errors
       end)
 
-    ctx = Map.update!(ctx, :errors, &[snake_error, predicate_error, var_errors | &1])
+    ctx = Map.update!(ctx, :errors, &[name_errors, var_errors | &1])
     {zipper, ctx}
   end
 
