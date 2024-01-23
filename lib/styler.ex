@@ -71,12 +71,12 @@ defmodule Styler do
 
   def lint(input, file \\ "nofile") do
     {ast, comments} = string_to_quoted_with_comments(input, file)
-    context = %{comments: comments, file: file, errors: []}
+    context = %{comments: Styler.Linter.Comments.parse(comments), file: file, errors: []}
 
     {_, %{errors: errors}} =
       ast
       |> Zipper.zip()
-      |> Zipper.traverse(context, &Styler.Speedo.run/2)
+      |> Zipper.traverse(context, &Styler.Linter.Speedo.run/2)
 
     errors
   end

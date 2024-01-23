@@ -1,5 +1,5 @@
-defmodule Styler.Speedo.LintTest do
-  use Styler.SpeedoCase
+defmodule Styler.Linter.SpeedoTest do
+  use Styler.LinterCase
 
   alias Credo.Check.Consistency.ExceptionNames
   alias Credo.Check.Design.AliasUsage

@@ -1,4 +1,4 @@
-defmodule Styler.Speedo do
+defmodule Styler.Linter.Speedo do
   @moduledoc false
 
   alias Credo.Check.Consistency.ExceptionNames
