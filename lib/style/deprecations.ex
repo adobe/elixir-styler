@@ -62,24 +62,16 @@ defmodule Styler.Style.Deprecations do
 
   # For a decreasing range, we must use Date.range/3 instead of Date.range/2
   defp style({{:., _, [{:__aliases__, _, [:Date]}, :range]} = funm, dm, [first, last]} = block) do
-    with {:ok, f} <- extract_date_value(first),
-         {:ok, l} <- extract_date_value(last),
-         true <- Date.after?(f, l) do
-      {funm, dm, [first, last, -1]}
-    else
-      _ -> block
-    end
+    if add_step_to_date_range?(first, last),
+      do: {funm, dm, [first, last, -1]},
+      else: block
   end
 
   # Pipe version for Date.range/2
-  defp style({:|>, pm, [first, {{:., _, [{:__aliases__, _, [:Date]}, :range]} = funm, dm, [last]}]} = block) do
-    with {:ok, f} <- extract_date_value(first),
-         {:ok, l} <- extract_date_value(last),
-         :gt <- Date.compare(f, l) do
-      {:|>, pm, [first, {funm, dm, [last, -1]}]}
-    else
-      _ -> block
-    end
+  defp style({:|>, pm, [first, {{:., _, [{:__aliases__, _, [:Date]}, :range]} = funm, dm, [last]}]} = pipe) do
+    if add_step_to_date_range?(first, last),
+      do: {:|>, pm, [first, {funm, dm, [last, -1]}]},
+      else: pipe
   end
 
   # use :eof instead of :all in IO.read/2 and IO.binread/2
@@ -92,6 +84,15 @@ defmodule Styler.Style.Deprecations do
        do: {fm, dm, [device, {:__block__, am, [:eof]}]}
 
   defp style(node), do: node
+
+  defp add_step_to_date_range?(first, last) do
+    with {:ok, f} <- extract_date_value(first),
+         {:ok, l} <- extract_date_value(last) do
+      Date.after?(f, l)
+    else
+      _ -> false
+    end
+  end
 
   defp add_step_to_decreasing_range({:.., rm, [first, {_, lm, _} = last]} = range) do
     with {:ok, start} <- extract_value_from_range(first),
