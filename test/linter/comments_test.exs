@@ -3,10 +3,8 @@ defmodule Styler.Linter.CommentsTest do
 
   import ExUnit.CaptureIO
 
-
-  alias Styler.Linter.Comments
-
   alias Credo.Check.Foo.Bar
+  alias Styler.Linter.Comments
 
   defp parse_code(code) do
     {_, comments} = Styler.string_to_quoted_with_comments(code)
@@ -25,8 +23,8 @@ defmodule Styler.Linter.CommentsTest do
 
     test "warns for disallowed credo features" do
       assert capture_io(fn ->
-        assert [] = parse_code("# credo:disable-for-previous-line")
-      end) =~ "invalid config `disable-for-previous-line`"
+               assert [] = parse_code("# credo:disable-for-previous-line")
+             end) =~ "invalid config `disable-for-previous-line`"
     end
 
     test "disable for this file" do
@@ -37,27 +35,29 @@ defmodule Styler.Linter.CommentsTest do
     end
 
     test "next line" do
-      assert [{:*, 2}, {Bar, 5}] = parse_code("""
-      # credo:disable-for-next-line
-      two
-      three
-      # credo:disable-for-next-line Credo.Check.Foo.Bar
-      five
-      """)
+      assert [{:*, 2}, {Bar, 5}] =
+               parse_code("""
+               # credo:disable-for-next-line
+               two
+               three
+               # credo:disable-for-next-line Credo.Check.Foo.Bar
+               five
+               """)
     end
 
     test "lines" do
-      assert [{:*, 2..4}, {Bar, 5..8}] = parse_code("""
-      # credo:disable-for-lines:3
-      two
-      three
-      # credo:disable-for-lines:4 Credo.Check.Foo.Bar
-      five
-      """)
+      assert [{:*, 2..4}, {Bar, 5..8}] =
+               parse_code("""
+               # credo:disable-for-lines:3
+               two
+               three
+               # credo:disable-for-lines:4 Credo.Check.Foo.Bar
+               five
+               """)
 
       assert capture_io(fn ->
-        assert [] = parse_code("# credo:disable-for-lines:-4 Credo.Check.Foo.Bar")
-      end) =~ "credo:disable-for-lines with negative number ignored"
+               assert [] = parse_code("# credo:disable-for-lines:-4 Credo.Check.Foo.Bar")
+             end) =~ "credo:disable-for-lines with negative number ignored"
     end
   end
 end

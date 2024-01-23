@@ -99,13 +99,17 @@ defmodule Styler.Linter.Speedo do
 
     alias_errors =
       module_body
-      |> Zipper.traverse(%{}, fn
+      |> Zipper.traverse_while(%{}, fn
+        # let people do whatever with meta programmings
+        {{directive, _, _}, _} = zipper, acc when directive in ~w(@ use) ->
+          {:skip, zipper, acc}
+
         # A.B.C.f(...)
         {{{:., m, [{:__aliases__, _, [_, _, _ | _] = aliases}, _]}, _, _}, _} = zipper, acc ->
-          {zipper, Map.update(acc, aliases, {false, m[:line]}, fn {_, l} -> {true, l} end)}
+          {:cont, zipper, Map.update(acc, aliases, {false, m[:line]}, fn {_, l} -> {true, l} end)}
 
         zipper, acc ->
-          {zipper, acc}
+          {:cont, zipper, acc}
       end)
       |> elem(1)
       |> Enum.flat_map(fn
