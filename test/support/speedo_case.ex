@@ -25,6 +25,7 @@ defmodule Styler.SpeedoCase do
       errors = lint(code)
 
       if Enum.empty?(errors) and ExUnit.configuration()[:trace] do
+        dbg(code)
         {ast, comments} = Styler.string_to_quoted_with_comments(code)
         dbg(ast)
         dbg(comments)

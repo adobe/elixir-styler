@@ -1,6 +1,8 @@
 defmodule Styler.Speedo do
   @moduledoc false
 
+  alias Credo.Check.Consistency.ExceptionNames
+  alias Credo.Check.Design.AliasUsage
   alias Credo.Check.Readability.FunctionNames
   alias Credo.Check.Readability.ImplTrue
   alias Credo.Check.Readability.ModuleAttributeNames
@@ -45,7 +47,6 @@ defmodule Styler.Speedo do
     {zipper, ctx}
   end
 
-  # Credo.Check.Readability.ModuleNames
   def run({{:defmodule, _, [{:__aliases__, m, aliases} | _]}, _} = zipper, ctx) do
     name = Enum.map_join(aliases, ".", &to_string/1)
     error = %{file: ctx.file, line: m[:line], check: nil, message: nil}
@@ -54,28 +55,27 @@ defmodule Styler.Speedo do
       unless pascal_case?(name),
         do: %{error | check: ModuleNames, message: "`defmodule #{inspect(name)}` is not pascal case"}
 
-    errors =
+    module_body =
       zipper
       |> Zipper.down()
       |> Zipper.right()
       |> Zipper.down()
       |> Zipper.down()
       |> Zipper.right()
-      # coerce single-child defmodules to have the same shape as multi-child
-      |> Styler.Style.find_nearest_block()
-      |> Zipper.up()
-      |> Zipper.children()
-      |> Enum.flat_map(fn
+
+    module_children =
+      case Zipper.node(module_body) do
+        {:__block__, _, children} -> children
+        # coerce single-child defmodules to have the same shape as multi-child
+        {_, _, _} = only_child -> [only_child]
+      end
+
+    errors =
+      Enum.flat_map(module_children, fn
         {:defexception, _, _} ->
           if String.ends_with?(name, "Error"),
             do: [],
-            else: [
-              %{
-                error
-                | check: Credo.Check.Consistency.ExceptionNames,
-                  message: "`#{name}`: exception modules must end in `Error`"
-              }
-            ]
+            else: [%{error | check: ExceptionNames, message: "`#{name}`: exception modules must end in `Error`"}]
 
         {:@, m, [{:impl, _, [{:__block__, _, [true]}]}]} ->
           [%{error | line: m[:line], check: ImplTrue, message: "`@impl true` not allowed"}]
@@ -89,11 +89,34 @@ defmodule Styler.Speedo do
           []
       end)
 
-    {zipper, Map.update!(ctx, :errors, &[[pascal | errors] | &1])}
+    aliased =
+      module_children
+      |> Enum.flat_map(fn
+        {:alias, _, [{:__aliases__, _, aliases}]} -> [aliases]
+        _ -> []
+      end)
+      |> MapSet.new(&List.last/1)
+
+    alias_errors =
+      module_body
+      |> Zipper.traverse(%{}, fn
+        # A.B.C.f(...)
+        {{{:., m, [{:__aliases__, _, [_, _, _ | _] = aliases}, _]}, _, _}, _} = zipper, acc ->
+          {zipper, Map.update(acc, aliases, {false, m[:line]}, fn {_, l} -> {true, l} end)}
+
+        zipper, acc ->
+          {zipper, acc}
+      end)
+      |> elem(1)
+      |> Enum.flat_map(fn
+        {a, {true, l}} -> if List.last(a) in aliased, do: [], else: [%{error | line: l, check: AliasUsage, message: a}]
+        _ -> []
+      end)
+
+    {zipper, Map.update!(ctx, :errors, &[[alias_errors, pascal | errors] | &1])}
   end
 
   def run({{:<-, m, [lhs, _] = args}, _} = zipper, ctx) do
-    # Credo.Check.Readability.WithCustomTaggedTuple
     tag_error =
       case args do
         [{:__block__, _, [{{:__block__, _, [tag]}, _}]}, {:__block__, _, [{{:__block__, _, [tag]}, _}]}] ->
@@ -108,14 +131,12 @@ defmodule Styler.Speedo do
     {zipper, Map.update!(ctx, :errors, &[[tag_error | assignment_errors] | &1])}
   end
 
-  # Credo.Check.Readability.VariableNames
   # the `=` here will double report when nested in a case. need to move it to its own clause w/ "in block"
   def run({{assignment_op, _, [lhs, _]}, _} = zipper, ctx) when assignment_op in ~w(= ->)a do
     {_, errors} = lhs |> Zipper.zip() |> Zipper.traverse([], &readability_variable_names(&1, &2, ctx.file))
     {zipper, Map.update!(ctx, :errors, &[errors | &1])}
   end
 
-  # Credo.Check.Readability.StringSigils
   def run({{:__block__, [{:delimiter, ~s|"|} | _] = m, [string]}, _} = zipper, ctx) when is_binary(string) do
     if string =~ ~r/".*".*".*"/ do
       msg = "use a sigil for #{inspect(string)}, it has too many quotes"
@@ -126,13 +147,7 @@ defmodule Styler.Speedo do
     end
   end
 
-  def run(zipper, context) do
-    case run!(Zipper.node(zipper), context.file) do
-      nil -> {zipper, context}
-      [] -> {zipper, context}
-      errors -> {zipper, Map.update!(context, :errors, &[errors | &1])}
-    end
-  end
+  def run(zipper, context), do: {zipper, context}
 
   defp readability_variable_names({{name, m, nil}, _} = zipper, errors, file) do
     if name in [:__CALLER__, :__DIR__, :__ENV__, :__MODULE__] or snake_case?(name) do
@@ -146,8 +161,6 @@ defmodule Styler.Speedo do
   defp readability_variable_names(zipper, errors, _) do
     {zipper, errors}
   end
-
-  defp run!(_, _), do: []
 
   defp snake_case?(name), do: to_string(name) =~ ~r/^[[:lower:]\d\_\!\?]+$/u
   defp pascal_case?(name), do: to_string(name) =~ ~r/^[A-Z][a-zA-Z0-9\.]*$/
