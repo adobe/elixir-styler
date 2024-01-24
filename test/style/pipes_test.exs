@@ -498,6 +498,13 @@ defmodule Styler.Style.PipesTest do
       assert_style("a |> (fn x -> x end).() |> c", "a |> then(fn x -> x end) |> c()")
     end
 
+    test "rewrites then/2 when the passed function is a named function reference" do
+      assert_style("a |> then(&fun/1) |> c", "a |> fun() |> c()")
+      assert_style("a |> then(&DateTime.from_is8601/1) |> c", "a |> DateTime.from_is8601() |> c()")
+      assert_style("a |> then(&DateTime.from_is8601/1)", "DateTime.from_is8601(a)")
+      assert_style("a |> then(&fun(&1, d)) |> c", "a |> then(&fun(&1, d)) |> c()")
+    end
+
     test "adds parens to 1-arity pipes" do
       assert_style("a |> b |> c", "a |> b() |> c()")
     end
