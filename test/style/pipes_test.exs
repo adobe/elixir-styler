@@ -502,9 +502,7 @@ defmodule Styler.Style.PipesTest do
       assert_style("a |> then(&fun/1) |> c", "a |> fun() |> c()")
       assert_style("a |> then(&DateTime.from_is8601/1) |> c", "a |> DateTime.from_is8601() |> c()")
       assert_style("a |> then(&DateTime.from_is8601/1)", "DateTime.from_is8601(a)")
-      assert_style("a |> then(&fun(&1)) |> c", "a |> fun() |> c()")
-      assert_style("a |> then(&fun(&1, d)) |> c", "a |> fun(d) |> c()")
-      assert_style("a |> then(&fun(d, &1)) |> c", "a |> then(&fun(d, &1)) |> c()")
+      assert_style("a |> then(&fun(&1, d)) |> c", "a |> then(&fun(&1, d)) |> c()")
     end
 
     test "adds parens to 1-arity pipes" do

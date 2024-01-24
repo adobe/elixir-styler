@@ -144,10 +144,6 @@ defmodule Styler.Style.Pipes do
   defp fix_pipe({:|>, m, [lhs, {fun, m2, nil}]}), do: {:|>, m, [lhs, {fun, m2, []}]}
   # a |> then(&fun/1) |> c => a |> fun() |> c()
   defp fix_pipe({:|>, m, [lhs, {:then, _, [{:&, _, [{:/, _, [{fun, m2, _}, _]}]}]}]}), do: {:|>, m, [lhs, {fun, m2, []}]}
-  # a |> then(&fun(&1, d)) |> c => a |> fun(d) |> c()
-  defp fix_pipe({:|>, m, [lhs, {:then, _, [{:&, _, [{fun, m2, [{:&, _, _} | args]}]}]}]}),
-    do: {:|>, m, [lhs, {fun, m2, args}]}
-
   # Credo.Check.Readability.PipeIntoAnonymousFunctions
   # rewrite anonymous function invocation to use `then/2`
   # `a |> (& &1).() |> c()` => `a |> then(& &1) |> c()`
