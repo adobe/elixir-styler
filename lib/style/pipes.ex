@@ -210,6 +210,13 @@ defmodule Styler.Style.Pipes do
       else: node
   end
 
+  # `lhs |> Enum.map(mapper) |> Map.new()` => `lhs |> Map.new(mapper)
+  defp fix_pipe(
+         pipe_chain(lhs, {{:., _, [{_, _, [:Enum]}, :map]}, _, [mapper]}, {{:., _, [{_, _, [:Map]}, :new]} = new, nm, []})
+       ) do
+    Style.set_line({:|>, [], [lhs, {new, nm, [mapper]}]}, nm[:line])
+  end
+
   for mod <- [:Map, :Keyword] do
     # lhs |> Map.merge(%{key: value}) => lhs |> Map.put(key, value)
     defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [unquote(mod)]} = mod, :merge]}, m, [{:%{}, _, [{key, value}]}]}]}),

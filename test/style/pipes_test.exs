@@ -654,6 +654,10 @@ defmodule Styler.Style.PipesTest do
       )
     end
 
+    test "Enum.map(x) |> Map.new()" do
+      assert_style("a |> Enum.map(b) |> Map.new()", "Map.new(a, b)")
+    end
+
     test "into a new map" do
       assert_style("a |> Enum.into(foo) |> b()")
       assert_style("a |> Enum.into(%{}) |> b()", "a |> Map.new() |> b()")

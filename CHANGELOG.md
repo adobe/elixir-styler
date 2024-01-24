@@ -2,6 +2,11 @@
 
 ## main
 
+### Improvements
+
+* deprecations: `~R` -> `~r`, `Date.range/2` -> `Date.range/3` with decreasing dates (h/t @milmazz)
+* pipes: `|> Enum.map(foo) |> Map.new()` => `|> Map.new(foo)`
+
 ## v0.11.6
 
 ### Fixes
