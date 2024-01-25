@@ -2,6 +2,8 @@
 
 ## main
 
+## v0.11.7
+
 ### Improvements
 
 * deprecations: `~R` -> `~r`, `Date.range/2` -> `Date.range/3` with decreasing dates (h/t @milmazz)
