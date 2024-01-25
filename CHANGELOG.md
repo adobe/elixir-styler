@@ -5,7 +5,9 @@
 ### Improvements
 
 * deprecations: `~R` -> `~r`, `Date.range/2` -> `Date.range/3` with decreasing dates (h/t @milmazz)
+* if: rewrite `if not x, do: y` => `unless x, do: y`
 * pipes: `|> Enum.map(foo) |> Map.new()` => `|> Map.new(foo)`
+* pipes: remove unnecessary `then/2` on named function captures: `|> then(&foo/1)` => `|> foo()`, `|> then(&foo(&1, ...))` => `|> foo(...)` (thanks to @tfiedlerdejanze for the idea + impl!)
 
 ## v0.11.6
 

@@ -767,6 +767,12 @@ defmodule Styler.Style.BlocksTest do
       """)
     end
 
+    test "if not => unless" do
+      assert_style("if not x, do: y", "unless x, do: y")
+      assert_style("if !x, do: y", "unless x, do: y")
+      assert_style("if !!x, do: y", "if x, do: y")
+    end
+
     test "Credo.Check.Refactor.UnlessWithElse" do
       for negator <- ["!", "not "] do
         assert_style(
@@ -826,14 +832,7 @@ defmodule Styler.Style.BlocksTest do
 
     test "Credo.Check.Refactor.NegatedConditionsWithElse" do
       for negator <- ["!", "not "] do
-        assert_style("if #{negator}foo, do: :bar")
         assert_style("if #{negator}foo, do: :bar, else: :baz", "if foo, do: :baz, else: :bar")
-
-        assert_style("""
-        if #{negator}foo do
-          bar
-        end
-        """)
 
         assert_style(
           """
