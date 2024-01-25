@@ -9,6 +9,7 @@ Two releases in one day!? @koudelka made too good a point about `Map.new` not be
 ### Improvements
 
 * pipes: treat `MapSet.new` and `Keyword.new` the same way we do `Map.new` (h/t @koudelka)
+* pipes: treat `Stream.map` the same as `Enum.map` when piped `|> Enum.into`
 
 ## v0.11.7
 
