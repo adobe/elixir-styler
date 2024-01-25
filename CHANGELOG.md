@@ -2,6 +2,14 @@
 
 ## main
 
+## v0.11.8
+
+Two releases in one day!? @koudelka made too good a point about `Map.new` not being special...
+
+### Improvements
+
+* pipes: treat `MapSet.new` and `Keyword.new` the same way we do `Map.new` (h/t @koudelka)
+
 ## v0.11.7
 
 ### Improvements
