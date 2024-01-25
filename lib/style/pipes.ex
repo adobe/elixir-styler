@@ -30,6 +30,7 @@ defmodule Styler.Style.Pipes do
   alias Styler.Zipper
 
   @collectable ~w(Map Keyword MapSet)a
+  @enum ~w(Enum Stream)a
 
   def run({{:|>, _, _}, _} = zipper, ctx) do
     case fix_pipe_start(zipper) do
@@ -180,10 +181,11 @@ defmodule Styler.Style.Pipes do
   defp fix_pipe(
          pipe_chain(
            lhs,
-           {{:., _, [{_, _, [:Enum]}, :filter]}, meta, [filterer]},
+           {{:., _, [{_, _, [mod]}, :filter]}, meta, [filterer]},
            {{:., _, [{_, _, [:Enum]}, :count]} = count, _, []}
          )
-       ) do
+       )
+       when mod in @enum do
     {:|>, [line: meta[:line]], [lhs, {count, [line: meta[:line]], [filterer]}]}
   end
 
@@ -191,11 +193,11 @@ defmodule Styler.Style.Pipes do
   defp fix_pipe(
          pipe_chain(
            lhs,
-           {{:., dm, [{_, _, [enum_or_stream]}, :map]}, em, [mapper]},
+           {{:., dm, [{_, _, [mod]}, :map]}, em, [mapper]},
            {{:., _, [{_, _, [:Enum]} = enum, :join]}, _, [joiner]}
          )
        )
-       when enum_or_stream in [:Enum, :Stream] do
+       when mod in @enum do
     rhs = Style.set_line({{:., dm, [enum, :map_join]}, em, [joiner, mapper]}, dm[:line])
     {:|>, [line: dm[:line]], [lhs, rhs]}
   end
@@ -210,7 +212,7 @@ defmodule Styler.Style.Pipes do
            {{:., _, [{_, _, [:Enum]}, :into]} = into, _, [collectable]}
          )
        )
-       when mod in [:Enum, :Stream] do
+       when mod in @enum do
     rhs =
       case collectable do
         {{:., _, [{_, _, [mod]}, :new]}, _, []} when mod in @collectable ->
@@ -245,9 +247,9 @@ defmodule Styler.Style.Pipes do
 
   # `lhs |> Enum.map(mapper) |> Map.new()` => `lhs |> Map.new(mapper)
   defp fix_pipe(
-         pipe_chain(lhs, {{:., _, [{_, _, [:Enum]}, :map]}, _, [mapper]}, {{:., _, [{_, _, [mod]}, :new]} = new, nm, []})
+         pipe_chain(lhs, {{:., _, [{_, _, [enum]}, :map]}, _, [mapper]}, {{:., _, [{_, _, [mod]}, :new]} = new, nm, []})
        )
-       when mod in @collectable do
+       when mod in @collectable and enum in @enum do
     Style.set_line({:|>, [], [lhs, {new, nm, [mapper]}]}, nm[:line])
   end
 

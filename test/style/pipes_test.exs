@@ -535,68 +535,63 @@ defmodule Styler.Style.PipesTest do
     end
 
     test "filter/count" do
-      assert_style(
-        """
-        a
-        |> Enum.filter(fun)
-        |> Enum.count()
-        |> IO.puts()
-        """,
-        """
-        a
-        |> Enum.count(fun)
-        |> IO.puts()
-        """
-      )
+      for enum <- ~w(Enum Stream) do
+        assert_style(
+          """
+          a
+          |> #{enum}.filter(fun)
+          |> Enum.count()
+          |> IO.puts()
+          """,
+          """
+          a
+          |> Enum.count(fun)
+          |> IO.puts()
+          """
+        )
 
-      assert_style(
-        """
-        a
-        |> Enum.filter(fun)
-        |> Enum.count()
-        """,
-        """
-        Enum.count(a, fun)
-        """
-      )
+        assert_style(
+          """
+          a
+          |> #{enum}.filter(fun)
+          |> Enum.count()
+          """,
+          """
+          Enum.count(a, fun)
+          """
+        )
 
-      assert_style(
-        """
-        if true do
-          []
-        else
-          [a, b, c]
-        end
-        |> Enum.filter(fun)
-        |> Enum.count()
-        """,
-        """
-        if_result =
+        assert_style(
+          """
           if true do
             []
           else
             [a, b, c]
           end
+          |> #{enum}.filter(fun)
+          |> Enum.count()
+          """,
+          """
+          if_result =
+            if true do
+              []
+            else
+              [a, b, c]
+            end
 
-        Enum.count(if_result, fun)
-        """
-      )
+          Enum.count(if_result, fun)
+          """
+        )
+      end
     end
 
     test "map/join" do
-      assert_style(
-        """
-        a
-        |> Enum.map(b)
-        |> Enum.join("|")
-        """,
-        """
-        Enum.map_join(a, "|", b)
-        """
-      )
+      for enum <- ~w(Enum Stream) do
+        assert_style("a|> #{enum}.map(b) |> Enum.join(x)", "Enum.map_join(a, x, b)")
+      end
     end
 
-    test "enum/stream.map |> enum.into" do
+    test "map/into" do
       for enum <- ~w(Enum Stream) do
         assert_style("a|> #{enum}.map(b)|> Enum.into(%{})", "Map.new(a, b)")
         assert_style("a |> #{enum}.map(b) |> Enum.into(unk)", "Enum.into(a, unk, b)")
@@ -643,31 +638,18 @@ defmodule Styler.Style.PipesTest do
       end
     end
 
-    test "Enum.map(x) |> $collectable.new()" do
+    test "map/new" do
       for collectable <- ~W(Map Keyword MapSet), new = "#{collectable}.new" do
         assert_style("a |> Enum.map(b) |> #{new}()", "#{new}(a, b)")
       end
     end
 
-    test "into an empty map" do
+    test "into(%{})" do
       assert_style("a |> Enum.into(%{}) |> b()", "a |> Map.new() |> b()")
       assert_style("a |> Enum.into(%{}, mapper) |> b()", "a |> Map.new(mapper) |> b()")
-
-      assert_style(
-        """
-        a
-        |> Enum.map(b)
-        |> Enum.into(%{}, c)
-        """,
-        """
-        a
-        |> Enum.map(b)
-        |> Map.new(c)
-        """
-      )
     end
 
-    test "into a new collectable" do
+    test "into(Collectable.new())" do
       assert_style("a |> Enum.into(foo) |> b()")
       assert_style("a |> Enum.into(foo, mapper) |> b()")
 

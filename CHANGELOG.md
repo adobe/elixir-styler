@@ -2,6 +2,10 @@
 
 ## main
 
+### Improvements
+
+* pipes: check for `Stream.foo` equivalents to `Enum.foo` in a few more cases
+
 ## v0.11.8
 
 Two releases in one day!? @koudelka made too good a point about `Map.new` not being special...
