@@ -280,16 +280,20 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
-  describe "Enum.into and Map.new" do
-    test "into a new map" do
+  describe "Enum.into and $collectable.new" do
+    test "into an empty map" do
+      assert_style("Enum.into(a, %{})", "Map.new(a)")
+      assert_style("Enum.into(a, %{}, mapper)", "Map.new(a, mapper)")
+    end
+
+    test "into a collectable" do
       assert_style("Enum.into(a, foo)")
       assert_style("Enum.into(a, foo, mapper)")
 
-      assert_style("Enum.into(a, %{})", "Map.new(a)")
-      assert_style("Enum.into(a, Map.new)", "Map.new(a)")
-
-      assert_style("Enum.into(a, %{}, mapper)", "Map.new(a, mapper)")
-      assert_style("Enum.into(a, Map.new, mapper)", "Map.new(a, mapper)")
+      for collectable <- ~W(Map Keyword MapSet), new = "#{collectable}.new" do
+        assert_style("Enum.into(a, #{new})", "#{new}(a)")
+        assert_style("Enum.into(a, #{new}, mapper)", "#{new}(a, mapper)")
+      end
     end
   end
 

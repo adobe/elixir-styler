@@ -27,7 +27,6 @@ defmodule Styler.Style.SingleNode do
 
   @behaviour Styler.Style
 
-  alias Styler.Style
   alias Styler.Zipper
 
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
@@ -73,13 +72,25 @@ defmodule Styler.Style.SingleNode do
     {:__block__, meta, [number]}
   end
 
-  ## DEPRECATED & INEFFICIENT FUNCTION REWRITES
+  ## INEFFICIENT FUNCTION REWRITES
   # Keep in mind when rewriting a `/n::pos_integer` arity function here that it should also be added
   # to the pipes rewriting rules, where it will appear as `/n-1`
 
   # Enum.into(enum, empty_map[, ...]) => Map.new(enum[, ...])
-  defp style({{:., dm, [{:__aliases__, am, [:Enum]}, :into]}, funm, [enum, collectable | rest]} = node) do
-    if Style.empty_map?(collectable), do: {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, funm, [enum | rest]}, else: node
+  defp style({{:., dm, [{:__aliases__, _, [:Enum]}, :into]}, funm, [enum, collectable | rest]} = node) do
+    new_collectable =
+      case collectable do
+        {{:., _, [{_, _, [mod]}, :new]}, _, []} when mod in ~w(Map Keyword MapSet)a ->
+          {:., dm, [{:__aliases__, dm, [mod]}, :new]}
+
+        {:%{}, _, []} ->
+          {:., dm, [{:__aliases__, dm, [:Map]}, :new]}
+
+        _ ->
+          nil
+      end
+
+    if new_collectable, do: {new_collectable, funm, [enum | rest]}, else: node
   end
 
   for mod <- [:Map, :Keyword] do

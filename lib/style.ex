@@ -153,9 +153,4 @@ defmodule Styler.Style do
     end)
     |> Enum.sort_by(& &1.line)
   end
-
-  @doc "Returns true if the ast represents an empty map"
-  def empty_map?({:%{}, _, []}), do: true
-  def empty_map?({{:., _, [{_, _, [:Map]}, :new]}, _, []}), do: true
-  def empty_map?(_), do: false
 end

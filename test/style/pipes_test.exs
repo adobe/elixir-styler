@@ -596,87 +596,62 @@ defmodule Styler.Style.PipesTest do
       )
     end
 
-    test "map/into" do
-      assert_style(
-        """
-        a
-        |> Enum.map(b)
-        |> Enum.into(%{})
-        """,
-        "Map.new(a, b)"
-      )
+    test "enum/stream.map |> enum.into" do
+      for enum <- ~w(Enum Stream) do
+        assert_style("a|> #{enum}.map(b)|> Enum.into(%{})", "Map.new(a, b)")
+        assert_style("a |> #{enum}.map(b) |> Enum.into(unk)", "Enum.into(a, unk, b)")
 
-      assert_style(
-        """
-        a
-        |> Enum.map(b)
-        |> Enum.into(Map.new())
-        """,
-        "Map.new(a, b)"
-      )
+        assert_style(
+          "a |> #{enum}.map(b) |> Enum.into(%{some: :existing_map})",
+          "Enum.into(a, %{some: :existing_map}, b)"
+        )
 
-      assert_style(
-        """
-        a
-        |> Enum.map(b)
-        |> Enum.into(my_map)
-        """,
-        "Enum.into(a, my_map, b)"
-      )
+        assert_style(
+          """
+          a_multiline_mapper
+          |> #{enum}.map(fn %{gets: shrunk, down: to_a_more_reasonable} ->
+            IO.puts "woo!"
+            {shrunk, to_a_more_reasonable}
+          end)
+          |> Enum.into(size)
+          """,
+          """
+          Enum.into(a_multiline_mapper, size, fn %{gets: shrunk, down: to_a_more_reasonable} ->
+            IO.puts("woo!")
+            {shrunk, to_a_more_reasonable}
+          end)
+          """
+        )
 
-      assert_style(
-        """
-        a
-        |> Enum.map(b)
-        |> Enum.into(%{some: :existing_map})
-        """,
-        "Enum.into(a, %{some: :existing_map}, b)"
-      )
+        for collectable <- ~W(Map Keyword MapSet), new = "#{collectable}.new" do
+          assert_style("a |> #{enum}.map(b) |> Enum.into(#{new}())", "#{new}(a, b)")
 
-      assert_style(
-        """
-        a_multiline_mapper
-        |> Enum.map(fn %{gets: shrunk, down: to_a_more_reasonable} ->
-          IO.puts "woo!"
-          {shrunk, to_a_more_reasonable}
-        end)
-        |> Enum.into(size)
-        """,
-        """
-        Enum.into(a_multiline_mapper, size, fn %{gets: shrunk, down: to_a_more_reasonable} ->
-          IO.puts("woo!")
-          {shrunk, to_a_more_reasonable}
-        end)
-        """
-      )
-
-      # Regression: something about the meta wants newlines when it's in a def
-      assert_style(
-        """
-        def foo() do
-          filename_map = foo |> Enum.map(&{&1.filename, true}) |> Enum.into(%{})
+          # Regression: something about the meta wants newlines when it's in a def
+          assert_style(
+            """
+            def foo() do
+              filename_map = foo |> Enum.map(&{&1.filename, true}) |> Enum.into(%{})
+            end
+            """,
+            """
+            def foo do
+              filename_map = Map.new(foo, &{&1.filename, true})
+            end
+            """
+          )
         end
-        """,
-        """
-        def foo do
-          filename_map = Map.new(foo, &{&1.filename, true})
-        end
-        """
-      )
+      end
     end
 
-    test "Enum.map(x) |> Map.new()" do
-      assert_style("a |> Enum.map(b) |> Map.new()", "Map.new(a, b)")
+    test "Enum.map(x) |> $collectable.new()" do
+      for collectable <- ~W(Map Keyword MapSet), new = "#{collectable}.new" do
+        assert_style("a |> Enum.map(b) |> #{new}()", "#{new}(a, b)")
+      end
     end
 
-    test "into a new map" do
-      assert_style("a |> Enum.into(foo) |> b()")
+    test "into an empty map" do
       assert_style("a |> Enum.into(%{}) |> b()", "a |> Map.new() |> b()")
-      assert_style("a |> Enum.into(Map.new) |> b()", "a |> Map.new() |> b()")
-
-      assert_style("a |> Enum.into(foo, mapper) |> b()")
       assert_style("a |> Enum.into(%{}, mapper) |> b()", "a |> Map.new(mapper) |> b()")
-      assert_style("a |> Enum.into(Map.new, mapper) |> b()", "a |> Map.new(mapper) |> b()")
 
       assert_style(
         """
@@ -690,19 +665,29 @@ defmodule Styler.Style.PipesTest do
         |> Map.new(c)
         """
       )
+    end
 
-      assert_style(
-        """
-        a
-        |> Enum.map(b)
-        |> Enum.into(Map.new, c)
-        """,
-        """
-        a
-        |> Enum.map(b)
-        |> Map.new(c)
-        """
-      )
+    test "into a new collectable" do
+      assert_style("a |> Enum.into(foo) |> b()")
+      assert_style("a |> Enum.into(foo, mapper) |> b()")
+
+      for collectable <- ~W(Map Keyword MapSet), new = "#{collectable}.new" do
+        assert_style("a |> Enum.into(#{new}) |> b()", "a |> #{new}() |> b()")
+        assert_style("a |> Enum.into(#{new}, mapper) |> b()", "a |> #{new}(mapper) |> b()")
+
+        assert_style(
+          """
+          a
+          |> Enum.map(b)
+          |> Enum.into(#{new}, c)
+          """,
+          """
+          a
+          |> Enum.map(b)
+          |> #{new}(c)
+          """
+        )
+      end
     end
   end
 end

@@ -29,6 +29,8 @@ defmodule Styler.Style.Pipes do
   alias Styler.Style
   alias Styler.Zipper
 
+  @collectable ~w(Map Keyword MapSet)a
+
   def run({{:|>, _, _}, _} = zipper, ctx) do
     case fix_pipe_start(zipper) do
       {{:|>, _, _}, _} = zipper ->
@@ -189,10 +191,11 @@ defmodule Styler.Style.Pipes do
   defp fix_pipe(
          pipe_chain(
            lhs,
-           {{:., dm, [{_, _, [:Enum]} = enum, :map]}, em, [mapper]},
-           {{:., _, [{_, _, [:Enum]}, :join]}, _, [joiner]}
+           {{:., dm, [{_, _, [enum_or_stream]}, :map]}, em, [mapper]},
+           {{:., _, [{_, _, [:Enum]} = enum, :join]}, _, [joiner]}
          )
-       ) do
+       )
+       when enum_or_stream in [:Enum, :Stream] do
     rhs = Style.set_line({{:., dm, [enum, :map_join]}, em, [joiner, mapper]}, dm[:line])
     {:|>, [line: dm[:line]], [lhs, rhs]}
   end
@@ -203,28 +206,48 @@ defmodule Styler.Style.Pipes do
   defp fix_pipe(
          pipe_chain(
            lhs,
-           {{:., dm, [{_, am, [:Enum]}, :map]}, em, [mapper]},
+           {{:., dm, [{_, _, [mod]}, :map]}, _, [mapper]},
            {{:., _, [{_, _, [:Enum]}, :into]} = into, _, [collectable]}
          )
-       ) do
+       )
+       when mod in [:Enum, :Stream] do
     rhs =
-      if Style.empty_map?(collectable),
-        do: {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, em, [mapper]},
-        else: {into, em, [collectable, mapper]}
+      case collectable do
+        {{:., _, [{_, _, [mod]}, :new]}, _, []} when mod in @collectable ->
+          {{:., dm, [{:__aliases__, dm, [mod]}, :new]}, dm, [mapper]}
+
+        {:%{}, _, []} ->
+          {{:., dm, [{:__aliases__, dm, [:Map]}, :new]}, dm, [mapper]}
+
+        _ ->
+          {into, dm, [collectable, mapper]}
+      end
 
     Style.set_line({:|>, [], [lhs, rhs]}, dm[:line])
   end
 
-  defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, am, [:Enum]}, :into]}, em, [collectable | rest]}]} = node) do
-    if Style.empty_map?(collectable),
-      do: {:|>, meta, [lhs, {{:., dm, [{:__aliases__, am, [:Map]}, :new]}, em, rest}]},
-      else: node
+  # lhs |> Enum.into(%{}, ...) => lhs |> Map.new(...)
+  defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, _, [:Enum]}, :into]}, _, [collectable | rest]}]} = node) do
+    replacement =
+      case collectable do
+        {{:., _, [{_, _, [mod]}, :new]}, _, []} when mod in @collectable ->
+          {:., dm, [{:__aliases__, dm, [mod]}, :new]}
+
+        {:%{}, _, []} ->
+          {:., dm, [{:__aliases__, dm, [:Map]}, :new]}
+
+        _ ->
+          nil
+      end
+
+    if replacement, do: {:|>, meta, [lhs, {replacement, dm, rest}]}, else: node
   end
 
   # `lhs |> Enum.map(mapper) |> Map.new()` => `lhs |> Map.new(mapper)
   defp fix_pipe(
-         pipe_chain(lhs, {{:., _, [{_, _, [:Enum]}, :map]}, _, [mapper]}, {{:., _, [{_, _, [:Map]}, :new]} = new, nm, []})
-       ) do
+         pipe_chain(lhs, {{:., _, [{_, _, [:Enum]}, :map]}, _, [mapper]}, {{:., _, [{_, _, [mod]}, :new]} = new, nm, []})
+       )
+       when mod in @collectable do
     Style.set_line({:|>, [], [lhs, {new, nm, [mapper]}]}, nm[:line])
   end
 
