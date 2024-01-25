@@ -381,12 +381,23 @@ defmodule Styler.Zipper do
   """
   @spec find(zipper, direction :: :prev | :next, predicate :: (tree -> any)) :: zipper | nil
   def find({tree, _} = zipper, direction \\ :next, predicate)
-      when direction in [:next, :prev] and is_function(predicate) do
+      when direction in [:next, :prev] and is_function(predicate, 1) do
     if predicate.(tree) do
       zipper
     else
       zipper = if direction == :next, do: next(zipper), else: prev(zipper)
       zipper && find(zipper, direction, predicate)
     end
+  end
+
+  @doc "Traverses `zipper`, returning true when `fun.(Zipper.node(zipper))` is truthy, or false otherwise"
+  @spec any?(zipper, (tree -> term)) :: boolean()
+  def any?({_, _} = zipper, fun) when is_function(fun, 1) do
+    zipper
+    |> traverse_while(false, fn {tree, _} = zipper, _ ->
+      # {nil, nil} optimizes to not go back to the top of the zipper on a hit
+      if fun.(tree), do: {:halt, {nil, nil}, true}, else: {:cont, zipper, false}
+    end)
+    |> elem(1)
   end
 end

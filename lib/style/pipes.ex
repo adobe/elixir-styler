@@ -145,8 +145,13 @@ defmodule Styler.Style.Pipes do
   # a |> then(&fun/1) |> c => a |> fun() |> c()
   defp fix_pipe({:|>, m, [lhs, {:then, _, [{:&, _, [{:/, _, [{fun, m2, _}, _]}]}]}]}), do: {:|>, m, [lhs, {fun, m2, []}]}
   # a |> then(&fun(&1, d)) |> c => a |> fun(d) |> c()
-  defp fix_pipe({:|>, m, [lhs, {:then, _, [{:&, _, [{fun, m2, [{:&, _, _} | args]}]}]}]}),
-    do: {:|>, m, [lhs, {fun, m2, args}]}
+  defp fix_pipe({:|>, m, [lhs, {:then, _, [{:&, _, [{fun, m2, [{:&, _, _} | args]}]}]}]} = pipe) do
+    rewrite = {fun, m2, args}
+    # if `&1` is referenced more than once, we have to continue using `then`
+    if rewrite |> Zipper.zip() |> Zipper.any?(&match?({:&, _, _}, &1)),
+      do: pipe,
+      else: {:|>, m, [lhs, rewrite]}
+  end
 
   # Credo.Check.Readability.PipeIntoAnonymousFunctions
   # rewrite anonymous function invocation to use `then/2`
