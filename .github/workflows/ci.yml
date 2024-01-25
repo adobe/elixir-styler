@@ -18,5 +18,5 @@ jobs:
           otp-version: ${{matrix.otp}}
           elixir-version: ${{matrix.elixir}}
       - run: mix deps.get
-      - run: mix compile
+      - run: mix compile --warnings-as-errors
       - run: mix test
