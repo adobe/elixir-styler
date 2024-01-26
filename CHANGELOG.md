@@ -2,9 +2,15 @@
 
 ## main
 
+## v0.11.9
+
 ### Improvements
 
 * pipes: check for `Stream.foo` equivalents to `Enum.foo` in a few more cases
+
+### Fixes
+
+* pipes: `|> then(&(&1 op y))` rewrites with `|> Kernel.op(y)` as long as the operator is defined in `Kernel`; skips the rewrite otherwise (h/t @kerryb for the report & @saveman71 for the fix)
 
 ## v0.11.8
 
