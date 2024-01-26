@@ -500,17 +500,26 @@ defmodule Styler.Style.PipesTest do
 
     test "rewrites then/2 when the passed function is a named function reference" do
       assert_style "a |> then(&fun/1) |> c", "a |> fun() |> c()"
+      assert_style "a |> then(&(&1 / 1)) |> c", "a |> Kernel./(1) |> c()"
       assert_style "a |> then(&DateTime.from_is8601/1) |> c", "a |> DateTime.from_is8601() |> c()"
       assert_style "a |> then(&DateTime.from_is8601/1)", "DateTime.from_is8601(a)"
       assert_style "a |> then(&fun(&1)) |> c", "a |> fun() |> c()"
       assert_style "a |> then(&fun(&1, d)) |> c", "a |> fun(d) |> c()"
+      assert_style "a |> then(&fun(d, &1)) |> c()"
+      assert_style "a |> then(&fun(&1, d, %{foo: &1})) |> c()"
 
-      # Unary operators
+      # then + kernel ops
       assert_style "a |> then(&(-&1)) |> c", "a |> Kernel.-() |> c()"
       assert_style "a |> then(&(+&1)) |> c", "a |> Kernel.+() |> c()"
 
-      assert_style "a |> then(&fun(d, &1)) |> c()"
-      assert_style "a |> then(&fun(&1, d, %{foo: &1})) |> c()"
+      for op <- ~w(++ -- && || in - * + / > < <= >= == and or != !== === <>) do
+        assert_style "a |> then(&(&1 #{op} x)) |> c", "a |> Kernel.#{op}(x) |> c()"
+      end
+
+      # Doesn't rewrite non-kernel operators
+      for op <- ~w(<- ||| &&& <<< >>> <<~ ~>> <~ ~> <~>) do
+        assert_style "a |> then(&(&1 #{op} x)) |> c()"
+      end
     end
 
     test "adds parens to 1-arity pipes" do

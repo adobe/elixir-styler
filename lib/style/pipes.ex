@@ -36,7 +36,7 @@ defmodule Styler.Style.Pipes do
   @literal ~w(__block__ __aliases__ unquote)a
   @value_constructors ~w(% %{} .. ..// <<>> @ {} ^ & fn from)a
   @kernel_ops ~w(++ -- && || in - * + / > < <= >= == and or != !== === <>)a
-  @special_ops ~w(<- ||| &&& <<< >>> <<~ ~>> <~ ~> <~> <|> ^^^ ~~~)a
+  @special_ops ~w(<- ||| &&& <<< >>> <<~ ~>> <~ ~> <~>)a
   @special_ops @literal ++ @value_constructors ++ @kernel_ops ++ @special_ops
 
   def run({{:|>, _, _}, _} = zipper, ctx) do
@@ -152,8 +152,7 @@ defmodule Styler.Style.Pipes do
 
   # a |> fun => a |> fun()
   defp fix_pipe({:|>, m, [lhs, {fun, m2, nil}]}), do: {:|>, m, [lhs, {fun, m2, []}]}
-  # a |> then(&fun/1) |> c => a |> fun() |> c()
-  defp fix_pipe({:|>, m, [lhs, {:then, _, [{:&, _, [{:/, _, [{fun, m2, _}, _]}]}]}]}), do: {:|>, m, [lhs, {fun, m2, []}]}
+
   # a |> then(&fun(&1, d)) |> c => a |> fun(d) |> c()
   defp fix_pipe({:|>, m, [lhs, {:then, _, [{:&, _, [{fun, m2, [{:&, _, _} | args]}]}]}]} = pipe) do
     rewrite = {fun, m2, args}
@@ -164,12 +163,21 @@ defmodule Styler.Style.Pipes do
         pipe
 
       fun in @special_ops ->
-        if fun in @kernel_ops, do: {:|>, m, [lhs, {{:., m2, [{:__aliases__, m2, [:Kernel]}, fun]}, m2, args}]}, else: pipe
+        # we only rewrite unary/infix operators if they're in the Kernel namespace.
+        # everything else stays as-is in the `then/2` because we can't know what module they're from
+        if fun in @kernel_ops,
+          do: {:|>, m, [lhs, {{:., m2, [{:__aliases__, m2, [:Kernel]}, fun]}, m2, args}]},
+          else: pipe
 
       true ->
         {:|>, m, [lhs, rewrite]}
     end
   end
+
+  # a |> then(&fun/1) |> c => a |> fun() |> c()
+  # recurses to add the `()` to `fun` as it gets unwound
+  defp fix_pipe({:|>, m, [lhs, {:then, _, [{:&, _, [{:/, _, [fun, {:__block__, _, [1]}]}]}]}]}),
+    do: fix_pipe({:|>, m, [lhs, fun]})
 
   # Credo.Check.Readability.PipeIntoAnonymousFunctions
   # rewrite anonymous function invocation to use `then/2`
