@@ -517,7 +517,7 @@ defmodule Styler.Style.PipesTest do
       end
 
       # Doesn't rewrite non-kernel operators
-      for op <- ~w(<- ||| &&& <<< >>> <<~ ~>> <~ ~> <~>) do
+      for op <- ~w(||| &&& <<< >>> <<~ ~>> <~ ~> <~>) do
         assert_style "a |> then(&(&1 #{op} x)) |> c()"
       end
     end

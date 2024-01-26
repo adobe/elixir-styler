@@ -36,7 +36,7 @@ defmodule Styler.Style.Pipes do
   @literal ~w(__block__ __aliases__ unquote)a
   @value_constructors ~w(% %{} .. ..// <<>> @ {} ^ & fn from)a
   @kernel_ops ~w(++ -- && || in - * + / > < <= >= == and or != !== === <>)a
-  @special_ops ~w(<- ||| &&& <<< >>> <<~ ~>> <~ ~> <~>)a
+  @special_ops ~w(||| &&& <<< >>> <<~ ~>> <~ ~> <~>)a
   @special_ops @literal ++ @value_constructors ++ @kernel_ops ++ @special_ops
 
   def run({{:|>, _, _}, _} = zipper, ctx) do
@@ -276,15 +276,15 @@ defmodule Styler.Style.Pipes do
     Style.set_line({:|>, [], [lhs, {new, nm, [mapper]}]}, nm[:line])
   end
 
-  for mod <- [:Map, :Keyword] do
-    # lhs |> Map.merge(%{key: value}) => lhs |> Map.put(key, value)
-    defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [unquote(mod)]} = mod, :merge]}, m, [{:%{}, _, [{key, value}]}]}]}),
-      do: {:|>, pm, [lhs, {{:., dm, [mod, :put]}, m, [key, value]}]}
+  # lhs |> Map.merge(%{key: value}) => lhs |> Map.put(key, value)
+  defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [mod]} = module, :merge]}, m, [{:%{}, _, [{key, value}]}]}]})
+       when mod in [:Map, :Keyword],
+       do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
 
-    # lhs |> Map.merge(key: value) => lhs |> Map.put(:key, value)
-    defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [unquote(mod)]} = module, :merge]}, m, [[{key, value}]]}]}),
-      do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
-  end
+  # lhs |> Map.merge(key: value) => lhs |> Map.put(:key, value)
+  defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [mod]} = module, :merge]}, m, [[{key, value}]]}]})
+       when mod in [:Map, :Keyword],
+       do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
 
   defp fix_pipe(node), do: node
 
