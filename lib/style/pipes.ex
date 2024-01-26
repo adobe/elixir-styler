@@ -143,6 +143,12 @@ defmodule Styler.Style.Pipes do
     quote do: {:|>, _, [{:|>, _, [unquote(a), unquote(b)]}, unquote(c)]}
   end
 
+  # Unary operators needs to be expanded (#128)
+  defp maybe_wrap_unary({op, meta, []}) when op in ~w(- +)a,
+    do: {{:., meta, [{:__aliases__, meta, [:Kernel]}, op]}, meta, []}
+
+  defp maybe_wrap_unary(lhs), do: lhs
+
   # a |> fun => a |> fun()
   defp fix_pipe({:|>, m, [lhs, {fun, m2, nil}]}), do: {:|>, m, [lhs, {fun, m2, []}]}
   # a |> then(&fun/1) |> c => a |> fun() |> c()
@@ -150,10 +156,11 @@ defmodule Styler.Style.Pipes do
   # a |> then(&fun(&1, d)) |> c => a |> fun(d) |> c()
   defp fix_pipe({:|>, m, [lhs, {:then, _, [{:&, _, [{fun, m2, [{:&, _, _} | args]}]}]}]} = pipe) do
     rewrite = {fun, m2, args}
+
     # if `&1` is referenced more than once, we have to continue using `then`
     if rewrite |> Zipper.zip() |> Zipper.any?(&match?({:&, _, _}, &1)),
       do: pipe,
-      else: {:|>, m, [lhs, rewrite]}
+      else: {:|>, m, [lhs, maybe_wrap_unary(rewrite)]}
   end
 
   # Credo.Check.Readability.PipeIntoAnonymousFunctions

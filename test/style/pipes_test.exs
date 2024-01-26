@@ -505,6 +505,10 @@ defmodule Styler.Style.PipesTest do
       assert_style "a |> then(&fun(&1)) |> c", "a |> fun() |> c()"
       assert_style "a |> then(&fun(&1, d)) |> c", "a |> fun(d) |> c()"
 
+      # Unary operators
+      assert_style "a |> then(&(-&1)) |> c", "a |> Kernel.-() |> c()"
+      assert_style "a |> then(&(+&1)) |> c", "a |> Kernel.+() |> c()"
+
       assert_style "a |> then(&fun(d, &1)) |> c()"
       assert_style "a |> then(&fun(&1, d, %{foo: &1})) |> c()"
     end
