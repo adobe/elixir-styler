@@ -2,6 +2,10 @@
 
 ## main
 
+### Improvements
+
+* blocks: invert if and unless with `!=` or `!==`, like we do for `!` and `not`. Closes #132
+
 ## v0.11.9
 
 ### Improvements

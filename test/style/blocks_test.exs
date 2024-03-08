@@ -793,6 +793,25 @@ defmodule Styler.Style.BlocksTest do
         )
       end
 
+      for negator <- ["!=", "!=="], inverse = String.replace(negator, "!", "=") do
+        assert_style(
+          """
+          unless x #{negator} y do
+            b
+          else
+            c
+          end
+          """,
+          """
+          if x #{inverse} y do
+            b
+          else
+            c
+          end
+          """
+        )
+      end
+
       assert_style(
         """
         unless a do
@@ -828,6 +847,23 @@ defmodule Styler.Style.BlocksTest do
           """
         )
       end
+
+      for negator <- ["!=", "!=="], inverse = String.replace(negator, "!", "=") do
+        assert_style("unless a #{negator} b, do: :bar", "if a #{inverse} b, do: :bar")
+
+        assert_style(
+          """
+          unless a #{negator} b do
+            c
+          end
+          """,
+          """
+          if a #{inverse} b do
+            c
+          end
+          """
+        )
+      end
     end
 
     test "Credo.Check.Refactor.NegatedConditionsWithElse" do
@@ -844,6 +880,27 @@ defmodule Styler.Style.BlocksTest do
           """,
           """
           if foo do
+            baz
+          else
+            bar
+          end
+          """
+        )
+      end
+
+      for negator <- ["!=", "!=="], inverse = String.replace(negator, "!", "=") do
+        assert_style("if a #{negator} b, do: :bar, else: :baz", "if a #{inverse} b, do: :baz, else: :bar")
+
+        assert_style(
+          """
+          if a #{negator} b do
+            bar
+          else
+            baz
+          end
+          """,
+          """
+          if a #{inverse} b do
             baz
           else
             bar
@@ -887,6 +944,8 @@ defmodule Styler.Style.BlocksTest do
         end
         """
       )
+
+      assert_style("if not (a != b), do: c", "if a == b, do: c")
     end
 
     test "comments and flips" do

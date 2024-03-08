@@ -30,7 +30,7 @@ defmodule Styler.Style.Blocks do
   alias Styler.Style
   alias Styler.Zipper
 
-  defguardp is_negator(n) when n in [:!, :not]
+  defguardp is_negator(n) when elem(n, 0) in [:!, :not, :!=, :!==]
 
   # case statement with exactly 2 `->` cases
   # rewrite to `if` if it's any of 3 trivial cases
@@ -163,8 +163,8 @@ defmodule Styler.Style.Blocks do
         zipper |> Zipper.replace({:if, m, [{:!, hm, [head]}, do_else]}) |> run(ctx)
 
       # Credo.Check.Refactor.NegatedConditionsInUnless
-      [{negator, _, [expr]}, [{do_, do_body}]] when is_negator(negator) ->
-        zipper |> Zipper.replace({:if, m, [expr, [{do_, do_body}]]}) |> run(ctx)
+      [negator, [{do_, do_body}]] when is_negator(negator) ->
+        zipper |> Zipper.replace({:if, m, [invert(negator), [{do_, do_body}]]}) |> run(ctx)
 
       _ ->
         {:cont, zipper, ctx}
@@ -174,12 +174,12 @@ defmodule Styler.Style.Blocks do
   def run({{:if, m, children}, _} = zipper, ctx) do
     case children do
       # Credo.Check.Refactor.NegatedConditionsWithElse
-      [{negator, _, [expr]}, [{do_, do_body}, {else_, else_body}]] when is_negator(negator) ->
-        zipper |> Zipper.replace({:if, m, [expr, [{do_, else_body}, {else_, do_body}]]}) |> run(ctx)
+      [negator, [{do_, do_body}, {else_, else_body}]] when is_negator(negator) ->
+        zipper |> Zipper.replace({:if, m, [invert(negator), [{do_, else_body}, {else_, do_body}]]}) |> run(ctx)
 
       # if not x, do: y => unless x, do: y
-      [{negator, _, [expr]}, [do_block]] when is_negator(negator) ->
-        zipper |> Zipper.replace({:unless, m, [expr, [do_block]]}) |> run(ctx)
+      [negator, [do_block]] when is_negator(negator) ->
+        zipper |> Zipper.replace({:unless, m, [invert(negator), [do_block]]}) |> run(ctx)
 
       # drop `else: nil`
       [head, [do_block, {_, {:__block__, _, [nil]}}]] ->
@@ -317,4 +317,8 @@ defmodule Styler.Style.Blocks do
 
     max_line
   end
+
+  defp invert({:!=, m, [a, b]}), do: {:==, m, [a, b]}
+  defp invert({:!==, m, [a, b]}), do: {:===, m, [a, b]}
+  defp invert({_, _, [expr]}), do: expr
 end
