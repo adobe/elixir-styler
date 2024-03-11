@@ -124,7 +124,7 @@ defmodule Styler.Zipper do
     {leftmost, %{meta | l: [], r: r}}
   end
 
-  def leftmost(zipper), do: zipper
+  def leftmost({_, _} = zipper), do: zipper
 
   @doc """
   Returns the zipper of the right sibling of the node at this zipper, or nil.
@@ -142,7 +142,7 @@ defmodule Styler.Zipper do
     {rightmost, %{meta | l: l, r: []}}
   end
 
-  def rightmost(zipper), do: zipper
+  def rightmost({_, _} = zipper), do: zipper
 
   @doc """
   Replaces the current node in the zipper with a new node.

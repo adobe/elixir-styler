@@ -73,6 +73,20 @@ defmodule Styler.Style.ModuleDirectives do
   @attr_directives ~w(moduledoc shortdoc behaviour)a ++ @callback_attrs
   @defstruct ~w(schema embedded_schema defstruct)a
 
+  # taken from Credo
+  @excluded_namespaces MapSet.new(~w(File IO Inspect Kernel Macro Supervisor Task Version)a)
+  @stdlib MapSet.new(~w(Access Agent Application Atom Base Behaviour
+                    Bitwise Code Date DateTime Dict Ecto Enum Exception
+                    File Float GenEvent GenServer HashDict HashSet
+                    Integer IO Kernel Keyword List Macro Map MapSet
+                    Module NaiveDateTime Node Oban OptionParser Path Port
+                    Process Protocol Range Record Regex Registry Set
+                    Stream String StringIO Supervisor System Task Time
+                    Tuple URI Version)a)
+
+  @libraries MapSet.new(~w(Ecto Plug Phoenix Oban)a)
+  @stdlib MapSet.union(@stdlib, @libraries)
+
   @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
 
   def run({{:defmodule, _, children}, _} = zipper, ctx) do
@@ -190,8 +204,14 @@ defmodule Styler.Style.ModuleDirectives do
 
     uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> reset_newlines()
     imports = expand_and_sort(directives[:import] || [])
-    requires = expand_and_sort(directives[:require] || [])
     aliases = expand_and_sort(directives[:alias] || [])
+    requires = expand_and_sort(directives[:require] || [])
+
+    to_alias = find_liftable_aliases(requires ++ nondirectives, aliases)
+    # @TODO bug here if the first line of the parent is a comment
+    new_aliases = Enum.map(to_alias, &{:alias, [line: 0], [{:__aliases__, [last: [line: 0], line: 0], &1}]})
+    aliases = if Enum.empty?(new_aliases), do: aliases, else: expand_and_sort(aliases ++ new_aliases)
+    requires = use_aliases(requires, to_alias)
 
     directives =
       [
@@ -215,7 +235,83 @@ defmodule Styler.Style.ModuleDirectives do
       |> Zipper.replace_children(directives)
       |> Zipper.down()
       |> Zipper.rightmost()
-      |> Zipper.insert_siblings(nondirectives)
+      |> Zipper.insert_siblings(use_aliases(nondirectives, to_alias))
+    end
+  end
+
+  defp find_liftable_aliases(ast, aliases) do
+    aliased =
+      aliases
+      |> Enum.flat_map(fn
+        {:alias, _, [{:__aliases__, _, aliases}]} -> [aliases]
+        _ -> []
+      end)
+      |> MapSet.new(&List.last/1)
+
+    excluded_first = MapSet.union(aliased, @excluded_namespaces)
+    excluded_last = MapSet.union(aliased, @stdlib)
+
+    ast
+    |> Zipper.zip()
+    |> Zipper.traverse_while(%{}, fn
+      {{defx, _, [{:__aliases__, _, _} | _]}, _} = zipper, acc when defx in ~w(defmodule defimpl defprotocol)a ->
+        # move the focus to the body block, zkipping over the alias (and the `for` keyword for `defimpl`)
+        {:skip, zipper |> Zipper.down() |> Zipper.rightmost() |> Zipper.down() |> Zipper.down(), acc}
+
+      {{:quote, _, _}, _} = zipper, acc ->
+        {:skip, zipper, acc}
+
+      # A.B.C.f(...)
+      {{:__aliases__, _, [first, _, _ | _] = aliases}, _} = zipper, acc ->
+        last = List.last(aliases)
+
+        acc =
+          if last in excluded_last or first in excluded_first or not Enum.all?(aliases, &is_atom/1),
+            do: acc,
+          else: Map.update(acc, aliases, 1, &(&1 + 1))
+
+        {:skip, zipper, acc}
+
+      zipper, acc ->
+        {:cont, zipper, acc}
+    end)
+    |> elem(1)
+    # if we have `Foo.Bar.Baz` and `Foo.Bar.Bop.Baz` both not aliased, we'll create a collision by extracting both.
+    # grouping by last alias lets us detect these collisions
+    |> Enum.group_by(fn {aliases, _} -> List.last(aliases) end)
+    |> Enum.filter(fn
+      {_, [{_, n}]} -> n > 1
+      _ -> false
+    end)
+    |> MapSet.new(fn {_, [{aliases, _}]} -> aliases end)
+  end
+
+  defp use_aliases(ast, new_aliases) do
+    if Enum.empty?(new_aliases) do
+      ast
+    else
+      ast
+      |> Zipper.zip()
+      |> Zipper.traverse(fn
+        {{defx, _, [{:__aliases__, _, _} | _]}, _} = zipper when defx in ~w(defmodule defimpl defprotocol)a ->
+          # move the focus to the body block, zkipping over the alias (and the `for` keyword for `defimpl`)
+          zipper |> Zipper.down() |> Zipper.rightmost() |> Zipper.down() |> Zipper.down() |> Zipper.right()
+
+        {{:alias, _, [{:__aliases__, _, [_, _, _ | _] = aliases}]}, _} = zipper ->
+          # the alias was aliased deeper down. we've lifted that alias to a root, so delete this alias
+          if aliases in new_aliases,
+            do: Zipper.remove(zipper),
+            else: zipper
+
+        {{:__aliases__, meta, [_, _, _ | _] = aliases}, _} = zipper ->
+          if aliases in new_aliases,
+            do: Zipper.replace(zipper, {:__aliases__, meta, [List.last(aliases)]}),
+            else: zipper
+
+        zipper ->
+          zipper
+      end)
+      |> Zipper.node()
     end
   end
 
