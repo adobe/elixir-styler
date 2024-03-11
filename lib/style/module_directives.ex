@@ -71,6 +71,7 @@ defmodule Styler.Style.ModuleDirectives do
   @directives ~w(alias import require use)a
   @callback_attrs ~w(before_compile after_compile after_verify)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a ++ @callback_attrs
+  @defstruct ~w(schema embedded_schema defstruct)a
 
   @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
 
@@ -115,6 +116,28 @@ defmodule Styler.Style.ModuleDirectives do
       {:ok, zipper} -> {:skip, zipper |> Zipper.up() |> organize_directives(), ctx}
       # not actually a directive! carry on.
       :error -> {:cont, zipper, ctx}
+    end
+  end
+
+  # puts `@derive` before `defstruct` etc, fixing compiler warnings
+  def run({{:@, _, [{:derive, _, _}]}, _} = zipper, ctx) do
+    case Style.ensure_block_parent(zipper) do
+      {:ok, {derive, %{l: left_siblings} = z_meta}} ->
+        defstruct_index =
+          Enum.find_index(left_siblings, fn
+            {struct_def, _, _} when struct_def in @defstruct -> true
+            _ -> false
+          end)
+
+        if defstruct_index do
+          left_siblings = List.insert_at(left_siblings, defstruct_index + 1, derive)
+          {:skip, Zipper.remove({derive, %{z_meta | l: left_siblings}}), ctx}
+        else
+          {:cont, zipper, ctx}
+        end
+
+      :error ->
+        {:cont, zipper, ctx}
     end
   end
 

@@ -5,6 +5,7 @@
 ### Improvements
 
 * blocks: invert if and unless with `!=` or `!==`, like we do for `!` and `not`. Closes #132
+* `@derive`: move `@derive`s before `defstruct|schema|embedded_schema` declarations (compiler warns when it follows)
 
 ## v0.11.9
 
