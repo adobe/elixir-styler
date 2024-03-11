@@ -123,13 +123,17 @@ defmodule Styler.Style.ModuleDirectives do
   def run({{:@, _, [{:derive, _, _}]}, _} = zipper, ctx) do
     case Style.ensure_block_parent(zipper) do
       {:ok, {derive, %{l: left_siblings} = z_meta}} ->
-        defstruct_index =
-          Enum.find_index(left_siblings, fn
-            {struct_def, _, _} when struct_def in @defstruct -> true
-            _ -> false
+        previous_defstruct =
+          left_siblings
+          |> Stream.with_index()
+          |> Enum.find_value(fn
+            {{struct_def, meta, _}, index} when struct_def in @defstruct -> {meta[:line], index}
+            _ -> nil
           end)
 
-        if defstruct_index do
+        if previous_defstruct do
+          {defstruct_line, defstruct_index} = previous_defstruct
+          derive = Style.set_line(derive, defstruct_line - 1)
           left_siblings = List.insert_at(left_siblings, defstruct_index + 1, derive)
           {:skip, Zipper.remove({derive, %{z_meta | l: left_siblings}}), ctx}
         else

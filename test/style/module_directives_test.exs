@@ -470,21 +470,27 @@ defmodule Styler.Style.ModuleDirectivesTest do
   end
 
   test "@derive movements" do
-    assert_style """
-                 defmodule F do
-                   defstruct [:a]
-                   @derive Inspect
-                   @derive {Foo, bar: :baz}
-                 end
-                 """,
-                 """
-                 defmodule F do
-                   @moduledoc false
-                   @derive Inspect
-                   @derive {Foo, bar: :baz}
-                   defstruct [:a]
-                 end
-                 """
+    assert_style(
+      """
+      defmodule F do
+        defstruct [:a]
+        # comment for foo
+        def foo, do: :ok
+        @derive Inspect
+        @derive {Foo, bar: :baz}
+      end
+      """,
+      """
+      defmodule F do
+        @moduledoc false
+        @derive Inspect
+        @derive {Foo, bar: :baz}
+        defstruct [:a]
+        # comment for foo
+        def foo, do: :ok
+      end
+      """
+    )
 
     assert_style "@derive Inspect"
   end
