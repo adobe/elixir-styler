@@ -86,16 +86,23 @@ defmodule Styler.Style.ModuleDirectives do
       body_zipper = zipper |> Zipper.down() |> Zipper.right() |> Zipper.down() |> Zipper.down() |> Zipper.right()
 
       case Zipper.node(body_zipper) do
-        {:__block__, _, _} ->
-          {:skip, organize_directives(body_zipper, moduledoc), ctx}
-
-        {:@, _, [{:moduledoc, _, _}]} ->
-          # a module whose only child is a moduledoc. nothing to do here!
-          # seems weird at first blush but lots of projects/libraries do this with their root namespace module
+        # an empty body - replace it with a moduledoc and call it a day ¯\_(ツ)_/¯
+        {:__block__, _, []} ->
+          zipper = if moduledoc, do: Zipper.replace(body_zipper, moduledoc), else: body_zipper
           {:skip, zipper, ctx}
 
+        # we want only-child literal block to be handled in the only-child catch-all. it means someone did a weird
+        # (that would be a literal, so best case someone wrote a string and forgot to put `@moduledoc` before it)
+        {:__block__, _, [_, _ | _]} ->
+          {:skip, organize_directives(body_zipper, moduledoc), ctx}
+
+        # a module whose only child is a moduledoc. nothing to do here!
+        # seems weird at first blush but lots of projects/libraries do this with their root namespace module
+        {:@, _, [{:moduledoc, _, _}]} ->
+          {:skip, zipper, ctx}
+
+        # There's only one child, and it's not a moduledoc. Conditionally add a moduledoc, then style the only_child
         only_child ->
-          # There's only one child, and it's not a moduledoc. Conditionally add a moduledoc, then style the only_child
           if moduledoc do
             body_zipper
             |> Zipper.replace({:__block__, [], [moduledoc, only_child]})

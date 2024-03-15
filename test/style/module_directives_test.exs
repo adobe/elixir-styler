@@ -51,62 +51,107 @@ defmodule Styler.Style.ModuleDirectivesTest do
         """
         defmodule A do
         end
-
-        defmodule B do
-          defmodule C do
-          end
-        end
-
-        defmodule Bar do
-          alias Bop.Bop
-
-          :ok
-        end
-
-        defmodule DocsOnly do
-          @moduledoc "woohoo"
-        end
-
-        defmodule Foo do
-          use Bar
-        end
-
-        defmodule Foo do
-          alias Foo.{Bar, Baz}
-        end
         """,
         """
         defmodule A do
           @moduledoc false
         end
+        """
+      )
 
+      assert_style(
+        """
+        defmodule B do
+          defmodule C do
+          end
+        end
+        """,
+        """
         defmodule B do
           @moduledoc false
           defmodule C do
             @moduledoc false
           end
         end
+        """
+      )
 
+      assert_style(
+        """
+        defmodule Bar do
+          alias Bop.Bop
+
+          :ok
+        end
+        """,
+        """
         defmodule Bar do
           @moduledoc false
           alias Bop.Bop
 
           :ok
         end
+        """
+      )
 
+      assert_style(
+        """
         defmodule DocsOnly do
           @moduledoc "woohoo"
         end
+        """,
+        """
+        defmodule DocsOnly do
+          @moduledoc "woohoo"
+        end
+        """
+      )
 
+      assert_style(
+        """
+        defmodule Foo do
+          use Bar
+        end
+        """,
+        """
         defmodule Foo do
           @moduledoc false
           use Bar
         end
+        """
+      )
 
+      assert_style(
+        """
+        defmodule Foo do
+          alias Foo.{Bar, Baz}
+        end
+        """,
+        """
         defmodule Foo do
           @moduledoc false
           alias Foo.Bar
           alias Foo.Baz
+        end
+        """
+      )
+
+      assert_style(
+        """
+        defmodule A do
+          defmodule B do
+            :literal
+          end
+
+        end
+        """,
+        """
+        defmodule A do
+          @moduledoc false
+          defmodule B do
+            @moduledoc false
+            :literal
+          end
         end
         """
       )

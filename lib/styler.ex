@@ -2,18 +2,17 @@
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
-
 # Unless required by applicable law or agreed to in writing, software distributed under
 # the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
-
 defmodule Styler do
   @moduledoc """
   Styler is a formatter plugin with stronger opinions on code organization, multi-line defs and other code-style matters.
   """
   @behaviour Mix.Tasks.Format
 
+  alias Mix.Tasks.Format
   alias Styler.StyleError
   alias Styler.Zipper
 
@@ -53,10 +52,10 @@ defmodule Styler do
     {ast, comments}
   end
 
-  @impl Mix.Tasks.Format
+  @impl Format
   def features(_opts), do: [sigils: [], extensions: [".ex", ".exs"]]
 
-  @impl Mix.Tasks.Format
+  @impl Format
   def format(input, formatter_opts, opts \\ []) do
     file = formatter_opts[:file]
 
