@@ -51,12 +51,12 @@ defmodule Styler.Zipper do
   Returns the zipper with the current children of the node replaced with `children`
   """
   @spec replace_children(zipper, [tree]) :: zipper
-  def replace_children({node, meta}, children) when is_list(children), do: {replace_node_children(node, children), meta}
+  def replace_children({node, meta}, children) when is_list(children), do: {do_replace_children(node, children), meta}
 
-  defp replace_node_children({form, meta, _}, children) when is_atom(form), do: {form, meta, children}
-  defp replace_node_children({_form, meta, args}, [first | rest]) when is_list(args), do: {first, meta, rest}
-  defp replace_node_children({_, _}, [left, right]), do: {left, right}
-  defp replace_node_children(list, children) when is_list(list), do: children
+  defp do_replace_children({form, meta, _}, children) when is_atom(form), do: {form, meta, children}
+  defp do_replace_children({_form, meta, args}, [first | rest]) when is_list(args), do: {first, meta, rest}
+  defp do_replace_children({_, _}, [left, right]), do: {left, right}
+  defp do_replace_children(list, children) when is_list(list), do: children
 
   @doc """
   Creates a zipper from a tree node.
@@ -105,7 +105,7 @@ defmodule Styler.Zipper do
   def up({tree, meta}) do
     children = Enum.reverse(meta.l, [tree | meta.r])
     {parent, parent_meta} = meta.ptree
-    {replace_node_children(parent, children), parent_meta}
+    {do_replace_children(parent, children), parent_meta}
   end
 
   @doc """
@@ -164,7 +164,7 @@ defmodule Styler.Zipper do
   @spec remove(zipper) :: zipper
   def remove({_, nil}), do: raise(ArgumentError, message: "Cannot remove the top level node.")
   def remove({_, %{l: [left | rest]} = meta}), do: prev_down({left, %{meta | l: rest}})
-  def remove({_, %{ptree: {p, p_meta}, r: children}}), do: {replace_node_children(p, children), p_meta}
+  def remove({_, %{ptree: {parent, parent_meta}, r: children}}), do: {do_replace_children(parent, children), parent_meta}
 
   @doc """
   Inserts the item as the left sibling of the node at this zipper, without
