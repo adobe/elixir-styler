@@ -37,24 +37,21 @@ defmodule StylerTest.ZipperTest do
 
   describe "replace_children/2" do
     test "2-tuples" do
-      assert Zipper.replace_children({1, 2}, [3, 4]) == {3, 4}
-    end
-
-    test "changing to 2-tuples arity" do
-      assert Zipper.replace_children({1, 2}, [3, 4, 5]) == {:{}, [], [3, 4, 5]}
-      assert Zipper.replace_children({1, 2}, [3]) == {:{}, [], [3]}
+      assert {1, 2} |> Zipper.zip() |> Zipper.replace_children([3, 4]) |> Zipper.node() == {3, 4}
     end
 
     test "lists" do
-      assert Zipper.replace_children([1, 2, 3], [:a, :b, :c]) == [:a, :b, :c]
+      assert [1, 2, 3] |> Zipper.zip() |> Zipper.replace_children([:a, :b, :c]) |> Zipper.node() == [:a, :b, :c]
     end
 
     test "unqualified calls" do
-      assert Zipper.replace_children({:foo, [], [1, 2]}, [:a, :b]) == {:foo, [], [:a, :b]}
+      assert {:foo, [], [1, 2]} |> Zipper.zip() |> Zipper.replace_children([:a, :b]) |> Zipper.node() ==
+               {:foo, [], [:a, :b]}
     end
 
     test "qualified calls" do
-      assert Zipper.replace_children({{:., [], [1, 2]}, [], [3, 4]}, [:a, :b, :c]) == {:a, [], [:b, :c]}
+      assert {{:., [], [1, 2]}, [], [3, 4]} |> Zipper.zip() |> Zipper.replace_children([:a, :b, :c]) |> Zipper.node() ==
+               {:a, [], [:b, :c]}
     end
   end
 

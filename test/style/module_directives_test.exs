@@ -485,6 +485,15 @@ defmodule Styler.Style.ModuleDirectivesTest do
 
     assert_style(
       """
+      alias Foo
+
+      Foo.bar()
+      """,
+      "Foo.bar()"
+    )
+
+    assert_style(
+      """
       alias unquote(Foo)
       alias Foo
       alias Bar, as: Bop

@@ -191,8 +191,7 @@ defmodule Styler.Style.ModuleDirectives do
     uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> reset_newlines()
     imports = expand_and_sort(directives[:import] || [])
     requires = expand_and_sort(directives[:require] || [])
-    all_aliases = directives[:alias] || []
-    aliases = expand_and_sort(all_aliases)
+    aliases = expand_and_sort(directives[:alias] || [])
 
     directives =
       [
@@ -207,20 +206,16 @@ defmodule Styler.Style.ModuleDirectives do
       |> Enum.concat()
       |> fix_line_numbers(List.first(nondirectives))
 
-    cond do
-      # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
-      Enum.empty?(directives) and Enum.empty?(all_aliases) ->
-        parent
-
-      Enum.empty?(nondirectives) ->
-        Zipper.update(parent, &Zipper.replace_children(&1, directives))
-
-      true ->
-        parent
-        |> Zipper.update(&Zipper.replace_children(&1, directives))
-        |> Zipper.down()
-        |> Zipper.rightmost()
-        |> Zipper.insert_siblings(nondirectives)
+    # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
+    if Enum.empty?(directives) do
+      Zipper.replace_children(parent, nondirectives)
+    else
+      # this ensures we continue the traversal _after_ any directives
+      parent
+      |> Zipper.replace_children(directives)
+      |> Zipper.down()
+      |> Zipper.rightmost()
+      |> Zipper.insert_siblings(nondirectives)
     end
   end
 

@@ -9,7 +9,7 @@
 
 ### Fixes
 
-* fix an obscure & unreported bug when styling modules whose only child was a literal
+* various fixes for unreported obscure crashes related to module directive styling
 
 ## v0.11.9
 
