@@ -55,7 +55,17 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       end
     end
 
-    test "collisions with other lifts"
+    test "collisions with other lifts" do
+      assert_style """
+      defmodule NuhUh do
+        @moduledoc false
+
+        A.B.C.f()
+        A.B.C.f()
+        X.Y.C.f()
+      end
+      """
+    end
 
     test "defprotocol, defmodule, or defimpl" do
       assert_style """
