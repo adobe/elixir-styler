@@ -244,36 +244,28 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   defp find_liftable_aliases(ast, aliases) do
-    aliased =
-      MapSet.new(aliases, fn
-        {:alias, _, [{:__aliases__, _, aliases}]} -> List.last(aliases)
-        {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]} -> as
+    excluded =
+      Enum.reduce(aliases, @stdlib, fn
+        {:alias, _, [{:__aliases__, _, aliases}]}, excludes -> MapSet.put(excludes, List.last(aliases))
+        {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]}, excludes -> MapSet.put(excludes, as)
         # `alias __MODULE__` or other oddities
-        {:alias, _, _} -> nil
+        {:alias, _, _}, excludes -> excludes
       end)
-
-    excluded_last = MapSet.union(aliased, @stdlib)
 
     ast
     |> Zipper.zip()
     |> Zipper.traverse_while(%{}, fn
-      {{defx, _, [{:__aliases__, _, _} | _]}, _} = zipper, acc when defx in ~w(defmodule defimpl defprotocol)a ->
+      {{defx, _, _}, _} = zipper, acc when defx in ~w(defmodule defimpl defprotocol)a ->
         # move the focus to the body block, zkipping over the alias (and the `for` keyword for `defimpl`)
         {:skip, zipper |> Zipper.down() |> Zipper.rightmost() |> Zipper.down() |> Zipper.down(), acc}
 
       {{:quote, _, _}, _} = zipper, acc ->
         {:skip, zipper, acc}
 
-      # A.B.C.f(...)
       {{:__aliases__, _, [_, _, _ | _] = aliases}, _} = zipper, acc ->
-        last = List.last(aliases)
-
-        acc =
-          if last in excluded_last or not Enum.all?(aliases, &is_atom/1),
-            do: acc,
-            else: Map.update(acc, aliases, false, fn _ -> true end)
-
-        {:skip, zipper, acc}
+        if List.last(aliases) in excluded or not Enum.all?(aliases, &is_atom/1),
+          do: {:skip, zipper, acc},
+          else: {:skip, zipper, Map.update(acc, aliases, false, fn _ -> true end)}
 
       zipper, acc ->
         {:cont, zipper, acc}
