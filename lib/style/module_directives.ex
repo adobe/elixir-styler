@@ -241,12 +241,12 @@ defmodule Styler.Style.ModuleDirectives do
 
   defp find_liftable_aliases(ast, aliases) do
     aliased =
-      aliases
-      |> Enum.flat_map(fn
-        {:alias, _, [{:__aliases__, _, aliases}]} -> [aliases]
-        _ -> []
+      MapSet.new(aliases, fn
+        {:alias, _, [{:__aliases__, _, aliases}]} -> List.last(aliases)
+        {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]} -> as
+        # `alias __MODULE__` or other oddities
+        {:alias, _, _} -> nil
       end)
-      |> MapSet.new(&List.last/1)
 
     excluded_first = MapSet.union(aliased, @excluded_namespaces)
     excluded_last = MapSet.union(aliased, @stdlib)
@@ -268,7 +268,7 @@ defmodule Styler.Style.ModuleDirectives do
         acc =
           if last in excluded_last or first in excluded_first or not Enum.all?(aliases, &is_atom/1),
             do: acc,
-          else: Map.update(acc, aliases, 1, &(&1 + 1))
+            else: Map.update(acc, aliases, 1, &(&1 + 1))
 
         {:skip, zipper, acc}
 

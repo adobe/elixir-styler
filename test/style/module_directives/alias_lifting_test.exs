@@ -40,6 +40,23 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
   end
 
   describe "it doesn't lift" do
+    test "collisions with aliases" do
+      for alias_c <- ["alias A.C", "alias A.B, as: C"] do
+        assert_style """
+        defmodule NuhUh do
+          @moduledoc false
+
+          #{alias_c}
+
+          A.B.C.f()
+          A.B.C.f()
+        end
+        """
+      end
+    end
+
+    test "collisions with other lifts"
+
     test "defprotocol, defmodule, or defimpl" do
       assert_style """
       defmodule No do
