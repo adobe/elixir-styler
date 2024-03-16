@@ -281,7 +281,7 @@ defmodule Styler.Style.ModuleDirectives do
     |> MapSet.new(fn {_, [{aliases, _}]} -> aliases end)
   end
 
-  defp do_lift_aliases(ast, new_aliases) do
+  defp do_lift_aliases(ast, to_alias) do
     ast
     |> Zipper.zip()
     |> Zipper.traverse(fn
@@ -291,12 +291,12 @@ defmodule Styler.Style.ModuleDirectives do
 
       {{:alias, _, [{:__aliases__, _, [_, _, _ | _] = aliases}]}, _} = zipper ->
         # the alias was aliased deeper down. we've lifted that alias to a root, so delete this alias
-        if aliases in new_aliases,
+        if aliases in to_alias,
           do: Zipper.remove(zipper),
           else: zipper
 
       {{:__aliases__, meta, [_, _, _ | _] = aliases}, _} = zipper ->
-        if aliases in new_aliases,
+        if aliases in to_alias,
           do: Zipper.replace(zipper, {:__aliases__, meta, [List.last(aliases)]}),
           else: zipper
 

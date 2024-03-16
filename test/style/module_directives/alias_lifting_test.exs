@@ -133,19 +133,34 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       end
       """
 
-      assert_style """
-      defmodule No do
-        @moduledoc false
-        alias A.B.C
+      assert_style(
+        """
+        defmodule No do
+          @moduledoc false
 
-        defprotocol A.B.C do
-          :body
+          defimpl A.B.C, for: A.B.C do
+            :body
+          end
+
+          A.B.C.f()
+          A.B.C.f()
         end
+        """,
+        """
+        defmodule No do
+          @moduledoc false
 
-        C.f()
-        C.f()
-      end
-      """
+          alias A.B.C
+
+          defimpl A.B.C, for: A.B.C do
+            :body
+          end
+
+          C.f()
+          C.f()
+        end
+        """
+      )
 
       assert_style """
       defmodule No do
