@@ -1,4 +1,4 @@
-# Copyright 2023 Adobe. All rights reserved.
+# Copyright 2024 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -39,7 +39,60 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
     )
   end
 
+  test "only deploys new aliases in nodes _after_ the alias stanza" do
+    assert_style(
+      """
+      defmodule Timely do
+        use A.B.C
+        def foo do
+          A.B.C.bop
+        end
+        import A.B.C
+        require A.B.C
+      end
+      """,
+      """
+      defmodule Timely do
+        @moduledoc false
+        use A.B.C
+
+        import A.B.C
+
+        alias A.B.C
+
+        require C
+
+        def foo do
+          C.bop()
+        end
+      end
+      """
+    )
+  end
+
+  test "skips over quoted or odd aliases" do
+    assert_style """
+    alias Boop.Baz
+
+    Some.unquote(whatever).Alias.bar()
+    Some.unquote(whatever).Alias.bar()
+    """
+  end
+
   describe "it doesn't lift" do
+    test "collisions with std lib" do
+      assert_style """
+      defmodule DontYouDare do
+        @moduledoc false
+
+        My.Sweet.List.foo()
+        My.Sweet.List.foo()
+        IHave.MyOwn.Supervisor.init()
+        IHave.MyOwn.Supervisor.init()
+      end
+      """
+    end
+
     test "collisions with aliases" do
       for alias_c <- ["alias A.C", "alias A.B, as: C"] do
         assert_style """

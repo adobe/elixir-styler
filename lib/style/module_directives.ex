@@ -73,19 +73,12 @@ defmodule Styler.Style.ModuleDirectives do
   @attr_directives ~w(moduledoc shortdoc behaviour)a ++ @callback_attrs
   @defstruct ~w(schema embedded_schema defstruct)a
 
-  # taken from Credo
-  @excluded_namespaces MapSet.new(~w(File IO Inspect Kernel Macro Supervisor Task Version)a)
-  @stdlib MapSet.new(~w(Access Agent Application Atom Base Behaviour
-                    Bitwise Code Date DateTime Dict Ecto Enum Exception
-                    File Float GenEvent GenServer HashDict HashSet
-                    Integer IO Kernel Keyword List Macro Map MapSet
-                    Module NaiveDateTime Node Oban OptionParser Path Port
-                    Process Protocol Range Record Regex Registry Set
-                    Stream String StringIO Supervisor System Task Time
-                    Tuple URI Version)a)
-
-  @libraries MapSet.new(~w(Ecto Plug Phoenix Oban)a)
-  @stdlib MapSet.union(@stdlib, @libraries)
+  @stdlib MapSet.new(~w(
+    Access Agent Application Atom Base Behaviour Bitwise Code Date DateTime Dict Ecto Enum Exception
+    File Float GenEvent GenServer HashDict HashSet Integer IO Kernel Keyword List
+    Macro Map MapSet Module NaiveDateTime Node Oban OptionParser Path Port Process Protocol
+    Range Record Regex Registry Set Stream String StringIO Supervisor System Task Time Tuple URI Version
+  )a)
 
   @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
 
@@ -191,8 +184,9 @@ defmodule Styler.Style.ModuleDirectives do
 
     directives =
       Enum.group_by(directives, fn
-        # callbacks are essentially the same as `use` -- they invoke macros.
-        # so, we need to group / order them with `use` statements to make sure we don't break things!
+        # the order of callbacks relative to use can matter if the use is also doing callbacks
+        # looking back, this is probably a hack to support one person's weird hackery 🤣
+        # TODO drop for a 1.0 release?
         {:@, _, [{callback, _, _}]} when callback in @callback_attrs -> :use
         {:@, _, [{attr_name, _, _}]} -> :"@#{attr_name}"
         {directive, _, _} -> directive
@@ -201,17 +195,12 @@ defmodule Styler.Style.ModuleDirectives do
     shortdocs = directives[:"@shortdoc"] || []
     moduledocs = directives[:"@moduledoc"] || List.wrap(moduledoc)
     behaviours = expand_and_sort(directives[:"@behaviour"] || [])
-
     uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> reset_newlines()
     imports = expand_and_sort(directives[:import] || [])
     aliases = expand_and_sort(directives[:alias] || [])
     requires = expand_and_sort(directives[:require] || [])
 
-    to_alias = find_liftable_aliases(requires ++ nondirectives, aliases)
-    # @TODO bug here if the first line of the parent is a comment
-    new_aliases = Enum.map(to_alias, &{:alias, [line: 0], [{:__aliases__, [last: [line: 0], line: 0], &1}]})
-    aliases = if Enum.empty?(new_aliases), do: aliases, else: expand_and_sort(aliases ++ new_aliases)
-    requires = use_aliases(requires, to_alias)
+    {aliases, requires, nondirectives} = lift_aliases(aliases, requires, nondirectives)
 
     directives =
       [
@@ -235,7 +224,22 @@ defmodule Styler.Style.ModuleDirectives do
       |> Zipper.replace_children(directives)
       |> Zipper.down()
       |> Zipper.rightmost()
-      |> Zipper.insert_siblings(use_aliases(nondirectives, to_alias))
+      |> Zipper.insert_siblings(nondirectives)
+    end
+  end
+
+  defp lift_aliases(aliases, requires, nondirectives) do
+    liftable = find_liftable_aliases(requires ++ nondirectives, aliases)
+
+    if Enum.any?(liftable) do
+      # TODO this'll move comments, need a repro
+      new_aliases = Enum.map(liftable, &{:alias, [line: 0], [{:__aliases__, [last: [line: 0], line: 0], &1}]})
+      aliases = expand_and_sort(aliases ++ new_aliases)
+      requires = do_lift_aliases(requires, liftable)
+      nondirectives = do_lift_aliases(nondirectives, liftable)
+      {aliases, requires, nondirectives}
+    else
+      {aliases, requires, nondirectives}
     end
   end
 
@@ -248,7 +252,6 @@ defmodule Styler.Style.ModuleDirectives do
         {:alias, _, _} -> nil
       end)
 
-    excluded_first = MapSet.union(aliased, @excluded_namespaces)
     excluded_last = MapSet.union(aliased, @stdlib)
 
     ast
@@ -262,13 +265,13 @@ defmodule Styler.Style.ModuleDirectives do
         {:skip, zipper, acc}
 
       # A.B.C.f(...)
-      {{:__aliases__, _, [first, _, _ | _] = aliases}, _} = zipper, acc ->
+      {{:__aliases__, _, [_, _, _ | _] = aliases}, _} = zipper, acc ->
         last = List.last(aliases)
 
         acc =
-          if last in excluded_last or first in excluded_first or not Enum.all?(aliases, &is_atom/1),
+          if last in excluded_last or not Enum.all?(aliases, &is_atom/1),
             do: acc,
-          else: Map.update(acc, aliases, false, fn _ -> true end)
+            else: Map.update(acc, aliases, false, fn _ -> true end)
 
         {:skip, zipper, acc}
 
@@ -286,33 +289,29 @@ defmodule Styler.Style.ModuleDirectives do
     |> MapSet.new(fn {_, [{aliases, _}]} -> aliases end)
   end
 
-  defp use_aliases(ast, new_aliases) do
-    if Enum.empty?(new_aliases) do
-      ast
-    else
-      ast
-      |> Zipper.zip()
-      |> Zipper.traverse(fn
-        {{defx, _, [{:__aliases__, _, _} | _]}, _} = zipper when defx in ~w(defmodule defimpl defprotocol)a ->
-          # move the focus to the body block, zkipping over the alias (and the `for` keyword for `defimpl`)
-          zipper |> Zipper.down() |> Zipper.rightmost() |> Zipper.down() |> Zipper.down() |> Zipper.right()
+  defp do_lift_aliases(ast, new_aliases) do
+    ast
+    |> Zipper.zip()
+    |> Zipper.traverse(fn
+      {{defx, _, [{:__aliases__, _, _} | _]}, _} = zipper when defx in ~w(defmodule defimpl defprotocol)a ->
+        # move the focus to the body block, zkipping over the alias (and the `for` keyword for `defimpl`)
+        zipper |> Zipper.down() |> Zipper.rightmost() |> Zipper.down() |> Zipper.down() |> Zipper.right()
 
-        {{:alias, _, [{:__aliases__, _, [_, _, _ | _] = aliases}]}, _} = zipper ->
-          # the alias was aliased deeper down. we've lifted that alias to a root, so delete this alias
-          if aliases in new_aliases,
-            do: Zipper.remove(zipper),
-            else: zipper
+      {{:alias, _, [{:__aliases__, _, [_, _, _ | _] = aliases}]}, _} = zipper ->
+        # the alias was aliased deeper down. we've lifted that alias to a root, so delete this alias
+        if aliases in new_aliases,
+          do: Zipper.remove(zipper),
+          else: zipper
 
-        {{:__aliases__, meta, [_, _, _ | _] = aliases}, _} = zipper ->
-          if aliases in new_aliases,
-            do: Zipper.replace(zipper, {:__aliases__, meta, [List.last(aliases)]}),
-            else: zipper
+      {{:__aliases__, meta, [_, _, _ | _] = aliases}, _} = zipper ->
+        if aliases in new_aliases,
+          do: Zipper.replace(zipper, {:__aliases__, meta, [List.last(aliases)]}),
+          else: zipper
 
-        zipper ->
-          zipper
-      end)
-      |> Zipper.node()
-    end
+      zipper ->
+        zipper
+    end)
+    |> Zipper.node()
   end
 
   # This is the step that ensures that comments don't get wrecked as part of us moving AST nodes willy-nilly.
