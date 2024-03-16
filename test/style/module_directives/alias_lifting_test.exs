@@ -79,6 +79,29 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
     """
   end
 
+  describe "comments stay put" do
+    test "comments before alias stanza" do
+      assert_style(
+        """
+        # Foo is my fave
+        import Foo
+
+        A.B.C.f()
+        A.B.C.f()
+        """,
+        """
+        # Foo is my fave
+        import Foo
+
+        alias A.B.C
+
+        C.f()
+        C.f()
+        """
+      )
+    end
+  end
+
   describe "it doesn't lift" do
     test "collisions with std lib" do
       assert_style """
