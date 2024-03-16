@@ -120,6 +120,23 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       """
     end
 
+    test "collisions with submodules" do
+      assert_style """
+      defmodule A do
+        @moduledoc false
+
+        A.B.C.f()
+
+        defmodule C do
+          @moduledoc false
+          A.B.C.f()
+        end
+
+        A.B.C.f()
+      end
+      """
+    end
+
     test "defprotocol, defmodule, or defimpl" do
       assert_style """
       defmodule No do
