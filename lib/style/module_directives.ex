@@ -268,7 +268,7 @@ defmodule Styler.Style.ModuleDirectives do
         acc =
           if last in excluded_last or first in excluded_first or not Enum.all?(aliases, &is_atom/1),
             do: acc,
-            else: Map.update(acc, aliases, 1, &(&1 + 1))
+          else: Map.update(acc, aliases, false, fn _ -> true end)
 
         {:skip, zipper, acc}
 
@@ -276,12 +276,12 @@ defmodule Styler.Style.ModuleDirectives do
         {:cont, zipper, acc}
     end)
     |> elem(1)
-    # if we have `Foo.Bar.Baz` and `Foo.Bar.Bop.Baz` both not aliased, we'll create a collision by extracting both.
+    # if we have `Foo.Bar.Baz` and `Foo.Bar.Bop.Baz` both not aliased, we'll create a collision by lifting both
     # grouping by last alias lets us detect these collisions
     |> Enum.group_by(fn {aliases, _} -> List.last(aliases) end)
     |> Enum.filter(fn
-      {_, [{_, n}]} -> n > 1
-      _ -> false
+      {_last, [{_aliases, repeated?}]} -> repeated?
+      _collision -> false
     end)
     |> MapSet.new(fn {_, [{aliases, _}]} -> aliases end)
   end
