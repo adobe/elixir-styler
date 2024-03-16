@@ -685,4 +685,32 @@ defmodule Styler.Style.PipesTest do
       end
     end
   end
+
+  describe "comments" do
+    test "unpiping doens't move comment in anon fun" do
+      assert_style """
+                     aliased =
+                       aliases
+                       |> MapSet.new(fn
+                         {:alias, _, [{:__aliases__, _, aliases}]} -> List.last(aliases)
+                         {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]} -> as
+                         # alias __MODULE__ or other oddities
+                         {:alias, _, _} -> nil
+                       end)
+
+                     excluded_first = MapSet.union(aliased, @excluded_namespaces)
+                   """,
+                   """
+                   aliased =
+                     MapSet.new(aliases, fn
+                       {:alias, _, [{:__aliases__, _, aliases}]} -> List.last(aliases)
+                       {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]} -> as
+                       # alias __MODULE__ or other oddities
+                       {:alias, _, _} -> nil
+                     end)
+
+                   excluded_first = MapSet.union(aliased, @excluded_namespaces)
+                   """
+    end
+  end
 end

@@ -9,7 +9,8 @@
 
 ### Fixes
 
-* various fixes for unreported obscure crashes related to module directive styling
+* module directives: various fixes for unreported obscure crashes
+* pipes: fix a comment-shifting scenario when unpiping
 
 ## v0.11.9
 
