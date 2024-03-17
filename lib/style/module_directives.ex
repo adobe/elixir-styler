@@ -240,8 +240,11 @@ defmodule Styler.Style.ModuleDirectives do
     liftable = find_liftable_aliases(requires ++ nondirectives, excluded)
 
     if Enum.any?(liftable) do
-      # TODO this'll move comments, need a repro
-      new_aliases = Enum.map(liftable, &{:alias, [line: 0], [{:__aliases__, [last: [line: 0], line: 0], &1}]})
+      # This is a silly hack that helps comments stay put.
+      # the `cap_line` algo was designed to handle high-line stuff moving up into low line territory, so we set our
+      # new node to have an abritrarily high line annnnd comments behave! i think.
+      line = 99_999
+      new_aliases = Enum.map(liftable, &{:alias, [line: line], [{:__aliases__, [last: [line: line], line: line], &1}]})
       aliases = expand_and_sort(aliases ++ new_aliases)
       requires = do_lift_aliases(requires, liftable)
       nondirectives = do_lift_aliases(nondirectives, liftable)

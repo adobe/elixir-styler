@@ -156,6 +156,26 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
         """
       )
     end
+
+    test "comments after alias stanza" do
+      assert_style(
+        """
+        # Foo is my fave
+        require Foo
+
+        A.B.C.f()
+        A.B.C.f()
+        """,
+        """
+        alias A.B.C
+        # Foo is my fave
+        require Foo
+
+        C.f()
+        C.f()
+        """
+      )
+    end
   end
 
   describe "it doesn't lift" do
