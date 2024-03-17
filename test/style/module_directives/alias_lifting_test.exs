@@ -39,6 +39,62 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
     )
   end
 
+  test "lifts from nested modules" do
+    assert_style(
+      """
+      defmodule A do
+        @moduledoc false
+
+        defmodule B do
+          @moduledoc false
+
+          A.B.C.f()
+          A.B.C.f()
+        end
+      end
+      """,
+      """
+      defmodule A do
+        @moduledoc false
+
+        alias A.B.C
+
+        defmodule B do
+          @moduledoc false
+
+          C.f()
+          C.f()
+        end
+      end
+      """
+    )
+
+    # this isn't exactly _desired_ behaviour but i don't see a real problem with it.
+    # as long as we're deterministic that's alright. this... really should never happen in the real world.
+    assert_style(
+      """
+      defmodule A do
+        defmodule B do
+          A.B.C.f()
+          A.B.C.f()
+        end
+      end
+      """,
+      """
+      defmodule A do
+        @moduledoc false
+        defmodule B do
+          @moduledoc false
+          alias A.B.C
+
+          C.f()
+          C.f()
+        end
+      end
+      """
+    )
+  end
+
   test "only deploys new aliases in nodes _after_ the alias stanza" do
     assert_style(
       """

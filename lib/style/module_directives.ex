@@ -229,7 +229,15 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   defp lift_aliases(aliases, requires, nondirectives) do
-    liftable = find_liftable_aliases(requires ++ nondirectives, aliases)
+    excluded =
+      Enum.reduce(aliases, @stdlib, fn
+        {:alias, _, [{:__aliases__, _, aliases}]}, excluded -> MapSet.put(excluded, List.last(aliases))
+        {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]}, excluded -> MapSet.put(excluded, as)
+        # `alias __MODULE__` or other oddities
+        {:alias, _, _}, excluded -> excluded
+      end)
+
+    liftable = find_liftable_aliases(requires ++ nondirectives, excluded)
 
     if Enum.any?(liftable) do
       # TODO this'll move comments, need a repro
@@ -243,34 +251,39 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  defp find_liftable_aliases(ast, aliases) do
-    excluded =
-      Enum.reduce(aliases, @stdlib, fn
-        {:alias, _, [{:__aliases__, _, aliases}]}, excludes -> MapSet.put(excludes, List.last(aliases))
-        {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]}, excludes -> MapSet.put(excludes, as)
-        # `alias __MODULE__` or other oddities
-        {:alias, _, _}, excludes -> excludes
-      end)
-
+  defp find_liftable_aliases(ast, excluded) do
     ast
     |> Zipper.zip()
-    |> Zipper.traverse_while(%{}, fn
-      {{defx, _, _}, _} = zipper, acc when defx in ~w(defmodule defimpl defprotocol)a ->
+    |> Zipper.reduce_while({%{}, excluded}, fn
+      # we don't want to rewrite alias name `defx Aliases ... do` of these three keywords
+      {{defx, _, args}, _} = zipper, {lifts, excluded} = acc when defx in ~w(defmodule defimpl defprotocol)a ->
+        # don't conflict with submodules, which elixir automatically aliases
+        # we could've done this earlier when building excludes from aliases, but this gets it done without two traversals.
+        acc =
+          case args do
+            [{:__aliases__, _, aliases} | _] when defx == :defmodule ->
+              aliased = List.last(aliases)
+              {Map.delete(lifts, aliased), MapSet.put(excluded, aliased)}
+
+            _ ->
+              acc
+          end
+
         # move the focus to the body block, zkipping over the alias (and the `for` keyword for `defimpl`)
         {:skip, zipper |> Zipper.down() |> Zipper.rightmost() |> Zipper.down() |> Zipper.down(), acc}
 
       {{:quote, _, _}, _} = zipper, acc ->
         {:skip, zipper, acc}
 
-      {{:__aliases__, _, [_, _, _ | _] = aliases}, _} = zipper, acc ->
+      {{:__aliases__, _, [_, _, _ | _] = aliases}, _} = zipper, {lifts, excluded} = acc ->
         if List.last(aliases) in excluded or not Enum.all?(aliases, &is_atom/1),
           do: {:skip, zipper, acc},
-          else: {:skip, zipper, Map.update(acc, aliases, false, fn _ -> true end)}
+          else: {:skip, zipper, {Map.update(lifts, aliases, false, fn _ -> true end), excluded}}
 
       zipper, acc ->
         {:cont, zipper, acc}
     end)
-    |> elem(1)
+    |> elem(0)
     # if we have `Foo.Bar.Baz` and `Foo.Bar.Bop.Baz` both not aliased, we'll create a collision by lifting both
     # grouping by last alias lets us detect these collisions
     |> Enum.group_by(fn {aliases, _} -> List.last(aliases) end)

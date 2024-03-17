@@ -317,6 +317,23 @@ defmodule Styler.Zipper do
     if next = next(zipper), do: do_traverse(next, acc, fun), else: {top(zipper), acc}
   end
 
+  # Same as `traverse/3`, but doesn't waste cycles going back to the top of the tree when traversal is finished
+  @doc false
+  @spec reduce(zipper, term, (zipper, term -> {zipper, term})) :: term
+  def reduce({_, nil} = zipper, acc, fun) do
+    do_reduce(zipper, acc, fun)
+  end
+
+  def reduce({tree, meta}, acc, fun) do
+    {{updated, _meta}, acc} = do_reduce({tree, nil}, acc, fun)
+    {{updated, meta}, acc}
+  end
+
+  defp do_reduce(zipper, acc, fun) do
+    {zipper, acc} = fun.(zipper, acc)
+    if next = next(zipper), do: do_reduce(next, acc, fun), else: acc
+  end
+
   @doc """
   Traverses the tree in depth-first pre-order calling the given function for
   each node.
@@ -373,6 +390,28 @@ defmodule Styler.Zipper do
     end
   end
 
+  @doc false
+  # Similar to traverse_while/3, but returns the `acc` directly, skipping the return to the top of the zipper.
+  # For that reason the :halt tuple is instead just a 2-ple of `{:halt, acc}`
+  @spec reduce_while(zipper, term, (zipper, term -> {command, zipper, term})) :: {zipper, term}
+  def reduce_while({_tree, nil} = zipper, acc, fun) do
+    do_reduce_while(zipper, acc, fun)
+  end
+
+  def reduce_while({tree, meta}, acc, fun) do
+    {{updated, _meta}, acc} = do_reduce_while({tree, nil}, acc, fun)
+    {{updated, meta}, acc}
+  end
+
+  defp do_reduce_while(zipper, acc, fun) do
+    case fun.(zipper, acc) do
+      {:cont, zipper, acc} -> if next = next(zipper), do: do_reduce_while(next, acc, fun), else: acc
+      {:skip, zipper, acc} -> if skip = skip(zipper), do: do_reduce_while(skip, acc, fun), else: acc
+      {:halt, acc} -> acc
+      {:halt, _, _} -> raise "use `{:halt, acc}` with `reduce_while/3`"
+    end
+  end
+
   @doc """
   Returns a zipper to the node that satisfies the predicate function, or `nil`
   if none is found.
@@ -394,11 +433,8 @@ defmodule Styler.Zipper do
   @doc "Traverses `zipper`, returning true when `fun.(Zipper.node(zipper))` is truthy, or false otherwise"
   @spec any?(zipper, (tree -> term)) :: boolean()
   def any?({_, _} = zipper, fun) when is_function(fun, 1) do
-    zipper
-    |> traverse_while(false, fn {tree, _} = zipper, _ ->
-      # {nil, nil} optimizes to not go back to the top of the zipper on a hit
-      if fun.(tree), do: {:halt, {nil, nil}, true}, else: {:cont, zipper, false}
+    reduce_while(zipper, false, fn {tree, _} = zipper, _ ->
+      if fun.(tree), do: {:halt, true}, else: {:cont, zipper, false}
     end)
-    |> elem(1)
   end
 end
