@@ -25,6 +25,7 @@ defmodule Styler.Style.ModuleDirectives do
     * `Credo.Check.Readability.MultiAlias`
     * `Credo.Check.Readability.StrictModuleLayout` (see section below for details)
     * `Credo.Check.Readability.UnnecessaryAliasExpansion`
+    * `Credo.Check.Design.AliasUsage`
 
   ## Strict Layout
 

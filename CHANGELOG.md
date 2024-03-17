@@ -4,8 +4,10 @@
 
 ### Improvements
 
-* blocks: invert if and unless with `!=` or `!==`, like we do for `!` and `not`. Closes #132
-* `@derive`: move `@derive`s before `defstruct|schema|embedded_schema` declarations (compiler warns when it follows)
+* `alias`: implement alias lifting (`Credo.Check.Design.AliasUsage`). lifts aliases of depth >=3 (`A.B.C...`) that are used more than once.
+  **this is a big one!** please report any issues :) #135
+* `if`/`unless`: invert if and unless with `!=` or `!==`, like we do for `!` and `not` #132
+* `@derive`: move `@derive` before `defstruct|schema|embedded_schema` declarations (fixes compiler warning!) #134
 
 ### Fixes
 

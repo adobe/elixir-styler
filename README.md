@@ -63,6 +63,8 @@ Disabling the rules means updating your `.credo.exs` depending on your configura
 {Credo.Check.Consistency.MultiAliasImportRequireUse, false},
 # including `case`, `fn` and `with` statements
 {Credo.Check.Consistency.ParameterPatternMatching, false},
+# Styler implements this rule with a depth of 3 and minimum repetition of 2
+{Credo.Check.Design.AliasUsage, false},
 {Credo.Check.Readability.AliasOrder, false},
 {Credo.Check.Readability.BlockPipe, false},
 # goes further than formatter - fixes bad underscores, eg: `100_00` -> `10_000`
