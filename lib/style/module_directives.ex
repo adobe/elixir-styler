@@ -25,6 +25,7 @@ defmodule Styler.Style.ModuleDirectives do
     * `Credo.Check.Readability.MultiAlias`
     * `Credo.Check.Readability.StrictModuleLayout` (see section below for details)
     * `Credo.Check.Readability.UnnecessaryAliasExpansion`
+    * `Credo.Check.Design.AliasUsage`
 
   ## Strict Layout
 
@@ -72,6 +73,13 @@ defmodule Styler.Style.ModuleDirectives do
   @callback_attrs ~w(before_compile after_compile after_verify)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a ++ @callback_attrs
   @defstruct ~w(schema embedded_schema defstruct)a
+
+  @stdlib MapSet.new(~w(
+    Access Agent Application Atom Base Behaviour Bitwise Code Date DateTime Dict Ecto Enum Exception
+    File Float GenEvent GenServer HashDict HashSet Integer IO Kernel Keyword List
+    Macro Map MapSet Module NaiveDateTime Node Oban OptionParser Path Port Process Protocol
+    Range Record Regex Registry Set Stream String StringIO Supervisor System Task Time Tuple URI Version
+  )a)
 
   @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
 
@@ -177,8 +185,9 @@ defmodule Styler.Style.ModuleDirectives do
 
     directives =
       Enum.group_by(directives, fn
-        # callbacks are essentially the same as `use` -- they invoke macros.
-        # so, we need to group / order them with `use` statements to make sure we don't break things!
+        # the order of callbacks relative to use can matter if the use is also doing callbacks
+        # looking back, this is probably a hack to support one person's weird hackery 🤣
+        # TODO drop for a 1.0 release?
         {:@, _, [{callback, _, _}]} when callback in @callback_attrs -> :use
         {:@, _, [{attr_name, _, _}]} -> :"@#{attr_name}"
         {directive, _, _} -> directive
@@ -187,11 +196,12 @@ defmodule Styler.Style.ModuleDirectives do
     shortdocs = directives[:"@shortdoc"] || []
     moduledocs = directives[:"@moduledoc"] || List.wrap(moduledoc)
     behaviours = expand_and_sort(directives[:"@behaviour"] || [])
-
     uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> reset_newlines()
     imports = expand_and_sort(directives[:import] || [])
-    requires = expand_and_sort(directives[:require] || [])
     aliases = expand_and_sort(directives[:alias] || [])
+    requires = expand_and_sort(directives[:require] || [])
+
+    {aliases, requires, nondirectives} = lift_aliases(aliases, requires, nondirectives)
 
     directives =
       [
@@ -217,6 +227,100 @@ defmodule Styler.Style.ModuleDirectives do
       |> Zipper.rightmost()
       |> Zipper.insert_siblings(nondirectives)
     end
+  end
+
+  defp lift_aliases(aliases, requires, nondirectives) do
+    excluded =
+      Enum.reduce(aliases, @stdlib, fn
+        {:alias, _, [{:__aliases__, _, aliases}]}, excluded -> MapSet.put(excluded, List.last(aliases))
+        {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]}, excluded -> MapSet.put(excluded, as)
+        # `alias __MODULE__` or other oddities
+        {:alias, _, _}, excluded -> excluded
+      end)
+
+    liftable = find_liftable_aliases(requires ++ nondirectives, excluded)
+
+    if Enum.any?(liftable) do
+      # This is a silly hack that helps comments stay put.
+      # the `cap_line` algo was designed to handle high-line stuff moving up into low line territory, so we set our
+      # new node to have an abritrarily high line annnnd comments behave! i think.
+      line = 99_999
+      new_aliases = Enum.map(liftable, &{:alias, [line: line], [{:__aliases__, [last: [line: line], line: line], &1}]})
+      aliases = expand_and_sort(aliases ++ new_aliases)
+      requires = do_lift_aliases(requires, liftable)
+      nondirectives = do_lift_aliases(nondirectives, liftable)
+      {aliases, requires, nondirectives}
+    else
+      {aliases, requires, nondirectives}
+    end
+  end
+
+  defp find_liftable_aliases(ast, excluded) do
+    ast
+    |> Zipper.zip()
+    |> Zipper.reduce_while({%{}, excluded}, fn
+      # we don't want to rewrite alias name `defx Aliases ... do` of these three keywords
+      {{defx, _, args}, _} = zipper, {lifts, excluded} = acc when defx in ~w(defmodule defimpl defprotocol)a ->
+        # don't conflict with submodules, which elixir automatically aliases
+        # we could've done this earlier when building excludes from aliases, but this gets it done without two traversals.
+        acc =
+          case args do
+            [{:__aliases__, _, aliases} | _] when defx == :defmodule ->
+              aliased = List.last(aliases)
+              {Map.delete(lifts, aliased), MapSet.put(excluded, aliased)}
+
+            _ ->
+              acc
+          end
+
+        # move the focus to the body block, zkipping over the alias (and the `for` keyword for `defimpl`)
+        {:skip, zipper |> Zipper.down() |> Zipper.rightmost() |> Zipper.down() |> Zipper.down(), acc}
+
+      {{:quote, _, _}, _} = zipper, acc ->
+        {:skip, zipper, acc}
+
+      {{:__aliases__, _, [_, _, _ | _] = aliases}, _} = zipper, {lifts, excluded} = acc ->
+        if List.last(aliases) in excluded or not Enum.all?(aliases, &is_atom/1),
+          do: {:skip, zipper, acc},
+          else: {:skip, zipper, {Map.update(lifts, aliases, false, fn _ -> true end), excluded}}
+
+      zipper, acc ->
+        {:cont, zipper, acc}
+    end)
+    |> elem(0)
+    # if we have `Foo.Bar.Baz` and `Foo.Bar.Bop.Baz` both not aliased, we'll create a collision by lifting both
+    # grouping by last alias lets us detect these collisions
+    |> Enum.group_by(fn {aliases, _} -> List.last(aliases) end)
+    |> Enum.filter(fn
+      {_last, [{_aliases, repeated?}]} -> repeated?
+      _collision -> false
+    end)
+    |> MapSet.new(fn {_, [{aliases, _}]} -> aliases end)
+  end
+
+  defp do_lift_aliases(ast, to_alias) do
+    ast
+    |> Zipper.zip()
+    |> Zipper.traverse(fn
+      {{defx, _, [{:__aliases__, _, _} | _]}, _} = zipper when defx in ~w(defmodule defimpl defprotocol)a ->
+        # move the focus to the body block, zkipping over the alias (and the `for` keyword for `defimpl`)
+        zipper |> Zipper.down() |> Zipper.rightmost() |> Zipper.down() |> Zipper.down() |> Zipper.right()
+
+      {{:alias, _, [{:__aliases__, _, [_, _, _ | _] = aliases}]}, _} = zipper ->
+        # the alias was aliased deeper down. we've lifted that alias to a root, so delete this alias
+        if aliases in to_alias,
+          do: Zipper.remove(zipper),
+          else: zipper
+
+      {{:__aliases__, meta, [_, _, _ | _] = aliases}, _} = zipper ->
+        if aliases in to_alias,
+          do: Zipper.replace(zipper, {:__aliases__, meta, [List.last(aliases)]}),
+          else: zipper
+
+      zipper ->
+        zipper
+    end)
+    |> Zipper.node()
   end
 
   # This is the step that ensures that comments don't get wrecked as part of us moving AST nodes willy-nilly.
