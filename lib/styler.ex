@@ -31,7 +31,9 @@ defmodule Styler do
   def style({ast, comments}, file, opts) do
     on_error = opts[:on_error] || :log
     zipper = Zipper.zip(ast)
-    context = %{comments: comments, file: file}
+    excludes = MapSet.new(List.wrap(opts[:alias_lifting_exclude]))
+
+    context = %{comments: comments, file: file, config: %{lift_exclude: excludes}}
 
     {{ast, _}, %{comments: comments}} =
       Enum.reduce(@styles, {zipper, context}, fn style, {zipper, context} ->
@@ -58,13 +60,14 @@ defmodule Styler do
   def features(_opts), do: [sigils: [], extensions: [".ex", ".exs"]]
 
   @impl Format
-  def format(input, formatter_opts, opts \\ []) do
+  def format(input, formatter_opts) do
     file = formatter_opts[:file]
+    styler_opts = formatter_opts[:styler] || []
 
     {ast, comments} =
       input
       |> string_to_quoted_with_comments(to_string(file))
-      |> style(file, opts)
+      |> style(file, styler_opts)
 
     quoted_to_string(ast, comments, formatter_opts)
   end
@@ -81,7 +84,7 @@ defmodule Styler do
   end
 
   @doc false
-  def literal_encoder(a, b), do: {:ok, {:__block__, b, [a]}}
+  def literal_encoder(literal, meta), do: {:ok, {:__block__, meta, [literal]}}
 
   @doc false
   # Turns an ast and comments back into code, formatting it along the way.

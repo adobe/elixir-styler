@@ -16,18 +16,16 @@ defmodule Styler.StyleCase do
 
   using do
     quote do
-      import unquote(__MODULE__), only: [assert_style: 1, assert_style: 2, style: 1]
+      import unquote(__MODULE__), only: [assert_style: 1, assert_style: 2, style: 1, style: 2]
     end
   end
 
-  defmacro assert_style(before, expected \\ nil) do
-    expected = expected || before
-
-    quote bind_quoted: [before: before, expected: expected] do
+  defmacro assert_style(before, expected, options) do
+    quote bind_quoted: [before: before, expected: expected, options: options] do
       alias Styler.Zipper
 
       expected = String.trim(expected)
-      {styled_ast, styled, styled_comments} = style(before)
+      {styled_ast, styled, styled_comments} = style(before, options)
 
       if styled != expected and ExUnit.configuration()[:trace] do
         IO.puts("\n======Given=============\n")
@@ -89,7 +87,7 @@ defmodule Styler.StyleCase do
       end)
 
       assert expected == styled
-      {_, restyled, _} = style(styled)
+      {_, restyled, _} = style(styled, options)
 
       assert restyled == styled, """
       expected styling to be idempotent, but a second pass resulted in more changes.
@@ -107,9 +105,13 @@ defmodule Styler.StyleCase do
     end
   end
 
-  def style(code) do
+  def assert_style(no_change), do: assert_style(no_change, no_change, [])
+  def assert_style(before, expected) when is_binary(expected), do: assert_style(before, expected, [])
+  def assert_style(no_change, opts) when is_list(opts), do: assert_style(no_change, no_change, opts)
+
+  def style(code, options \\ []) do
     {ast, comments} = Styler.string_to_quoted_with_comments(code)
-    {styled_ast, comments} = Styler.style({ast, comments}, "testfile", on_error: :raise)
+    {styled_ast, comments} = Styler.style({ast, comments}, "testfile", [{:on_error, :raise} | options])
 
     try do
       styled_code = styled_ast |> Styler.quoted_to_string(comments) |> String.trim_trailing("\n")
