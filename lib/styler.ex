@@ -30,10 +30,9 @@ defmodule Styler do
   @doc false
   def style({ast, comments}, file, opts) do
     on_error = opts[:on_error] || :log
+    Styler.Config.set(opts)
+    context = %{comments: comments, file: file}
     zipper = Zipper.zip(ast)
-    excludes = MapSet.new(List.wrap(opts[:alias_lifting_exclude]))
-
-    context = %{comments: comments, file: file, config: %{lift_exclude: excludes}}
 
     {{ast, _}, %{comments: comments}} =
       Enum.reduce(@styles, {zipper, context}, fn style, {zipper, context} ->

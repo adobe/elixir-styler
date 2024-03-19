@@ -180,15 +180,16 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
 
   describe "it doesn't lift" do
     test "collisions with configured modules" do
-      assert_style(
-        """
-        alias Foo.Bar
+      Styler.Config.set!(alias_lifting_exclude: ~w(C)a)
 
-        A.B.C
-        A.B.C
-        """,
-        alias_lifting_exclude: ~w(C)a
-      )
+      assert_style """
+      alias Foo.Bar
+
+      A.B.C
+      A.B.C
+      """
+
+      Styler.Config.set!([])
     end
 
     test "collisions with std lib" do

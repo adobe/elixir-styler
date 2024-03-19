@@ -74,13 +74,6 @@ defmodule Styler.Style.ModuleDirectives do
   @attr_directives ~w(moduledoc shortdoc behaviour)a ++ @callback_attrs
   @defstruct ~w(schema embedded_schema defstruct)a
 
-  @stdlib MapSet.new(~w(
-    Access Agent Application Atom Base Behaviour Bitwise Code Date DateTime Dict Ecto Enum Exception
-    File Float GenEvent GenServer HashDict HashSet Integer IO Kernel Keyword List
-    Macro Map MapSet Module NaiveDateTime Node Oban OptionParser Path Port Process Protocol
-    Range Record Regex Registry Set Stream String StringIO Supervisor System Task Time Tuple URI Version
-  )a)
-
   @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
 
   def run({{:defmodule, _, children}, _} = zipper, ctx) do
@@ -102,7 +95,7 @@ defmodule Styler.Style.ModuleDirectives do
         # we want only-child literal block to be handled in the only-child catch-all. it means someone did a weird
         # (that would be a literal, so best case someone wrote a string and forgot to put `@moduledoc` before it)
         {:__block__, _, [_, _ | _]} ->
-          {:skip, organize_directives(body_zipper, ctx, moduledoc), ctx}
+          {:skip, organize_directives(body_zipper, moduledoc), ctx}
 
         # a module whose only child is a moduledoc. nothing to do here!
         # seems weird at first blush but lots of projects/libraries do this with their root namespace module
@@ -128,7 +121,7 @@ defmodule Styler.Style.ModuleDirectives do
   def run({{directive, _, children}, _} = zipper, ctx) when directive in @directives and is_list(children) do
     # Need to be careful that we aren't getting false positives on variables or fns like `def import(foo)` or `alias = 1`
     case Style.ensure_block_parent(zipper) do
-      {:ok, zipper} -> {:skip, zipper |> Zipper.up() |> organize_directives(ctx), ctx}
+      {:ok, zipper} -> {:skip, zipper |> Zipper.up() |> organize_directives(), ctx}
       # not actually a directive! carry on.
       :error -> {:cont, zipper, ctx}
     end
@@ -173,7 +166,7 @@ defmodule Styler.Style.ModuleDirectives do
   # a dynamic module name, like `defmodule my_variable do ... end`
   defp moduledoc(_), do: nil
 
-  defp organize_directives(parent, ctx, moduledoc \\ nil) do
+  defp organize_directives(parent, moduledoc \\ nil) do
     {directives, nondirectives} =
       parent
       |> Zipper.children()
@@ -201,7 +194,7 @@ defmodule Styler.Style.ModuleDirectives do
     aliases = expand_and_sort(directives[:alias] || [])
     requires = expand_and_sort(directives[:require] || [])
 
-    {aliases, requires, nondirectives} = lift_aliases(aliases, requires, nondirectives, ctx.config.lift_exclude)
+    {aliases, requires, nondirectives} = lift_aliases(aliases, requires, nondirectives)
 
     directives =
       [
@@ -229,9 +222,9 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  defp lift_aliases(aliases, requires, nondirectives, excluded_by_config) do
+  defp lift_aliases(aliases, requires, nondirectives) do
     excluded =
-      Enum.reduce(aliases, MapSet.union(@stdlib, excluded_by_config), fn
+      Enum.reduce(aliases, Styler.Config.get(:lifting_excludes), fn
         {:alias, _, [{:__aliases__, _, aliases}]}, excluded -> MapSet.put(excluded, List.last(aliases))
         {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]}, excluded -> MapSet.put(excluded, as)
         # `alias __MODULE__` or other oddities
