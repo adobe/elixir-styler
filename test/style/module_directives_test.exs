@@ -69,6 +69,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         """
         defmodule B do
           @moduledoc false
+
           defmodule C do
             @moduledoc false
           end
@@ -87,6 +88,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         """
         defmodule Bar do
           @moduledoc false
+
           alias Bop.Bop
 
           :ok
@@ -116,6 +118,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         """
         defmodule Foo do
           @moduledoc false
+
           use Bar
         end
         """
@@ -130,6 +133,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         """
         defmodule Foo do
           @moduledoc false
+
           alias Foo.Bar
           alias Foo.Baz
         end
@@ -220,6 +224,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
                      |> File.read!()
                      |> String.split("<!-- MDOC !-->")
                      |> Enum.fetch!(1)
+
           @behaviour Chaotic
           @behaviour Lawful
 
@@ -461,6 +466,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         defmodule Foo do
           # mdf
           @moduledoc false
+
           alias A.A
           # B
           alias B.B
