@@ -7,7 +7,6 @@ defmodule Styler.Linter.Speedo do
   alias Credo.Check.Readability.ModuleAttributeNames
   alias Credo.Check.Readability.ModuleNames
   alias Credo.Check.Readability.PredicateFunctionNames
-  alias Credo.Check.Readability.StringSigils
   alias Credo.Check.Readability.VariableNames
   alias Credo.Check.Readability.WithCustomTaggedTuple
   alias Styler.Zipper
@@ -116,16 +115,6 @@ defmodule Styler.Linter.Speedo do
   def run({{assignment_op, _, [lhs, _]}, _} = zipper, ctx) when assignment_op in ~w(= ->)a do
     {_, errors} = lhs |> Zipper.zip() |> Zipper.traverse([], &readability_variable_names(&1, &2, ctx.file))
     {zipper, Map.update!(ctx, :errors, &[errors | &1])}
-  end
-
-  def run({{:__block__, [{:delimiter, ~s|"|} | _] = m, [string]}, _} = zipper, ctx) when is_binary(string) do
-    if string =~ ~r/".*".*".*"/ do
-      msg = "use a sigil for #{inspect(string)}, it has too many quotes"
-      error = %{file: ctx.file, line: m[:line], check: StringSigils, message: msg}
-      {zipper, Map.update!(ctx, :errors, &[error | &1])}
-    else
-      {zipper, ctx}
-    end
   end
 
   def run(zipper, context), do: {zipper, context}

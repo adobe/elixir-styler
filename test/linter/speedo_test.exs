@@ -7,7 +7,6 @@ defmodule Styler.Linter.SpeedoTest do
   alias Credo.Check.Readability.ModuleAttributeNames
   alias Credo.Check.Readability.ModuleNames
   alias Credo.Check.Readability.PredicateFunctionNames
-  alias Credo.Check.Readability.StringSigils
   alias Credo.Check.Readability.VariableNames
   alias Credo.Check.Readability.WithCustomTaggedTuple
 
@@ -88,14 +87,6 @@ defmodule Styler.Linter.SpeedoTest do
         refute_errors "#{def} is_foo(bar)"
         refute_errors "#{def} is_foo(bar) when bar != :baz, do: :bop"
       end
-    end
-  end
-
-  describe "Credo.Check.Readability.StringSigils" do
-    test "3 escaped quotes tops" do
-      assert_error ~s|x = "\\"1\\"2\\"3\\"4"|, StringSigils
-      refute_errors ~s|x = ~s{"1"2"3"4}|
-      refute_errors ~s|x = "\\"1\\"2\\"3"|
     end
   end
 
