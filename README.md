@@ -80,6 +80,7 @@ Disabling the rules means updating your `.credo.exs` depending on your configura
 {Credo.Check.Readability.SinglePipe, false},
 # **potentially breaks compilation** - see **Troubleshooting** section below
 {Credo.Check.Readability.StrictModuleLayout, false},
+{Credo.Check.Readability.StringSigils, false},
 {Credo.Check.Readability.UnnecessaryAliasExpansion, false},
 {Credo.Check.Readability.WithSingleClause, false},
 {Credo.Check.Refactor.CaseTrivialMatches, false},

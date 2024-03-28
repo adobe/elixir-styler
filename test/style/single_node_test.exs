@@ -19,6 +19,22 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
+  test "string sigil rewrites" do
+    assert_style ~s|""|
+    assert_style ~s|"\\""|
+    assert_style ~s|"\\"\\""|
+    assert_style ~s|"\\"\\"\\""|
+    assert_style ~s|"\\"\\"\\"\\""|, ~s|~s("""")|
+    # choose closing delimiter wisely, based on what has the least conflicts, in the styliest order
+    assert_style ~s/"\\"\\"\\"\\" )"/, ~s/~s{"""" )}/
+    assert_style ~s/"\\"\\"\\"\\" })"/, ~s/~s|"""" })|/
+    assert_style ~s/"\\"\\"\\"\\" |})"/, ~s/~s["""" |})]/
+    assert_style ~s/"\\"\\"\\"\\" ]|})"/, ~s/~s'"""" ]|})'/
+    assert_style ~s/"\\"\\"\\"\\" ']|})"/, ~s/~s<"""" ']|})>/
+    assert_style ~s/"\\"\\"\\"\\" >']|})"/, ~s|~s/"""" >']\|})/|
+    assert_style ~s/"\\"\\"\\"\\" \/>']|})"/, ~s|~s("""" />']\|}\\))|
+  end
+
   test "{Map/Keyword}.merge with a single static key" do
     for module <- ~w(Map Keyword) do
       assert_style("#{module}.merge(foo, %{one_key: :bar})", "#{module}.put(foo, :one_key, :bar)")

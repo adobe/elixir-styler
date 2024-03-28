@@ -8,6 +8,8 @@
   **this is a big one!** please report any issues :) #135
 * `if`/`unless`: invert if and unless with `!=` or `!==`, like we do for `!` and `not` #132
 * `@derive`: move `@derive` before `defstruct|schema|embedded_schema` declarations (fixes compiler warning!) #134
+* strings: rewrite double-quoted strings to use `~s` when there's 4+ escaped double-quotes
+  (`"\"\"\"\""` -> `~s("""")`) (`Credo.Check.Readability.StringSigils`) #146
 
 ### Fixes
 
