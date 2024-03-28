@@ -18,6 +18,7 @@ defmodule Styler.Style.SingleNode do
   * Credo.Check.Readability.LargeNumbers
   * Credo.Check.Readability.ParenthesesOnZeroArityDefs
   * Credo.Check.Readability.PreferImplicitTry
+  * Credo.Check.Readability.StringSigils
   * Credo.Check.Readability.WithSingleClause
   * Credo.Check.Refactor.CaseTrivialMatches
   * Credo.Check.Refactor.CondStatements
@@ -27,6 +28,8 @@ defmodule Styler.Style.SingleNode do
 
   @behaviour Styler.Style
 
+  @closing_delimiters [~s|"|, ")", "}", "|", "]", "'", ">", "/"]
+
   alias Styler.Zipper
 
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
@@ -34,10 +37,46 @@ defmodule Styler.Style.SingleNode do
   # as of 1.15, elixir's formatter takes care of this for us.
   if Version.match?(System.version(), "< 1.15.0-dev") do
     # 'charlist' => ~c"charlist"
-    defp style({:__block__, meta, [chars]} = node) when is_list(chars) do
-      if meta[:delimiter] == "'",
-        do: {:sigil_c, Keyword.put(meta, :delimiter, "\""), [{:<<>>, [line: meta[:line]], [List.to_string(chars)]}, []]},
-        else: node
+    defp style({:__block__, [{:delimiter, ~s|'|} | meta], [chars]}) when is_list(chars),
+      do: {:sigil_c, [{:delimiter, ~s|"|} | meta], [{:<<>>, [line: meta[:line]], [List.to_string(chars)]}, []]}
+  end
+
+  # rewrite double-quote strings with >= 4 escaped double-quotes as sigils
+  defp style({:__block__, [{:delimiter, ~s|"|} | meta], [string]} = node) when is_binary(string) do
+    # running a regex against every double-quote delimited string literal in a codebase doesn't have too much impact
+    # on adobe's internal codebase, but perhaps other codebases have way more literals where this'd have an impact?
+    if string =~ ~r/".*".*".*"/ do
+      # choose whichever delimiter would require the least # of escapes,
+      # ties being broken by our stylish ordering of delimiters (reflected in the 1-8 values)
+      {closer, _} =
+        string
+        |> String.codepoints()
+        |> Stream.filter(&(&1 in @closing_delimiters))
+        |> Stream.concat(@closing_delimiters)
+        |> Enum.frequencies()
+        |> Enum.min_by(fn
+          {~s|"|, count} -> {count, 1}
+          {")", count} -> {count, 2}
+          {"}", count} -> {count, 3}
+          {"|", count} -> {count, 4}
+          {"]", count} -> {count, 5}
+          {"'", count} -> {count, 6}
+          {">", count} -> {count, 7}
+          {"/", count} -> {count, 8}
+        end)
+
+      delimiter =
+        case closer do
+          ")" -> "("
+          "}" -> "{"
+          "]" -> "["
+          ">" -> "<"
+          closer -> closer
+        end
+
+      {:sigil_s, [{:delimiter, delimiter} | meta], [{:<<>>, [line: meta[:line]], [string]}, []]}
+    else
+      node
     end
   end
 
