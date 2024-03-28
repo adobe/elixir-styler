@@ -14,8 +14,7 @@ defmodule Styler.Linter.Comments do
     end)
   end
 
-  defp parse_line("this-file" <> rest, line) do
-    unless line == 1, do: IO.puts("warning: `# credo:disable-for-this-file` should be first line of file")
+  defp parse_line("this-file" <> rest, _) do
     {:*, rest}
   end
 
