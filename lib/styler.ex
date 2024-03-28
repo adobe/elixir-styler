@@ -14,6 +14,7 @@ defmodule Styler do
   """
   @behaviour Mix.Tasks.Format
 
+  alias Mix.Tasks.Format
   alias Styler.StyleError
   alias Styler.Zipper
 
@@ -53,10 +54,10 @@ defmodule Styler do
     {ast, comments}
   end
 
-  @impl Mix.Tasks.Format
+  @impl Format
   def features(_opts), do: [sigils: [], extensions: [".ex", ".exs"]]
 
-  @impl Mix.Tasks.Format
+  @impl Format
   def format(input, formatter_opts) do
     file = formatter_opts[:file]
     opts = formatter_opts[:styler] || []

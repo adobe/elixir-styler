@@ -2,7 +2,6 @@ defmodule Styler.Linter.Speedo do
   @moduledoc false
 
   alias Credo.Check.Consistency.ExceptionNames
-  alias Credo.Check.Design.AliasUsage
   alias Credo.Check.Readability.FunctionNames
   alias Credo.Check.Readability.ImplTrue
   alias Credo.Check.Readability.ModuleAttributeNames
@@ -17,11 +16,12 @@ defmodule Styler.Linter.Speedo do
   def run({{def, _, [{name, m, args} | _]}, _} = zipper, ctx) when def in @definer and is_atom(name) do
     {name, m, args} = if name == :when, do: hd(args), else: {name, m, args}
 
+    # :when clause means this might not be an atom :/
     name_errors =
-      # :when clause means this might not be an atom :/
       if is_atom(name) do
         error = %{file: ctx.file, line: m[:line], check: nil, message: nil}
         name = to_string(name)
+
         snake_error =
           unless snake_case?(name), do: %{error | check: FunctionNames, message: "`#{def} #{name}` is not snake case"}
 
@@ -94,35 +94,7 @@ defmodule Styler.Linter.Speedo do
           []
       end)
 
-    aliased =
-      module_children
-      |> Enum.flat_map(fn
-        {:alias, _, [{:__aliases__, _, aliases}]} -> [aliases]
-        _ -> []
-      end)
-      |> MapSet.new(&List.last/1)
-
-    alias_errors =
-      module_body
-      |> Zipper.traverse_while(%{}, fn
-        # let people do whatever with meta programmings
-        {{directive, _, _}, _} = zipper, acc when directive in ~w(@ use) ->
-          {:skip, zipper, acc}
-
-        # A.B.C.f(...)
-        {{{:., m, [{:__aliases__, _, [_, _, _ | _] = aliases}, _]}, _, _}, _} = zipper, acc ->
-          {:cont, zipper, Map.update(acc, aliases, {false, m[:line]}, fn {_, l} -> {true, l} end)}
-
-        zipper, acc ->
-          {:cont, zipper, acc}
-      end)
-      |> elem(1)
-      |> Enum.flat_map(fn
-        {a, {true, l}} -> if List.last(a) in aliased, do: [], else: [%{error | line: l, check: AliasUsage, message: a}]
-        _ -> []
-      end)
-
-    {zipper, Map.update!(ctx, :errors, &[[alias_errors, pascal | errors] | &1])}
+    {zipper, Map.update!(ctx, :errors, &[pascal, errors | &1])}
   end
 
   def run({{:<-, m, [lhs, _] = args}, _} = zipper, ctx) do
