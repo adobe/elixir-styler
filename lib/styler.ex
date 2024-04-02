@@ -24,19 +24,21 @@ defmodule Styler do
     Styler.Style.SingleNode,
     Styler.Style.Defs,
     Styler.Style.Blocks,
-    Styler.Style.Deprecations
+    Styler.Style.Deprecations,
+    Styler.Style.Configs
   ]
 
   @doc false
   def style({ast, comments}, file, opts) do
     on_error = opts[:on_error] || :log
     zipper = Zipper.zip(ast)
-    context = %{comments: comments, file: file}
 
-    {{ast, _}, %{comments: comments}} =
-      Enum.reduce(@styles, {zipper, context}, fn style, {zipper, context} ->
+    {{ast, _}, comments} =
+      Enum.reduce(@styles, {zipper, comments}, fn style, {zipper, comments} ->
+        context = %{comments: comments, file: file}
         try do
-          Zipper.traverse_while(zipper, context, &style.run/2)
+          {zipper, %{comments: comments}} = Zipper.traverse_while(zipper, context, &style.run/2)
+          {zipper, comments}
         rescue
           exception ->
             exception = StyleError.exception(exception: exception, style: style, file: file)
