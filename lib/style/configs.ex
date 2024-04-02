@@ -9,12 +9,44 @@
 # governing permissions and limitations under the License.
 
 defmodule Styler.Style.Configs do
+  @moduledoc """
+  Orders `Config.config/2,3` stanzas in configuration files.
+
+  - ordering is done only within immediate-sibling config statements
+  - assignments are moved above the configuration blocks
+  - any non `config/2,3` or assignment (`=/2`) calls mark the end of a sorting block.
+    this is support having conditional blocks (`if/case/cond`) and `import_config` stanzas between blocks
+
+  ### Breakages
+
+  If you configure the same values multiple times, Styler may swap their orders
+
+  **Before**
+
+    line 04: config :foo, bar: :zab
+    line 40: config :foo, bar: :baz
+
+    # Application.fetch_env!(:foo)[:bar] => :baz
+
+  **After**
+
+    line 04: config :foo, bar: :baz
+    line 05: config :foo, bar: :zab
+
+    # Application.fetch_env!(:foo)[:bar] => :zab
+
+  **Fix**
+
+  The reason Styler sorts configuration is to help you noticed these duplicated configuration stanzas.
+  Delete the duplicative/erroneous stanza and life will be good.
+  """
+
   def run({{:import, _, [{:__aliases__, _, [:Config]}]}, _} = zipper, %{config?: true} = ctx) do
     {:skip, zipper, Map.put(ctx, :mix_config?, true)}
   end
 
   def run({{:config, _, args} = config, zm}, %{mix_config?: true} = ctx) when is_list(args) do
-    {configs, others} = Enum.split_while(zm.r, &match?({:config, _, [_|_]}, &1))
+    {configs, others} = Enum.split_while(zm.r, &match?({:config, _, [_ | _]}, &1))
     [config | configs] = Enum.sort_by([config | configs], &Styler.Style.update_all_meta(&1, fn _ -> nil end), :desc)
     zm = %{zm | l: configs ++ zm.l, r: others}
     {:skip, {config, zm}, ctx}

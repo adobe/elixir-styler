@@ -36,6 +36,7 @@ defmodule Styler do
     {{ast, _}, comments} =
       Enum.reduce(@styles, {zipper, comments}, fn style, {zipper, comments} ->
         context = %{comments: comments, file: file}
+
         try do
           {zipper, %{comments: comments}} = Zipper.traverse_while(zipper, context, &style.run/2)
           {zipper, comments}

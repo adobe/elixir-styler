@@ -28,9 +28,9 @@ defmodule Styler.Style.SingleNode do
 
   @behaviour Styler.Style
 
-  @closing_delimiters [~s|"|, ")", "}", "|", "]", "'", ">", "/"]
-
   alias Styler.Zipper
+
+  @closing_delimiters [~s|"|, ")", "}", "|", "]", "'", ">", "/"]
 
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 

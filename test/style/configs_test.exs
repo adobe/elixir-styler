@@ -15,7 +15,7 @@ defmodule Styler.Style.ConfigsTest do
   alias Styler.Style.Configs
 
   test "only runs on exs files in config folders" do
-    {ast, _} = Styler.string_to_quoted_with_comments "import Config\n\nconfig :bar, boop: :baz"
+    {ast, _} = Styler.string_to_quoted_with_comments("import Config\n\nconfig :bar, boop: :baz")
     zipper = Styler.Zipper.zip(ast)
 
     for file <- ~w(dev.exs my_app.exs config.exs) do
@@ -26,11 +26,36 @@ defmodule Styler.Style.ConfigsTest do
     end
   end
 
-  describe "config sorting" do
+  test "orders configs!" do
+    assert_style """
+    config :z, :x
+    config :a, :b
+    """
 
+    assert_style(
+      """
+      import Config
+
+      config :z, :x, :woof
+      config :z, a: :meow
+      config :a, :b
+      """,
+      """
+      import Config
+
+      config :a, :b
+      config :z, :x, :woof
+      config :z, a: :meow
+      """
+    )
   end
 
-  describe "" do
-
+  test "ignores config when import Config wasn't called" do
   end
+
+  test "moves assignments to before configs"
+  test "non config / assignment calls create new stanzas"
+  test "non-configs"
+
+  test "comments :/"
 end
