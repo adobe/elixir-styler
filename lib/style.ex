@@ -64,7 +64,7 @@ defmodule Styler.Style do
     |> Zipper.root()
   end
 
-  # useful for comparing AST line numbers interfering
+  # useful for comparing AST without meta (line numbers, etc) interfering
   def without_meta(ast), do: update_all_meta(ast, fn _ -> nil end)
 
   @doc """
