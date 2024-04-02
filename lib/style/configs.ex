@@ -41,13 +41,30 @@ defmodule Styler.Style.Configs do
   Delete the duplicative/erroneous stanza and life will be good.
   """
 
+  alias Styler.Style
+
   def run({{:import, _, [{:__aliases__, _, [:Config]}]}, _} = zipper, %{config?: true} = ctx) do
     {:skip, zipper, Map.put(ctx, :mix_config?, true)}
   end
 
-  def run({{:config, _, args} = config, zm}, %{mix_config?: true} = ctx) when is_list(args) do
-    {configs, others} = Enum.split_while(zm.r, &match?({:config, _, [_ | _]}, &1))
-    [config | configs] = Enum.sort_by([config | configs], &Styler.Style.update_all_meta(&1, fn _ -> nil end), :desc)
+  def run({{:config, _, [_, _ | _]} = config, zm}, %{mix_config?: true} = ctx) do
+    {configs, others} = Enum.split_while(zm.r, &match?({:config, _, [_, _| _]}, &1))
+
+    [config | configs] =
+      [config | configs]
+      |> Enum.group_by(fn
+        {:config, _, [{:__block__, _, [app]} | _]} -> app
+        {:config, _, [arg | _]} -> Style.without_meta(arg)
+      end)
+      |> Enum.sort(:desc)
+      |> Enum.flat_map(fn {_app, configs} ->
+        configs
+        |> Enum.sort_by(&Style.without_meta/1, :asc)
+        |> Style.reset_newlines()
+        |> Enum.reverse()
+      end)
+      |> Style.fix_line_numbers(List.first(others))
+
     zm = %{zm | l: configs ++ zm.l, r: others}
     {:skip, {config, zm}, ctx}
   end

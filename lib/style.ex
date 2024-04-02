@@ -64,6 +64,9 @@ defmodule Styler.Style do
     |> Zipper.root()
   end
 
+  # useful for comparing AST line numbers interfering
+  def without_meta(ast), do: update_all_meta(ast, fn _ -> nil end)
+
   @doc """
   Returns the current node (wrapped in a `__block__` if necessary) if it's a valid place to insert additional nodes
   """

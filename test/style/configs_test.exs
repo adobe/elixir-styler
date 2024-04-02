@@ -26,7 +26,7 @@ defmodule Styler.Style.ConfigsTest do
     end
   end
 
-  test "orders configs!" do
+  test "orders configs stanzas" do
     assert_style """
     config :z, :x
     config :a, :b
@@ -35,22 +35,40 @@ defmodule Styler.Style.ConfigsTest do
     assert_style(
       """
       import Config
-
       config :z, :x, :woof
+      config :a, :b, :c
+      config :a, :c, :d
+      import_config "my_config"
+
       config :z, a: :meow
-      config :a, :b
+      config :a, :b, :x
       """,
       """
       import Config
 
-      config :a, :b
+      config :a, :b, :c
+      config :a, :c, :d
+
       config :z, :x, :woof
+
+      import_config "my_config"
+
+      config :a, :b, :x
+
       config :z, a: :meow
       """
     )
   end
 
-  test "ignores config when import Config wasn't called" do
+  test "ignores things that look like config/2,3" do
+    assert_style """
+    import Config
+
+    config :a, :b
+
+    config(a)
+    config :c, :d
+    """
   end
 
   test "moves assignments to before configs"
