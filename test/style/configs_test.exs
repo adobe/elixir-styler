@@ -78,19 +78,31 @@ defmodule Styler.Style.ConfigsTest do
       import Config
 
       dog_sound = :woof
+      # z is best when configged w/ dog sounds
+      # dog sounds ftw
+
+      # this is my big c
+      # comment i'd like to leave c
+      # about c
       c = :c
 
+      # this is my big my_app
+      # comment i'd like to leave my_app
+      # about my_app
       my_app =
         :"dont_write_configs_like_this_yall_:("
 
+      # this is my big your_app
+      # comment i'd like to leave your_app
+      # about your_app
       your_app = :not_again!
 
       config :a, :b, c
       config :a, :c, :d
+
       config :a,
         a_longer_name: :a_longer_value,
         multiple_things: :that_could_all_fit_on_one_line_though
-
 
       config :z, :x, dog_sound
 

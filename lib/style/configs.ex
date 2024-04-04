@@ -48,13 +48,13 @@ defmodule Styler.Style.Configs do
   end
 
   def run({{:config, _, [_, _ | _]} = config, zm}, %{mix_config?: true} = ctx) do
+    # all of these list are reversed due to the reduce
     {configs, assignments, rest} =
       Enum.reduce(zm.r, {[], [], []}, fn
         {:config, _, [_, _| _]} = config, {configs, assignments, []} -> {[config | configs], assignments, []}
         {:=, _, [_lhs, _rhs]} = assignment, {configs, assignments, []} -> {configs, [assignment | assignments], []}
         other, {configs, assignments, rest} -> {configs, assignments, [other | rest]}
       end)
-
 
     [config | configs] =
       [config | configs]
@@ -70,17 +70,11 @@ defmodule Styler.Style.Configs do
         |> Enum.reverse()
       end)
       |> Style.fix_line_numbers(List.first(rest))
+      |> dbg()
 
-    assignments = assignments |> Enum.reverse() |> Style.reset_newlines() |> Enum.map_reduce(nil, fn
-      assignment, nil -> {assignment, assignment}
-      {:=, this_meta, _} = assignment, {_, prev_meta, _} ->
-        new_line = prev_meta[:end_of_expression][:line] + 1
-        # was on line 8, want line 6, shift is 6 - 8 = -2
-        shifted = Style.shift_line(assignment, new_line - this_meta[:line])
-        {shifted, shifted}
-    end) |> elem(0) |> Enum.reverse()
+      assignments = assignments |> Enum.reverse() |> Style.reset_newlines()
 
-    zm = %{zm | l: configs ++ assignments ++ zm.l, r: Enum.reverse(rest)}
+    zm = %{zm | l: configs ++ Enum.reverse(assignments, zm.l), r: Enum.reverse(rest)}
     {:skip, {config, zm}, ctx}
   end
 
