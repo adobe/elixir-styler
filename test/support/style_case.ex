@@ -16,14 +16,14 @@ defmodule Styler.StyleCase do
 
   using do
     quote do
-      import unquote(__MODULE__), only: [assert_style: 1, assert_style: 2, style: 1]
+      import unquote(__MODULE__), only: [assert_style: 1, assert_style: 2, style: 1, format_diff: 2, format_diff: 3]
     end
   end
 
   defmacro assert_style(before, expected \\ nil) do
     expected = expected || before
 
-    quote bind_quoted: [before: before, expected: expected] do
+    quote bind_quoted: [before: before, expected: expected], location: :keep do
       alias Styler.Zipper
 
       expected = String.trim(expected)
@@ -47,11 +47,19 @@ defmodule Styler.StyleCase do
         IO.puts("========================\n")
       end
 
-      # Ensure that every node has `line` meta so that we get better comments behaviour
+      if expected == styled do
+        assert true
+      else
+        flunk(format_diff(expected, styled))
+      end
+
+      # Make sure we're keeping lines in check
       styled_ast
       |> Zipper.zip()
-      |> Zipper.traverse(fn
-        {{node, meta, _} = ast, _} = zipper ->
+      |> Zipper.traverse(-1, fn
+        {{node, meta, _} = ast, _} = zipper, previous_line ->
+          line = meta[:line]
+
           up = Zipper.up(zipper)
           # body blocks - for example, the block node for an anonymous function - don't have line meta
           # yes, i just did `&& case`. sometimes it's funny to write ugly things in my project that's all about style.
@@ -68,7 +76,12 @@ defmodule Styler.StyleCase do
                 _ -> false
               end
 
-          unless meta[:line] || is_body_block? do
+          # @TODO lots of the `pipes` rules violate this. no surprise since that was some of the earliest code!
+          # if line do
+          #   assert previous_line <= line
+          # end
+
+          unless line || is_body_block? do
             IO.puts("missing `:line` meta in node:")
             dbg(ast)
 
@@ -82,28 +95,22 @@ defmodule Styler.StyleCase do
             flunk("")
           end
 
-          zipper
+          {zipper, line || previous_line}
 
-        zipper ->
-          zipper
+        zipper, previous ->
+          {zipper, previous}
       end)
 
-      assert expected == styled
+      # Idempotency
       {_, restyled, _} = style(styled)
 
-      assert restyled == styled, """
-      expected styling to be idempotent, but a second pass resulted in more changes.
-
-      first pass:
-      ----
-      #{styled}
-      ----
-
-      second pass:
-      ----
-      #{restyled}
-      ----
-      """
+      if restyled == styled do
+        assert true
+      else
+        flunk(
+          format_diff(restyled, styled, "expected styling to be idempotent, but a second pass resulted in more changes.")
+        )
+      end
     end
   end
 
@@ -119,5 +126,34 @@ defmodule Styler.StyleCase do
         IO.inspect(styled_ast, label: [IO.ANSI.red(), "**Style created invalid ast:**", IO.ANSI.light_red()])
         reraise exception, __STACKTRACE__
     end
+  end
+
+  def format_diff(left, right, prelude \\ "Styling produced unexpected results") do
+    # reaching into private ExUnit stuff, uh oh!
+    # this gets us the nice diffing from ExUnit while allowing us to print our code blocks as strings rather than inspected strings
+    {%{left: left, right: right}, _} = ExUnit.Diff.compute(left, right, :==)
+    left = for {diff?, content} <- left.contents, do: if(diff?, do: [:red, content, :reset], else: content)
+    right = for {diff?, content} <- right.contents, do: if(diff?, do: [:green, content, :reset], else: content)
+    header = IO.ANSI.format([:red, prelude, :reset])
+
+    left =
+      [[:cyan, "left:\n", :reset] | left]
+      |> IO.ANSI.format()
+      |> to_string()
+      |> Macro.unescape_string()
+      |> String.replace("\n", "\n  ")
+
+    right =
+      [[:cyan, "right:\n", :reset] | right]
+      |> IO.ANSI.format()
+      |> to_string()
+      |> Macro.unescape_string()
+      |> String.replace("\n", "\n  ")
+
+    """
+    #{header}
+    #{left}
+    #{right}
+    """
   end
 end
