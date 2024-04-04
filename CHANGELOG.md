@@ -10,6 +10,7 @@
 * `@derive`: move `@derive` before `defstruct|schema|embedded_schema` declarations (fixes compiler warning!) #134
 * strings: rewrite double-quoted strings to use `~s` when there's 4+ escaped double-quotes
   (`"\"\"\"\""` -> `~s("""")`) (`Credo.Check.Readability.StringSigils`) #146
+* `config/*.exs` files: organize `config app, ...` stanzas. this is another big one!
 
 ### Fixes
 
