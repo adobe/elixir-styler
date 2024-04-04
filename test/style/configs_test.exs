@@ -27,33 +27,83 @@ defmodule Styler.Style.ConfigsTest do
   end
 
   test "orders configs stanzas" do
+    # doesn't order when we haven't seen `import Config`, so this is something else that we don't understand
     assert_style """
     config :z, :x
     config :a, :b
     """
 
+    # 1. orders `config/2,3` relative to each other
+    # 2. lifts assignments above config blocks
+    # 3. non assignment/config separate "config" blocks
+
     assert_style(
       """
       import Config
-      config :z, :x, :woof
-      config :a, :b, :c
+      dog_sound = :woof
+      # z is best when configged w/ dog sounds
+      # dog sounds ftw
+      config :z, :x, dog_sound
+
+      # this is my big c
+      # comment i'd like to leave c
+      # about c
+      c = :c
+      config :a, :b, c
       config :a, :c, :d
+      config :a,
+        a_longer_name: :a_longer_value,
+        multiple_things: :that_could_all_fit_on_one_line_though
+
+      # this is my big my_app
+      # comment i'd like to leave my_app
+      # about my_app
+      my_app =
+        :"dont_write_configs_like_this_yall_:("
+
+      # this is my big your_app
+      # comment i'd like to leave your_app
+      # about your_app
+      your_app = :not_again!
+      config your_app, :dont_use_varrrrrrrrs
+      config my_app, :nooooooooo
       import_config "my_config"
 
+      cat_sound = :meow
       config :z, a: :meow
-      config :a, :b, :x
+      a_sad_overwrite_that_will_be_hard_to_notice = :x
+      config :a, :b, a_sad_overwrite_that_will_be_hard_to_notice
       """,
       """
       import Config
 
-      config :a, :b, :c
-      config :a, :c, :d
+      dog_sound = :woof
+      c = :c
 
-      config :z, :x, :woof
+      my_app =
+        :"dont_write_configs_like_this_yall_:("
+
+      your_app = :not_again!
+
+      config :a, :b, c
+      config :a, :c, :d
+      config :a,
+        a_longer_name: :a_longer_value,
+        multiple_things: :that_could_all_fit_on_one_line_though
+
+
+      config :z, :x, dog_sound
+
+      config my_app, :nooooooooo
+
+      config your_app, :dont_use_varrrrrrrrs
 
       import_config "my_config"
 
-      config :a, :b, :x
+      cat_sound = :meow
+      a_sad_overwrite_that_will_be_hard_to_notice = :x
+
+      config :a, :b, a_sad_overwrite_that_will_be_hard_to_notice
 
       config :z, a: :meow
       """
@@ -71,7 +121,6 @@ defmodule Styler.Style.ConfigsTest do
     """
   end
 
-  test "moves assignments to before configs"
   test "non config / assignment calls create new stanzas"
   test "non-configs"
 

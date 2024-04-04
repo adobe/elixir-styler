@@ -217,7 +217,8 @@ defmodule Styler.Style do
       # TODO: look into the comments list and
       # 1. move comment blocks preceding `this` up with it
       # 2. find the earliest comment before `next` and set `new_line` to that value - 1
-      set_line(this, next_line - 2, delete_newlines: false)
+      desired_line = next_line - 2
+      shift_line(this, desired_line - this_line)
     else
       this
     end
