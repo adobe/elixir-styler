@@ -18,6 +18,8 @@ defmodule Styler.StyleCase do
     quote do
       import unquote(__MODULE__),
         only: [assert_style: 1, assert_style: 2, style: 1, style: 2, format_diff: 2, format_diff: 3]
+
+      @filename unquote(options)[:filename] || "testfile"
     end
   end
 
