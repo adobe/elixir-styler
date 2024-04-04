@@ -16,6 +16,10 @@
 * module directives: various fixes for unreported obscure crashes
 * pipes: fix a comment-shifting scenario when unpiping
 
+### Breaking Changes
+
+* drop support for elixir `1.14`
+
 ## v0.11.9
 
 ### Improvements
