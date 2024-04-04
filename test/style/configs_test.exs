@@ -122,7 +122,7 @@ defmodule Styler.Style.ConfigsTest do
     )
   end
 
-  test "ignores things that look like config/2,3" do
+  test "ignores things that look like config/1" do
     assert_style """
     import Config
 
@@ -132,9 +132,4 @@ defmodule Styler.Style.ConfigsTest do
     config :c, :d
     """
   end
-
-  test "non config / assignment calls create new stanzas"
-  test "non-configs"
-
-  test "comments :/"
 end
