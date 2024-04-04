@@ -14,9 +14,12 @@ defmodule Styler.StyleCase do
   """
   use ExUnit.CaseTemplate
 
-  using do
+  using options do
     quote do
-      import unquote(__MODULE__), only: [assert_style: 1, assert_style: 2, style: 1, format_diff: 2, format_diff: 3]
+      import unquote(__MODULE__),
+        only: [assert_style: 1, assert_style: 2, style: 1, style: 2, format_diff: 2, format_diff: 3]
+
+      @filename unquote(options)[:filename] || "testfile"
     end
   end
 
@@ -27,7 +30,7 @@ defmodule Styler.StyleCase do
       alias Styler.Zipper
 
       expected = String.trim(expected)
-      {styled_ast, styled, styled_comments} = style(before)
+      {styled_ast, styled, styled_comments} = style(before, @filename)
 
       if styled != expected and ExUnit.configuration()[:trace] do
         IO.puts("\n======Given=============\n")
@@ -102,7 +105,7 @@ defmodule Styler.StyleCase do
       end)
 
       # Idempotency
-      {_, restyled, _} = style(styled)
+      {_, restyled, _} = style(styled, @filename)
 
       if restyled == styled do
         assert true
@@ -114,9 +117,9 @@ defmodule Styler.StyleCase do
     end
   end
 
-  def style(code) do
+  def style(code, filename \\ "testfile") do
     {ast, comments} = Styler.string_to_quoted_with_comments(code)
-    {styled_ast, comments} = Styler.style({ast, comments}, "testfile", on_error: :raise)
+    {styled_ast, comments} = Styler.style({ast, comments}, filename, on_error: :raise)
 
     try do
       styled_code = styled_ast |> Styler.quoted_to_string(comments) |> String.trim_trailing("\n")

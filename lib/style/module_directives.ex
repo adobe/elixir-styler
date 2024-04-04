@@ -196,7 +196,7 @@ defmodule Styler.Style.ModuleDirectives do
     shortdocs = directives[:"@shortdoc"] || []
     moduledocs = directives[:"@moduledoc"] || List.wrap(moduledoc)
     behaviours = expand_and_sort(directives[:"@behaviour"] || [])
-    uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> reset_newlines()
+    uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> Style.reset_newlines()
     imports = expand_and_sort(directives[:import] || [])
     aliases = expand_and_sort(directives[:alias] || [])
     requires = expand_and_sort(directives[:require] || [])
@@ -214,7 +214,7 @@ defmodule Styler.Style.ModuleDirectives do
         requires
       ]
       |> Enum.concat()
-      |> fix_line_numbers(List.first(nondirectives))
+      |> Style.fix_line_numbers(List.first(nondirectives))
 
     # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
     if Enum.empty?(directives) do
@@ -323,61 +323,6 @@ defmodule Styler.Style.ModuleDirectives do
     |> Zipper.node()
   end
 
-  # This is the step that ensures that comments don't get wrecked as part of us moving AST nodes willy-nilly.
-  #
-  # For example, given document
-  #
-  # 1: defmodule ...
-  # 2: alias B
-  # 3: # hi
-  # 4: # this is foo
-  # 5: def foo ...
-  # 6: alias A
-  #
-  # Moving the ast node for alias A would put line 6 before line 2 in the AST.
-  # Elixir's document algebra would then encounter "line 6" and immediately dump all comments with line < 6,
-  # meaning after running through the formatter we'd end up with
-  #
-  # 1: defmodule
-  # 2: # hi
-  # 3: # this is foo
-  # 4: alias A
-  # 5: alias B
-  # 6:
-  # 7: def foo ...
-  #
-  # This fixes that error by ensuring the following property:
-  # A given node of AST cannot have a line number greater than the next AST node.
-  # Et voila! Comments behave much better.
-  defp fix_line_numbers(directives, acc \\ [], first_non_directive)
-
-  defp fix_line_numbers([this, next | rest], acc, first_non_directive) do
-    this = cap_line(this, next)
-    fix_line_numbers([next | rest], [this | acc], first_non_directive)
-  end
-
-  defp fix_line_numbers([last], acc, first_non_directive) do
-    last = if first_non_directive, do: cap_line(last, first_non_directive), else: last
-    Enum.reverse([last | acc])
-  end
-
-  defp fix_line_numbers([], [], _), do: []
-
-  defp cap_line({_, this_meta, _} = this, {_, next_meta, _}) do
-    this_line = this_meta[:line]
-    next_line = next_meta[:line]
-
-    if this_line > next_line do
-      # Subtracting 2 helps the behaviour with one-liner comments preceding the next node. It's a bit of a hack.
-      # TODO: look into the comments list and
-      # 1. move comment blocks preceding `this` up with it
-      # 2. find the earliest comment before `next` and set `new_line` to that value - 1
-      Style.set_line(this, next_line - 2, delete_newlines: false)
-    else
-      this
-    end
-  end
-
   defp expand_and_sort(directives) do
     # sorting is done with `downcase` to match Credo
     directives
@@ -386,7 +331,7 @@ defmodule Styler.Style.ModuleDirectives do
     |> Enum.uniq_by(&elem(&1, 1))
     |> List.keysort(1)
     |> Enum.map(&elem(&1, 0))
-    |> reset_newlines()
+    |> Style.reset_newlines()
   end
 
   # Deletes root level aliases ala (`alias Foo` -> ``)
@@ -410,15 +355,4 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   defp expand_directive(other), do: [other]
-
-  defp reset_newlines([]), do: []
-  defp reset_newlines(directives), do: reset_newlines(directives, [])
-
-  defp reset_newlines([directive], acc), do: Enum.reverse([set_newlines(directive, 2) | acc])
-  defp reset_newlines([directive | rest], acc), do: reset_newlines(rest, [set_newlines(directive, 1) | acc])
-
-  defp set_newlines({directive, meta, children}, newline) do
-    updated_meta = Keyword.update(meta, :end_of_expression, [newlines: newline], &Keyword.put(&1, :newlines, newline))
-    {directive, updated_meta, children}
-  end
 end

@@ -254,10 +254,7 @@ defmodule Styler.Style.Blocks do
   defp left_arrow?({:<-, _, _}), do: true
   defp left_arrow?(_), do: false
 
-  defp nodes_equivalent?(a, b) do
-    # compare nodes without metadata
-    Style.update_all_meta(a, fn _ -> nil end) == Style.update_all_meta(b, fn _ -> nil end)
-  end
+  defp nodes_equivalent?(a, b), do: Style.without_meta(a) == Style.without_meta(b)
 
   defp if_ast(zipper, head, {_, _, _} = do_body, {_, _, _} = else_body, ctx) do
     do_ = {{:__block__, [line: nil], [:do]}, do_body}
