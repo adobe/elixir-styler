@@ -157,43 +157,69 @@ defmodule Styler.Style do
     |> Enum.sort_by(& &1.line)
   end
 
+  @doc """
+  Takes a list of nodes and clumps them up, setting `end_of_expression: [newlines: x]` to 1 for all but the final node,
+  which gets 2 instead, (hopefully!) creating an empty line before whatever follows.
+  """
   def reset_newlines([]), do: []
-  def reset_newlines(directives), do: reset_newlines(directives, [])
+  def reset_newlines(nodes), do: reset_newlines(nodes, [])
 
-  def reset_newlines([directive], acc), do: Enum.reverse([set_newlines(directive, 2) | acc])
-  def reset_newlines([directive | rest], acc), do: reset_newlines(rest, [set_newlines(directive, 1) | acc])
+  def reset_newlines([node], acc), do: Enum.reverse([set_newlines(node, 2) | acc])
+  def reset_newlines([node | nodes], acc), do: reset_newlines(nodes, [set_newlines(node, 1) | acc])
 
   defp set_newlines({directive, meta, children}, newline) do
     updated_meta = Keyword.update(meta, :end_of_expression, [newlines: newline], &Keyword.put(&1, :newlines, newline))
     {directive, updated_meta, children}
   end
 
-  # This is the step that ensures that comments don't get wrecked as part of us moving AST nodes willy-nilly.
-  #
-  # For example, given document
-  #
-  # 1: defmodule ...
-  # 2: alias B
-  # 3: # hi
-  # 4: # this is foo
-  # 5: def foo ...
-  # 6: alias A
-  #
-  # Moving the ast node for alias A would put line 6 before line 2 in the AST.
-  # Elixir's document algebra would then encounter "line 6" and immediately dump all comments with line < 6,
-  # meaning after running through the formatter we'd end up with
-  #
-  # 1: defmodule
-  # 2: # hi
-  # 3: # this is foo
-  # 4: alias A
-  # 5: alias B
-  # 6:
-  # 7: def foo ...
-  #
-  # This fixes that error by ensuring the following property:
-  # A given node of AST cannot have a line number greater than the next AST node.
-  # Et voila! Comments behave much better.
+  @doc """
+  "Fixes" the line numbers of nodes who have had their orders changed via sorting or other methods.
+  This "fix" siply ensures that comments don't get wrecked as part of us moving AST nodes willy-nilly.
+
+  The fix is rather naive, and simply enforces the following property on the code:
+  A given node must have a line number less than the following node.
+  Et voila! Comments behave much better.
+
+  ## In Detail
+
+  For example, given document
+
+    1: defmodule ...
+    2: alias B
+    3: # this is foo
+    4: def foo ...
+    5: alias A
+
+  Sorting aliases the ast node for  would put `alias A` (line 5) before `alias B` (line 2).
+
+    1: defmodule ...
+    5: alias A
+    2: alias B
+    3: # this is foo
+    4: def foo ...
+
+  Elixir's document algebra would then encounter `line: 5` and immediately dump all comments with `line <= 5`,
+  meaning after running through the formatter we'd end up with
+
+    1: defmodule
+    2: # hi
+    3: # this is foo
+    4: alias A
+    5: alias B
+    6:
+    7: def foo ...
+
+  This function fixes that by seeing that `alias A` has a higher line number than its following sibling `alias B` and so
+  updates `alias A`'s line to be preceding `alias B`'s line.
+
+  Running the results of this function through the formatter now no longer dumps the comments prematurely
+
+    1: defmodule ...
+    2: alias A
+    3: alias B
+    4: # this is foo
+    5: def foo ...
+  """
   def fix_line_numbers(to_fix, acc \\ [], first_normal_line)
 
   def fix_line_numbers([this, next | rest], acc, first_non_directive) do

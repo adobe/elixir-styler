@@ -51,7 +51,7 @@ defmodule Styler.Style.Configs do
     # all of these list are reversed due to the reduce
     {configs, assignments, rest} =
       Enum.reduce(zm.r, {[], [], []}, fn
-        {:config, _, [_, _| _]} = config, {configs, assignments, []} -> {[config | configs], assignments, []}
+        {:config, _, [_, _ | _]} = config, {configs, assignments, []} -> {[config | configs], assignments, []}
         {:=, _, [_lhs, _rhs]} = assignment, {configs, assignments, []} -> {configs, [assignment | assignments], []}
         other, {configs, assignments, rest} -> {configs, assignments, [other | rest]}
       end)
@@ -71,7 +71,7 @@ defmodule Styler.Style.Configs do
       end)
       |> Style.fix_line_numbers(List.first(rest))
 
-      assignments = assignments |> Enum.reverse() |> Style.reset_newlines()
+    assignments = assignments |> Enum.reverse() |> Style.reset_newlines()
 
     zm = %{zm | l: configs ++ Enum.reverse(assignments, zm.l), r: Enum.reverse(rest)}
     {:skip, {config, zm}, ctx}
