@@ -229,6 +229,7 @@ defmodule Styler.Style do
   defp do_fix_lines([{_, meta, _} = node | nodes], max, acc) do
     line = meta[:line]
 
+    # the -2 is just an ugly hack to leave room for one-liner comments and not hijack them.
     if line > max,
       do: do_fix_lines(nodes, max, [shift_line(node, max - line - 2) | acc]),
       else: do_fix_lines(nodes, line, [node | acc])
