@@ -20,6 +20,7 @@ defmodule Styler.StyleCase do
         only: [assert_style: 1, assert_style: 2, style: 1, style: 2, format_diff: 2, format_diff: 3]
 
       @filename unquote(options)[:filename] || "testfile"
+      @ordered_siblings unquote(options)[:ordered_siblings] || false
     end
   end
 
@@ -57,8 +58,8 @@ defmodule Styler.StyleCase do
       # Make sure we're keeping lines in check
       styled_ast
       |> Zipper.zip()
-      |> Zipper.traverse(-1, fn
-        {{node, meta, _} = ast, _} = zipper, previous_line ->
+      |> Zipper.traverse(fn
+        {{node, meta, _} = ast, _} = zipper ->
           line = meta[:line]
 
           up = Zipper.up(zipper)
@@ -77,10 +78,22 @@ defmodule Styler.StyleCase do
                 _ -> false
               end
 
-          # @TODO lots of the `pipes` rules violate this. no surprise since that was some of the earliest code!
-          # if line do
-          #   assert previous_line <= line
-          # end
+          if @ordered_siblings do
+            case Zipper.left(zipper) do
+              {{_, prev_meta, _} = prev, _} ->
+                if prev_meta[:line] && meta[:line] && prev_meta[:line] > meta[:line] do
+                  if ExUnit.configuration()[:trace] do
+                    dbg(prev)
+                    dbg(ast)
+                  end
+
+                  assert(prev_meta[:line] <= meta[:line], "Previous node had a higher line than this node")
+                end
+
+              _ ->
+                :ok
+            end
+          end
 
           unless line || is_body_block? do
             IO.puts("missing `:line` meta in node:")
@@ -96,10 +109,10 @@ defmodule Styler.StyleCase do
             flunk("")
           end
 
-          {zipper, line || previous_line}
+          zipper
 
-        zipper, previous ->
-          {zipper, previous}
+        zipper ->
+          zipper
       end)
 
       # Idempotency
