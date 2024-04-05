@@ -76,7 +76,7 @@ defmodule Styler.Style.Configs do
   end
 
   def run(zipper, %{file: file} = ctx) do
-    if file =~ ~r|config/.*\.exs| or file =~ ~r|rel/overlay/.*\.exs| do
+    if file =~ ~r|config/.*\.exs| or file =~ ~r|rel/overlays/.*\.exs| do
       {:cont, zipper, Map.put(ctx, :config?, true)}
     else
       {:halt, zipper, ctx}
