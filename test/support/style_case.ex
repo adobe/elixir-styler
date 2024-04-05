@@ -133,8 +133,25 @@ defmodule Styler.StyleCase do
     # reaching into private ExUnit stuff, uh oh!
     # this gets us the nice diffing from ExUnit while allowing us to print our code blocks as strings rather than inspected strings
     {%{left: expected, right: styled}, _} = ExUnit.Diff.compute(expected, styled, :==)
-    expected = for {diff?, content} <- expected.contents, do: if(diff?, do: [:red, content, :reset], else: content)
-    styled = for {diff?, content} <- styled.contents, do: if(diff?, do: [:green, content, :reset], else: content)
+
+    expected =
+      for {diff?, content} <- expected.contents do
+        cond do
+          diff? and String.trim_leading(Macro.unescape_string(content)) == "" -> [:red_background, content, :reset]
+          diff? -> [:red, content, :reset]
+          true -> content
+        end
+      end
+
+    styled =
+      for {diff?, content} <- styled.contents do
+        cond do
+          diff? and String.trim_leading(Macro.unescape_string(content)) == "" -> [:green_background, content, :reset]
+          diff? -> [:green, content, :reset]
+          true -> content
+        end
+      end
+
     header = IO.ANSI.format([:red, prelude, :reset])
 
     expected =
