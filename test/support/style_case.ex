@@ -1,4 +1,4 @@
-# Copyright 2023 Adobe. All rights reserved.
+# Copyright 2024 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -14,9 +14,13 @@ defmodule Styler.StyleCase do
   """
   use ExUnit.CaseTemplate
 
-  using do
+  using options do
     quote do
-      import unquote(__MODULE__), only: [assert_style: 1, assert_style: 2, style: 1]
+      import unquote(__MODULE__),
+        only: [assert_style: 1, assert_style: 2, style: 1, style: 2, format_diff: 2, format_diff: 3]
+
+      @filename unquote(options)[:filename] || "testfile"
+      @ordered_siblings unquote(options)[:ordered_siblings] || false
     end
   end
 
@@ -27,11 +31,11 @@ defmodule Styler.StyleCase do
   defmacro assert_style(before, expected \\ nil) do
     expected = expected || before
 
-    quote bind_quoted: [before: before, expected: expected] do
+    quote bind_quoted: [before: before, expected: expected], location: :keep do
       alias Styler.Zipper
 
       expected = String.trim(expected)
-      {styled_ast, styled, styled_comments} = style(before)
+      {styled_ast, styled, styled_comments} = style(before, @filename)
 
       if styled != expected and ExUnit.configuration()[:trace] do
         IO.puts("\n======Given=============\n")
@@ -39,23 +43,29 @@ defmodule Styler.StyleCase do
         {before_ast, before_comments} = Styler.string_to_quoted_with_comments(before)
         dbg(before_ast)
         dbg(before_comments)
-        IO.puts("======Expected==========\n")
-        IO.puts(expected)
+        IO.puts("======Expected AST==========\n")
         {expected_ast, expected_comments} = Styler.string_to_quoted_with_comments(expected)
         dbg(expected_ast)
         dbg(expected_comments)
-        IO.puts("======Got===============\n")
-        IO.puts(styled)
+        IO.puts("======Got AST===============\n")
         dbg(styled_ast)
         dbg(styled_comments)
         IO.puts("========================\n")
       end
 
-      # Ensure that every node has `line` meta so that we get better comments behaviour
+      if expected == styled do
+        assert true
+      else
+        flunk(format_diff(expected, styled))
+      end
+
+      # Make sure we're keeping lines in check
       styled_ast
       |> Zipper.zip()
       |> Zipper.traverse(fn
         {{node, meta, _} = ast, _} = zipper ->
+          line = meta[:line]
+
           up = Zipper.up(zipper)
           # body blocks - for example, the block node for an anonymous function - don't have line meta
           # yes, i just did `&& case`. sometimes it's funny to write ugly things in my project that's all about style.
@@ -72,7 +82,24 @@ defmodule Styler.StyleCase do
                 _ -> false
               end
 
-          unless meta[:line] || is_body_block? do
+          if @ordered_siblings do
+            case Zipper.left(zipper) do
+              {{_, prev_meta, _} = prev, _} ->
+                if prev_meta[:line] && meta[:line] && prev_meta[:line] > meta[:line] do
+                  if ExUnit.configuration()[:trace] do
+                    dbg(prev)
+                    dbg(ast)
+                  end
+
+                  assert(prev_meta[:line] <= meta[:line], "Previous node had a higher line than this node")
+                end
+
+              _ ->
+                :ok
+            end
+          end
+
+          unless line || is_body_block? do
             IO.puts("missing `:line` meta in node:")
             dbg(ast)
 
@@ -92,28 +119,22 @@ defmodule Styler.StyleCase do
           zipper
       end)
 
-      assert expected == styled
-      {_, restyled, _} = style(styled)
+      # Idempotency
+      {_, restyled, _} = style(styled, @filename)
 
-      assert restyled == styled, """
-      expected styling to be idempotent, but a second pass resulted in more changes.
-
-      first pass:
-      ----
-      #{styled}
-      ----
-
-      second pass:
-      ----
-      #{restyled}
-      ----
-      """
+      if restyled == styled do
+        assert true
+      else
+        flunk(
+          format_diff(styled, restyled, "expected styling to be idempotent, but a second pass resulted in more changes.")
+        )
+      end
     end
   end
 
-  def style(code) do
+  def style(code, filename \\ "testfile") do
     {ast, comments} = Styler.string_to_quoted_with_comments(code)
-    {styled_ast, comments} = Styler.style({ast, comments}, "testfile", on_error: :raise)
+    {styled_ast, comments} = Styler.style({ast, comments}, filename, on_error: :raise)
 
     try do
       styled_code = styled_ast |> Styler.quoted_to_string(comments) |> String.trim_trailing("\n")
@@ -123,5 +144,51 @@ defmodule Styler.StyleCase do
         IO.inspect(styled_ast, label: [IO.ANSI.red(), "**Style created invalid ast:**", IO.ANSI.light_red()])
         reraise exception, __STACKTRACE__
     end
+  end
+
+  def format_diff(expected, styled, prelude \\ "Styling produced unexpected results") do
+    # reaching into private ExUnit stuff, uh oh!
+    # this gets us the nice diffing from ExUnit while allowing us to print our code blocks as strings rather than inspected strings
+    {%{left: expected, right: styled}, _} = ExUnit.Diff.compute(expected, styled, :==)
+
+    expected =
+      for {diff?, content} <- expected.contents do
+        cond do
+          diff? and String.trim_leading(Macro.unescape_string(content)) == "" -> [:red_background, content, :reset]
+          diff? -> [:red, content, :reset]
+          true -> content
+        end
+      end
+
+    styled =
+      for {diff?, content} <- styled.contents do
+        cond do
+          diff? and String.trim_leading(Macro.unescape_string(content)) == "" -> [:green_background, content, :reset]
+          diff? -> [:green, content, :reset]
+          true -> content
+        end
+      end
+
+    header = IO.ANSI.format([:red, prelude, :reset])
+
+    expected =
+      [[:cyan, "expected:\n", :reset] | expected]
+      |> IO.ANSI.format()
+      |> to_string()
+      |> Macro.unescape_string()
+      |> String.replace("\n", "\n  ")
+
+    styled =
+      [[:cyan, "styled:\n", :reset] | styled]
+      |> IO.ANSI.format()
+      |> to_string()
+      |> Macro.unescape_string()
+      |> String.replace("\n", "\n  ")
+
+    """
+    #{header}
+    #{expected}
+    #{styled}
+    """
   end
 end

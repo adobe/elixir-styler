@@ -8,11 +8,19 @@
   **this is a big one!** please report any issues :) #135
 * `if`/`unless`: invert if and unless with `!=` or `!==`, like we do for `!` and `not` #132
 * `@derive`: move `@derive` before `defstruct|schema|embedded_schema` declarations (fixes compiler warning!) #134
+* strings: rewrite double-quoted strings to use `~s` when there's 4+ escaped double-quotes
+  (`"\"\"\"\""` -> `~s("""")`) (`Credo.Check.Readability.StringSigils`) #146
+* `config/*.exs` files: organize `config app, ...` stanzas. this is another big one!
 
 ### Fixes
 
 * module directives: various fixes for unreported obscure crashes
 * pipes: fix a comment-shifting scenario when unpiping
+
+### Breaking Changes
+
+* drop support for elixir `1.14`
+* sorting configs for the first time can change your configuration; see `Styler.Style.Configs` moduledoc for more
 
 ## v0.11.9
 

@@ -1,4 +1,4 @@
-# Copyright 2023 Adobe. All rights reserved.
+# Copyright 2024 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -24,20 +24,23 @@ defmodule Styler do
     Styler.Style.SingleNode,
     Styler.Style.Defs,
     Styler.Style.Blocks,
-    Styler.Style.Deprecations
+    Styler.Style.Deprecations,
+    Styler.Style.Configs
   ]
 
   @doc false
   def style({ast, comments}, file, opts) do
     on_error = opts[:on_error] || :log
     Styler.Config.set(opts)
-    context = %{comments: comments, file: file}
     zipper = Zipper.zip(ast)
 
-    {{ast, _}, %{comments: comments}} =
-      Enum.reduce(@styles, {zipper, context}, fn style, {zipper, context} ->
+    {{ast, _}, comments} =
+      Enum.reduce(@styles, {zipper, comments}, fn style, {zipper, comments} ->
+        context = %{comments: comments, file: file}
+
         try do
-          Zipper.traverse_while(zipper, context, &style.run/2)
+          {zipper, %{comments: comments}} = Zipper.traverse_while(zipper, context, &style.run/2)
+          {zipper, comments}
         rescue
           exception ->
             exception = StyleError.exception(exception: exception, style: style, file: file)

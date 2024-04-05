@@ -1,4 +1,4 @@
-# Copyright 2023 Adobe. All rights reserved.
+# Copyright 2024 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -18,6 +18,7 @@ defmodule Styler.Style.SingleNode do
   * Credo.Check.Readability.LargeNumbers
   * Credo.Check.Readability.ParenthesesOnZeroArityDefs
   * Credo.Check.Readability.PreferImplicitTry
+  * Credo.Check.Readability.StringSigils
   * Credo.Check.Readability.WithSingleClause
   * Credo.Check.Refactor.CaseTrivialMatches
   * Credo.Check.Refactor.CondStatements
@@ -29,15 +30,46 @@ defmodule Styler.Style.SingleNode do
 
   alias Styler.Zipper
 
+  @closing_delimiters [~s|"|, ")", "}", "|", "]", "'", ">", "/"]
+
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 
-  # as of 1.15, elixir's formatter takes care of this for us.
-  if Version.match?(System.version(), "< 1.15.0-dev") do
-    # 'charlist' => ~c"charlist"
-    defp style({:__block__, meta, [chars]} = node) when is_list(chars) do
-      if meta[:delimiter] == "'",
-        do: {:sigil_c, Keyword.put(meta, :delimiter, "\""), [{:<<>>, [line: meta[:line]], [List.to_string(chars)]}, []]},
-        else: node
+  # rewrite double-quote strings with >= 4 escaped double-quotes as sigils
+  defp style({:__block__, [{:delimiter, ~s|"|} | meta], [string]} = node) when is_binary(string) do
+    # running a regex against every double-quote delimited string literal in a codebase doesn't have too much impact
+    # on adobe's internal codebase, but perhaps other codebases have way more literals where this'd have an impact?
+    if string =~ ~r/".*".*".*"/ do
+      # choose whichever delimiter would require the least # of escapes,
+      # ties being broken by our stylish ordering of delimiters (reflected in the 1-8 values)
+      {closer, _} =
+        string
+        |> String.codepoints()
+        |> Stream.filter(&(&1 in @closing_delimiters))
+        |> Stream.concat(@closing_delimiters)
+        |> Enum.frequencies()
+        |> Enum.min_by(fn
+          {~s|"|, count} -> {count, 1}
+          {")", count} -> {count, 2}
+          {"}", count} -> {count, 3}
+          {"|", count} -> {count, 4}
+          {"]", count} -> {count, 5}
+          {"'", count} -> {count, 6}
+          {">", count} -> {count, 7}
+          {"/", count} -> {count, 8}
+        end)
+
+      delimiter =
+        case closer do
+          ")" -> "("
+          "}" -> "{"
+          "]" -> "["
+          ">" -> "<"
+          closer -> closer
+        end
+
+      {:sigil_s, [{:delimiter, delimiter} | meta], [{:<<>>, [line: meta[:line]], [string]}, []]}
+    else
+      node
     end
   end
 
@@ -111,14 +143,12 @@ defmodule Styler.Style.SingleNode do
   defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, [tz]}),
     do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :now!]}, funm, [tz]}
 
-  if Version.match?(System.version(), ">= 1.15.0-dev") do
-    # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :lt => {DateTime,NaiveDateTime,Time,Date}.before?(a, b)
-    # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :gt => {DateTime,NaiveDateTime,Time,Date}.after?(a, b)
-    defp style({:==, _, [{{:., dm, [{:__aliases__, am, [mod]}, :compare]}, funm, args}, {:__block__, _, [result]}]})
-         when mod in ~w[DateTime NaiveDateTime Time Date]a and result in [:lt, :gt] do
-      fun = if result == :lt, do: :before?, else: :after?
-      {{:., dm, [{:__aliases__, am, [mod]}, fun]}, funm, args}
-    end
+  # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :lt => {DateTime,NaiveDateTime,Time,Date}.before?(a, b)
+  # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :gt => {DateTime,NaiveDateTime,Time,Date}.after?(a, b)
+  defp style({:==, _, [{{:., dm, [{:__aliases__, am, [mod]}, :compare]}, funm, args}, {:__block__, _, [result]}]})
+       when mod in ~w[DateTime NaiveDateTime Time Date]a and result in [:lt, :gt] do
+    fun = if result == :lt, do: :before?, else: :after?
+    {{:., dm, [{:__aliases__, am, [mod]}, fun]}, funm, args}
   end
 
   # Remove parens from 0 arity funs (Credo.Check.Readability.ParenthesesOnZeroArityDefs)

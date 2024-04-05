@@ -1,4 +1,4 @@
-# Copyright 2023 Adobe. All rights reserved.
+# Copyright 2024 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -501,8 +501,7 @@ defmodule Styler.Style.PipesTest do
     test "rewrites then/2 when the passed function is a named function reference" do
       assert_style "a |> then(&fun/1) |> c", "a |> fun() |> c()"
       assert_style "a |> then(&(&1 / 1)) |> c", "a |> Kernel./(1) |> c()"
-      assert_style "a |> then(&DateTime.from_is8601/1) |> c", "a |> DateTime.from_is8601() |> c()"
-      assert_style "a |> then(&DateTime.from_is8601/1)", "DateTime.from_is8601(a)"
+      assert_style "a |> then(&fun/1)", "fun(a)"
       assert_style "a |> then(&fun(&1)) |> c", "a |> fun() |> c()"
       assert_style "a |> then(&fun(&1, d)) |> c", "a |> fun(d) |> c()"
       assert_style "a |> then(&fun(d, &1)) |> c()"

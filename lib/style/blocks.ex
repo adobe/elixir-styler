@@ -1,4 +1,4 @@
-# Copyright 2023 Adobe. All rights reserved.
+# Copyright 2024 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -254,10 +254,7 @@ defmodule Styler.Style.Blocks do
   defp left_arrow?({:<-, _, _}), do: true
   defp left_arrow?(_), do: false
 
-  defp nodes_equivalent?(a, b) do
-    # compare nodes without metadata
-    Style.update_all_meta(a, fn _ -> nil end) == Style.update_all_meta(b, fn _ -> nil end)
-  end
+  defp nodes_equivalent?(a, b), do: Style.without_meta(a) == Style.without_meta(b)
 
   defp if_ast(zipper, head, {_, _, _} = do_body, {_, _, _} = else_body, ctx) do
     do_ = {{:__block__, [line: nil], [:do]}, do_body}

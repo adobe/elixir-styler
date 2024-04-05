@@ -1,4 +1,4 @@
-# Copyright 2023 Adobe. All rights reserved.
+# Copyright 2024 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -11,12 +11,20 @@
 defmodule Styler.Style.SingleNodeTest do
   use Styler.StyleCase, async: true
 
-  if Version.match?(System.version(), "< 1.15.0-dev") do
-    test "charlist literals: rewrites single quote charlists to ~c" do
-      assert_style("'foo'", ~s|~c"foo"|)
-      assert_style(~s|'"'|, ~s|~c"\\""|)
-      assert_style("''", ~s|~c""|)
-    end
+  test "string sigil rewrites" do
+    assert_style ~s|""|
+    assert_style ~s|"\\""|
+    assert_style ~s|"\\"\\""|
+    assert_style ~s|"\\"\\"\\""|
+    assert_style ~s|"\\"\\"\\"\\""|, ~s|~s("""")|
+    # choose closing delimiter wisely, based on what has the least conflicts, in the styliest order
+    assert_style ~s/"\\"\\"\\"\\" )"/, ~s/~s{"""" )}/
+    assert_style ~s/"\\"\\"\\"\\" })"/, ~s/~s|"""" })|/
+    assert_style ~s/"\\"\\"\\"\\" |})"/, ~s/~s["""" |})]/
+    assert_style ~s/"\\"\\"\\"\\" ]|})"/, ~s/~s'"""" ]|})'/
+    assert_style ~s/"\\"\\"\\"\\" ']|})"/, ~s/~s<"""" ']|})>/
+    assert_style ~s/"\\"\\"\\"\\" >']|})"/, ~s|~s/"""" >']\|})/|
+    assert_style ~s/"\\"\\"\\"\\" \/>']|})"/, ~s|~s("""" />']\|}\\))|
   end
 
   test "{Map/Keyword}.merge with a single static key" do
@@ -54,20 +62,18 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
-  if Version.match?(System.version(), ">= 1.15.0-dev") do
-    test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.before?" do
-      assert_style("DateTime.compare(foo, bar) == :lt", "DateTime.before?(foo, bar)")
-      assert_style("NaiveDateTime.compare(foo, bar) == :lt", "NaiveDateTime.before?(foo, bar)")
-      assert_style("Time.compare(foo, bar) == :lt", "Time.before?(foo, bar)")
-      assert_style("Date.compare(foo, bar) == :lt", "Date.before?(foo, bar)")
-    end
+  test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.before?" do
+    assert_style("DateTime.compare(foo, bar) == :lt", "DateTime.before?(foo, bar)")
+    assert_style("NaiveDateTime.compare(foo, bar) == :lt", "NaiveDateTime.before?(foo, bar)")
+    assert_style("Time.compare(foo, bar) == :lt", "Time.before?(foo, bar)")
+    assert_style("Date.compare(foo, bar) == :lt", "Date.before?(foo, bar)")
+  end
 
-    test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.after?" do
-      assert_style("DateTime.compare(foo, bar) == :gt", "DateTime.after?(foo, bar)")
-      assert_style("NaiveDateTime.compare(foo, bar) == :gt", "NaiveDateTime.after?(foo, bar)")
-      assert_style("Time.compare(foo, bar) == :gt", "Time.after?(foo, bar)")
-      assert_style("Time.compare(foo, bar) == :gt", "Time.after?(foo, bar)")
-    end
+  test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.after?" do
+    assert_style("DateTime.compare(foo, bar) == :gt", "DateTime.after?(foo, bar)")
+    assert_style("NaiveDateTime.compare(foo, bar) == :gt", "NaiveDateTime.after?(foo, bar)")
+    assert_style("Time.compare(foo, bar) == :gt", "Time.after?(foo, bar)")
+    assert_style("Time.compare(foo, bar) == :gt", "Time.after?(foo, bar)")
   end
 
   describe "def / defp" do
