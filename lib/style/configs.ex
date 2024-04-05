@@ -49,32 +49,26 @@ defmodule Styler.Style.Configs do
 
   def run({{:config, _, [_, _ | _]} = config, zm}, %{mix_config?: true} = ctx) do
     # all of these list are reversed due to the reduce
-    {configs, assignments, rest} =
-      Enum.reduce(zm.r, {[], [], []}, fn
-        {:config, _, [_, _ | _]} = config, {configs, assignments, []} -> {[config | configs], assignments, []}
-        {:=, _, [_lhs, _rhs]} = assignment, {configs, assignments, []} -> {configs, [assignment | assignments], []}
-        other, {configs, assignments, rest} -> {configs, assignments, [other | rest]}
-      end)
+    {configs, assignments, rest} = accumulate(zm.r, [], [])
 
-    [config | configs] =
+    left_siblings = assignments |> Enum.reverse() |> Style.reset_newlines() |> Enum.reverse(zm.l)
+
+    [config | left_siblings] =
       [config | configs]
       |> Enum.group_by(fn
         {:config, _, [{:__block__, _, [app]} | _]} -> app
         {:config, _, [arg | _]} -> Style.without_meta(arg)
       end)
-      |> Enum.sort(:desc)
+      |> Enum.sort()
       |> Enum.flat_map(fn {_app, configs} ->
         configs
-        |> Enum.sort_by(&Style.without_meta/1, :asc)
+        |> Enum.sort_by(&Style.without_meta/1)
         |> Style.reset_newlines()
-        |> Enum.reverse()
       end)
       |> Style.fix_line_numbers(List.first(rest))
+      |> Enum.reverse(left_siblings)
 
-    assignments = assignments |> Enum.reverse() |> Style.reset_newlines()
-
-    zm = %{zm | l: configs ++ Enum.reverse(assignments, zm.l), r: Enum.reverse(rest)}
-    {:skip, {config, zm}, ctx}
+    {:skip, {config, %{zm | l: left_siblings, r: rest}}, ctx}
   end
 
   def run(zipper, %{config?: true} = ctx) do
@@ -88,4 +82,8 @@ defmodule Styler.Style.Configs do
       {:halt, zipper, ctx}
     end
   end
+
+  defp accumulate([{:config, _, [_, _ | _]} = c | siblings], cs, as), do: accumulate(siblings, [c | cs], as)
+  defp accumulate([{:=, _, [_lhs, _rhs]} = a | siblings], cs, as), do: accumulate(siblings, cs, [a | as])
+  defp accumulate(rest, configs, assignments), do: {configs, assignments, rest}
 end

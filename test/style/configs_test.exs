@@ -27,28 +27,43 @@ defmodule Styler.Style.ConfigsTest do
     end
   end
 
-  test "orders configs stanzas" do
-    # doesn't order when we haven't seen `import Config`, so this is something else that we don't understand
+  test "doesn't sort when no import config" do
     assert_style """
-    config :z, :x
-    config :a, :b
+    config :z, :x, :c
+    config :a, :b, :c
     """
+  end
 
-    # 1. orders `config/2,3` relative to each other
-    # 2. lifts assignments above config blocks
-    # 3. non assignment/config separate "config" blocks
+  test "simple case" do
+    assert_style(
+      """
+      import Config
 
+      config :z, :x, :c
+      config :a, :b, :c
+      config :y, :x, :z
+      config :a, :c, :d
+      """,
+      """
+      import Config
+
+      config :a, :b, :c
+      config :a, :c, :d
+
+      config :y, :x, :z
+
+      config :z, :x, :c
+      """
+    )
+  end
+
+  test "more complicated" do
     assert_style(
       """
       import Config
       dog_sound = :woof
-      # z is best when configged w/ dog sounds
-      # dog sounds ftw
       config :z, :x, dog_sound
 
-      # this is my big c
-      # comment i'd like to leave c
-      # about c
       c = :c
       config :a, :b, c
       config :a, :c, :d
@@ -56,15 +71,9 @@ defmodule Styler.Style.ConfigsTest do
         a_longer_name: :a_longer_value,
         multiple_things: :that_could_all_fit_on_one_line_though
 
-      # this is my big my_app
-      # comment i'd like to leave my_app
-      # about my_app
       my_app =
         :"dont_write_configs_like_this_yall_:("
 
-      # this is my big your_app
-      # comment i'd like to leave your_app
-      # about your_app
       your_app = :not_again!
       config your_app, :dont_use_varrrrrrrrs
       config my_app, :nooooooooo
@@ -79,23 +88,11 @@ defmodule Styler.Style.ConfigsTest do
       import Config
 
       dog_sound = :woof
-      # z is best when configged w/ dog sounds
-      # dog sounds ftw
-
-      # this is my big c
-      # comment i'd like to leave c
-      # about c
       c = :c
 
-      # this is my big my_app
-      # comment i'd like to leave my_app
-      # about my_app
       my_app =
         :"dont_write_configs_like_this_yall_:("
 
-      # this is my big your_app
-      # comment i'd like to leave your_app
-      # about your_app
       your_app = :not_again!
 
       config :a, :b, c
@@ -132,5 +129,110 @@ defmodule Styler.Style.ConfigsTest do
     config(a)
     config :c, :d
     """
+  end
+
+  describe "playing nice with comments" do
+    test "lets you leave comments in large stanzas" do
+      assert_style """
+      import Config
+
+      config :a, B, :c
+
+      config :a,
+        b: :c,
+        # d is here
+        d: :e
+      """
+    end
+
+    test "complicated comments" do
+      assert_style(
+        """
+        import Config
+        dog_sound = :woof
+        # z is best when configged w/ dog sounds
+        # dog sounds ftw
+        config :z, :x, dog_sound
+
+        # this is my big c
+        # comment i'd like to leave c
+        # about c
+        c = :c
+        config :a, :b, c
+        config :a, :c, :d
+        config :a,
+          a_longer_name: :a_longer_value,
+          # Multiline comment
+          # comment in a block
+          multiple_things: :that_could_all_fit_on_one_line_though
+
+        # this is my big my_app
+        # comment i'd like to leave my_app
+        # about my_app
+        my_app =
+          :"dont_write_configs_like_this_yall_:("
+
+        # this is my big your_app
+        # comment i'd like to leave your_app
+        # about your_app
+        your_app = :not_again!
+        config your_app, :dont_use_varrrrrrrrs
+        config my_app, :nooooooooo
+        import_config "my_config"
+
+        cat_sound = :meow
+        config :z, a: :meow
+        a_sad_overwrite_that_will_be_hard_to_notice = :x
+        config :a, :b, a_sad_overwrite_that_will_be_hard_to_notice
+        """,
+        """
+        import Config
+
+        dog_sound = :woof
+        # z is best when configged w/ dog sounds
+        # dog sounds ftw
+
+        # this is my big c
+        # comment i'd like to leave c
+        # about c
+        c = :c
+        # Multiline comment
+        # comment in a block
+
+        # this is my big my_app
+        # comment i'd like to leave my_app
+        # about my_app
+        my_app =
+          :"dont_write_configs_like_this_yall_:("
+
+        # this is my big your_app
+        # comment i'd like to leave your_app
+        # about your_app
+        your_app = :not_again!
+
+        config :a, :b, c
+        config :a, :c, :d
+
+        config :a,
+          a_longer_name: :a_longer_value,
+          multiple_things: :that_could_all_fit_on_one_line_though
+
+        config :z, :x, dog_sound
+
+        config my_app, :nooooooooo
+
+        config your_app, :dont_use_varrrrrrrrs
+
+        import_config "my_config"
+
+        cat_sound = :meow
+        a_sad_overwrite_that_will_be_hard_to_notice = :x
+
+        config :a, :b, a_sad_overwrite_that_will_be_hard_to_notice
+
+        config :z, a: :meow
+        """
+      )
+    end
   end
 end

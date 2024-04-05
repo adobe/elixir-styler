@@ -38,13 +38,11 @@ defmodule Styler.StyleCase do
         {before_ast, before_comments} = Styler.string_to_quoted_with_comments(before)
         dbg(before_ast)
         dbg(before_comments)
-        IO.puts("======Expected==========\n")
-        IO.puts(expected)
+        IO.puts("======Expected AST==========\n")
         {expected_ast, expected_comments} = Styler.string_to_quoted_with_comments(expected)
         dbg(expected_ast)
         dbg(expected_comments)
-        IO.puts("======Got===============\n")
-        IO.puts(styled)
+        IO.puts("======Got AST===============\n")
         dbg(styled_ast)
         dbg(styled_comments)
         IO.puts("========================\n")
@@ -111,7 +109,7 @@ defmodule Styler.StyleCase do
         assert true
       else
         flunk(
-          format_diff(restyled, styled, "expected styling to be idempotent, but a second pass resulted in more changes.")
+          format_diff(styled, restyled, "expected styling to be idempotent, but a second pass resulted in more changes.")
         )
       end
     end
@@ -131,23 +129,40 @@ defmodule Styler.StyleCase do
     end
   end
 
-  def format_diff(left, right, prelude \\ "Styling produced unexpected results") do
+  def format_diff(expected, styled, prelude \\ "Styling produced unexpected results") do
     # reaching into private ExUnit stuff, uh oh!
     # this gets us the nice diffing from ExUnit while allowing us to print our code blocks as strings rather than inspected strings
-    {%{left: left, right: right}, _} = ExUnit.Diff.compute(left, right, :==)
-    left = for {diff?, content} <- left.contents, do: if(diff?, do: [:red, content, :reset], else: content)
-    right = for {diff?, content} <- right.contents, do: if(diff?, do: [:green, content, :reset], else: content)
+    {%{left: expected, right: styled}, _} = ExUnit.Diff.compute(expected, styled, :==)
+
+    expected =
+      for {diff?, content} <- expected.contents do
+        cond do
+          diff? and String.trim_leading(Macro.unescape_string(content)) == "" -> [:red_background, content, :reset]
+          diff? -> [:red, content, :reset]
+          true -> content
+        end
+      end
+
+    styled =
+      for {diff?, content} <- styled.contents do
+        cond do
+          diff? and String.trim_leading(Macro.unescape_string(content)) == "" -> [:green_background, content, :reset]
+          diff? -> [:green, content, :reset]
+          true -> content
+        end
+      end
+
     header = IO.ANSI.format([:red, prelude, :reset])
 
-    left =
-      [[:cyan, "left:\n", :reset] | left]
+    expected =
+      [[:cyan, "expected:\n", :reset] | expected]
       |> IO.ANSI.format()
       |> to_string()
       |> Macro.unescape_string()
       |> String.replace("\n", "\n  ")
 
-    right =
-      [[:cyan, "right:\n", :reset] | right]
+    styled =
+      [[:cyan, "styled:\n", :reset] | styled]
       |> IO.ANSI.format()
       |> to_string()
       |> Macro.unescape_string()
@@ -155,8 +170,8 @@ defmodule Styler.StyleCase do
 
     """
     #{header}
-    #{left}
-    #{right}
+    #{expected}
+    #{styled}
     """
   end
 end
