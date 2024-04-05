@@ -133,4 +133,19 @@ defmodule Styler.Style.ConfigsTest do
     config :c, :d
     """
   end
+
+  describe "playing nice with comments" do
+    test "lets you leave comments in large stanzas" do
+      assert_style """
+      import Config
+
+      config :a, B, :c
+
+      config :a,
+        b: :c,
+        # d is here
+        d: :e
+      """
+    end
+  end
 end

@@ -70,6 +70,7 @@ defmodule Styler.Style.Configs do
         |> Enum.reverse()
       end)
       |> Style.fix_line_numbers(List.first(rest))
+      |> dbg()
 
     assignments = assignments |> Enum.reverse() |> Style.reset_newlines()
 
