@@ -22,6 +22,7 @@ defmodule Styler.Style.ConfigsTest do
       # :config? is private api, so don't be surprised if this has to change at some point
       assert {:cont, _, %{config?: true}} = Configs.run(zipper, %{file: "apps/foo/config/#{file}"})
       assert {:cont, _, %{config?: true}} = Configs.run(zipper, %{file: "config/#{file}"})
+      assert {:cont, _, %{config?: true}} = Configs.run(zipper, %{file: "rel/overlay/#{file}"})
       assert {:halt, _, _} = Configs.run(zipper, %{file: file})
     end
   end

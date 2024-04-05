@@ -20,6 +20,7 @@
 ### Breaking Changes
 
 * drop support for elixir `1.14`
+* sorting configs for the first time can change your configuration; see `Styler.Style.Configs` moduledoc for more
 
 ## v0.11.9
 
