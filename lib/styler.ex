@@ -31,6 +31,7 @@ defmodule Styler do
   @doc false
   def style({ast, comments}, file, opts) do
     on_error = opts[:on_error] || :log
+    Styler.Config.set(opts)
     zipper = Zipper.zip(ast)
 
     {{ast, _}, comments} =
@@ -61,13 +62,14 @@ defmodule Styler do
   def features(_opts), do: [sigils: [], extensions: [".ex", ".exs"]]
 
   @impl Format
-  def format(input, formatter_opts, opts \\ []) do
+  def format(input, formatter_opts) do
     file = formatter_opts[:file]
+    styler_opts = formatter_opts[:styler] || []
 
     {ast, comments} =
       input
       |> string_to_quoted_with_comments(to_string(file))
-      |> style(file, opts)
+      |> style(file, styler_opts)
 
     quoted_to_string(ast, comments, formatter_opts)
   end
@@ -84,7 +86,7 @@ defmodule Styler do
   end
 
   @doc false
-  def literal_encoder(a, b), do: {:ok, {:__block__, b, [a]}}
+  def literal_encoder(literal, meta), do: {:ok, {:__block__, meta, [literal]}}
 
   @doc false
   # Turns an ast and comments back into code, formatting it along the way.

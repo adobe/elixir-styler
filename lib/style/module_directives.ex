@@ -74,13 +74,6 @@ defmodule Styler.Style.ModuleDirectives do
   @attr_directives ~w(moduledoc shortdoc behaviour)a ++ @callback_attrs
   @defstruct ~w(schema embedded_schema defstruct)a
 
-  @stdlib MapSet.new(~w(
-    Access Agent Application Atom Base Behaviour Bitwise Code Date DateTime Dict Ecto Enum Exception
-    File Float GenEvent GenServer HashDict HashSet Integer IO Kernel Keyword List
-    Macro Map MapSet Module NaiveDateTime Node Oban OptionParser Path Port Process Protocol
-    Range Record Regex Registry Set Stream String StringIO Supervisor System Task Time Tuple URI Version
-  )a)
-
   @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
 
   def run({{:defmodule, _, children}, _} = zipper, ctx) do
@@ -231,7 +224,7 @@ defmodule Styler.Style.ModuleDirectives do
 
   defp lift_aliases(aliases, requires, nondirectives) do
     excluded =
-      Enum.reduce(aliases, @stdlib, fn
+      Enum.reduce(aliases, Styler.Config.get(:lifting_excludes), fn
         {:alias, _, [{:__aliases__, _, aliases}]}, excluded -> MapSet.put(excluded, List.last(aliases))
         {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]}, excluded -> MapSet.put(excluded, as)
         # `alias __MODULE__` or other oddities
