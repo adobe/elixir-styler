@@ -129,23 +129,23 @@ defmodule Styler.StyleCase do
     end
   end
 
-  def format_diff(left, right, prelude \\ "Styling produced unexpected results") do
+  def format_diff(expected, styled, prelude \\ "Styling produced unexpected results") do
     # reaching into private ExUnit stuff, uh oh!
     # this gets us the nice diffing from ExUnit while allowing us to print our code blocks as strings rather than inspected strings
-    {%{left: left, right: right}, _} = ExUnit.Diff.compute(left, right, :==)
-    left = for {diff?, content} <- left.contents, do: if(diff?, do: [:red, content, :reset], else: content)
-    right = for {diff?, content} <- right.contents, do: if(diff?, do: [:green, content, :reset], else: content)
+    {%{left: expected, right: styled}, _} = ExUnit.Diff.compute(expected, styled, :==)
+    expected = for {diff?, content} <- expected.contents, do: if(diff?, do: [:red, content, :reset], else: content)
+    styled = for {diff?, content} <- styled.contents, do: if(diff?, do: [:green, content, :reset], else: content)
     header = IO.ANSI.format([:red, prelude, :reset])
 
-    left =
-      [[:cyan, "left:\n", :reset] | left]
+    expected =
+      [[:cyan, "expected:\n", :reset] | expected]
       |> IO.ANSI.format()
       |> to_string()
       |> Macro.unescape_string()
       |> String.replace("\n", "\n  ")
 
-    right =
-      [[:cyan, "right:\n", :reset] | right]
+    styled =
+      [[:cyan, "styled:\n", :reset] | styled]
       |> IO.ANSI.format()
       |> to_string()
       |> Macro.unescape_string()
@@ -153,8 +153,8 @@ defmodule Styler.StyleCase do
 
     """
     #{header}
-    #{left}
-    #{right}
+    #{expected}
+    #{styled}
     """
   end
 end
