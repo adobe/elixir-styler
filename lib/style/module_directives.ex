@@ -273,7 +273,7 @@ defmodule Styler.Style.ModuleDirectives do
         {:skip, zipper, acc}
 
       {{:__aliases__, _, [_, _, _ | _] = aliases}, _} = zipper, {lifts, excluded} = acc ->
-        if List.last(aliases) in excluded or not Enum.all?(aliases, &is_atom/1),
+        if List.last(aliases) in excluded or List.first(aliases) in excluded or not Enum.all?(aliases, &is_atom/1),
           do: {:skip, zipper, acc},
           else: {:skip, zipper, {Map.update(lifts, aliases, false, fn _ -> true end), excluded}}
 
