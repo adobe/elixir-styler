@@ -220,33 +220,17 @@ defmodule Styler.Style do
     4: # this is foo
     5: def foo ...
   """
-  def fix_line_numbers(to_fix, acc \\ [], first_normal_line)
+  def fix_line_numbers(nodes, nil), do: fix_line_numbers(nodes, 999_999)
+  def fix_line_numbers(nodes, {_, meta, _}), do: fix_line_numbers(nodes, meta[:line])
+  def fix_line_numbers(nodes, max), do: nodes |> Enum.reverse() |> do_fix_lines(max, [])
 
-  def fix_line_numbers([this, next | rest], acc, first_non_directive) do
-    this = cap_line(this, next)
-    fix_line_numbers([next | rest], [this | acc], first_non_directive)
-  end
+  defp do_fix_lines([], _, acc), do: acc
 
-  def fix_line_numbers([last], acc, first_non_directive) do
-    last = if first_non_directive, do: cap_line(last, first_non_directive), else: last
-    Enum.reverse([last | acc])
-  end
+  defp do_fix_lines([{_, meta, _} = node | nodes], max, acc) do
+    line = meta[:line]
 
-  def fix_line_numbers([], [], _), do: []
-
-  defp cap_line({_, this_meta, _} = this, {_, next_meta, _}) do
-    this_line = this_meta[:line]
-    next_line = next_meta[:line]
-
-    if this_line > next_line do
-      # Subtracting 2 helps the behaviour with one-liner comments preceding the next node. It's a bit of a hack.
-      # TODO: look into the comments list and
-      # 1. move comment blocks preceding `this` up with it
-      # 2. find the earliest comment before `next` and set `new_line` to that value - 1
-      desired_line = next_line - 2
-      shift_line(this, desired_line - this_line)
-    else
-      this
-    end
+    if line > max,
+      do: do_fix_lines(nodes, max, [shift_line(node, max - line - 2) | acc]),
+      else: do_fix_lines(nodes, line, [node | acc])
   end
 end

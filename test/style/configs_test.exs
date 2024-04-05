@@ -145,6 +145,35 @@ defmodule Styler.Style.ConfigsTest do
       """
     end
 
+    test "simple case" do
+      assert_style(
+        """
+        import Config
+
+        config :a, 1
+        config :a, 4
+        # comment
+        # b comment
+        config :b, 1
+        config :b, 2
+        config :a, 2
+        config :a, 3
+        """,
+        """
+        import Config
+
+        config :a, 1
+        config :a, 2
+        config :a, 3
+        config :a, 4
+        # comment
+        # b comment
+        config :b, 1
+        config :b, 2
+        """
+      )
+    end
+
     test "complicated comments" do
       assert_style(
         """
