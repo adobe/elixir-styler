@@ -27,9 +27,11 @@ defmodule Styler.Style.ModuleDirectives do
     * `Credo.Check.Readability.UnnecessaryAliasExpansion`
     * `Credo.Check.Design.AliasUsage`
 
-  ## Strict Layout
+  ## Breakages
 
   **This can break your code.**
+
+  ### Strict Layout: alias referents
 
   Modules directives are sorted into the following order:
 
@@ -63,6 +65,26 @@ defmodule Styler.Style.ModuleDirectives do
     ```
 
   For now, it's up to you to come up with a fix for this issue. Sorry!
+
+  ### Strict Layout: interwoven conflicting aliases
+
+  Ideally no one writes code like this as it's hard for our human brains to notice the context switching!
+  Still, it's a possible source of breakages in Styler.
+
+
+    alias Foo.Bar
+    Bar.Baz.bop()
+
+    alias Baz.Bar
+    Bar.Baz.bop()
+
+    # becomes
+
+    alias Baz.Bar
+    alias Baz.Bar.Baz
+    alias Foo.Bar
+    Baz.bop() # was Foo.Bar.Baz, is now Baz.Bar.Baz
+    Baz.bop()
   """
   @behaviour Styler.Style
 
@@ -223,13 +245,15 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   defp lift_aliases(aliases, requires, nondirectives) do
-    excluded =
-      Enum.reduce(aliases, Styler.Config.get(:lifting_excludes), fn
-        {:alias, _, [{:__aliases__, _, aliases}]}, excluded -> MapSet.put(excluded, List.last(aliases))
-        {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]}, excluded -> MapSet.put(excluded, as)
+    aliasing =
+      Map.new(aliases, fn
+        {:alias, _, [{:__aliases__, _, aliases}]} -> {List.last(aliases), aliases}
+        {:alias, _, [{:__aliases__, _, aliases}, [{_as, {:__aliases__, _, [as]}}]]} -> {as, aliases}
         # `alias __MODULE__` or other oddities
-        {:alias, _, _}, excluded -> excluded
+        {:alias, _, _} -> {nil, nil}
       end)
+
+    excluded = aliasing |> Map.keys() |> MapSet.new() |> MapSet.union(Styler.Config.get(:lifting_excludes))
 
     liftable = find_liftable_aliases(requires ++ nondirectives, excluded)
 
@@ -238,7 +262,19 @@ defmodule Styler.Style.ModuleDirectives do
       # the `cap_line` algo was designed to handle high-line stuff moving up into low line territory, so we set our
       # new node to have an abritrarily high line annnnd comments behave! i think.
       line = 99_999
-      new_aliases = Enum.map(liftable, &{:alias, [line: line], [{:__aliases__, [last: [line: line], line: line], &1}]})
+
+      new_aliases =
+        Enum.map(liftable, fn [first | rest] = modules ->
+          # if there's an existing alias for this alias, make sure the new one we make is the compound alias
+          modules =
+            case aliasing[first] do
+              nil -> modules
+              parent_alias -> parent_alias ++ rest
+            end
+
+          {:alias, [line: line], [{:__aliases__, [last: [line: line], line: line], modules}]}
+        end)
+
       aliases = expand_and_sort(aliases ++ new_aliases)
       requires = do_lift_aliases(requires, liftable)
       nondirectives = do_lift_aliases(nondirectives, liftable)
