@@ -32,7 +32,6 @@ defmodule Styler.Style.SingleNode do
 
   @closing_delimiters [~s|"|, ")", "}", "|", "]", "'", ">", "/"]
 
-
   # `|> Timex.now()` => `|> Timex.now()`
   # skip over pipes into `Timex.now/1` so that we don't accidentally rewrite it as DateTime.utc_now/1
   def run({{:|>, _, [_, {{:., _, [{:__aliases__, _, [:Timex]}, :now]}, _, []}]}, _} = zipper, ctx),

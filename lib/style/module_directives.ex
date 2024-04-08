@@ -127,11 +127,12 @@ defmodule Styler.Style.ModuleDirectives do
         # There's only one child, and it's not a moduledoc. Conditionally add a moduledoc, then style the only_child
         only_child ->
           if moduledoc do
-            body_zipper
-            |> Zipper.replace({:__block__, [], [moduledoc, only_child]})
-            |> Zipper.down()
-            |> Zipper.right()
-            |> run(ctx)
+            zipper =
+              body_zipper
+              |> Zipper.replace({:__block__, [], [moduledoc, only_child]})
+              |> organize_directives()
+
+            {:skip, zipper, ctx}
           else
             run(body_zipper, ctx)
           end
