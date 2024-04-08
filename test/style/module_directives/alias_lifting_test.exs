@@ -136,19 +136,22 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
   end
 
   test "deep nesting of an alias" do
-    assert_style("""
-    alias Foo.Bar.Baz
+    assert_style(
+      """
+      alias Foo.Bar.Baz
 
-    Baz.Bop.Boom.wee()
-    Baz.Bop.Boom.wee()
+      Baz.Bop.Boom.wee()
+      Baz.Bop.Boom.wee()
 
-    """, """
-    alias Foo.Bar.Baz
-    alias Foo.Bar.Baz.Bop.Boom
+      """,
+      """
+      alias Foo.Bar.Baz
+      alias Foo.Bar.Baz.Bop.Boom
 
-    Boom.wee()
-    Boom.wee()
-    """)
+      Boom.wee()
+      Boom.wee()
+      """
+    )
   end
 
   describe "comments stay put" do
