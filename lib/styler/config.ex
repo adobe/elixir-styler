@@ -30,7 +30,16 @@ defmodule Styler.Config do
     excludes =
       config[:alias_lifting_exclude]
       |> List.wrap()
-      |> MapSet.new()
+      |> MapSet.new(fn
+        atom when is_atom(atom) ->
+          case to_string(atom) do
+            "Elixir." <> rest -> String.to_atom(rest)
+            _ -> atom
+          end
+
+        other ->
+          raise "Expected an atom for `alias_lifting_exclude`, got: #{inspect(other)}"
+      end)
       |> MapSet.union(@stdlib)
 
     :persistent_term.put(@key, %{

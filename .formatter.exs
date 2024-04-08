@@ -8,6 +8,6 @@
     assert_style: 2
   ],
   plugins: [Styler],
-  styler: [alias_lifting_exclude: []],
+  styler: [alias_lifting_exclude: [Foo, :Bar]],
   line_length: 122
 ]
