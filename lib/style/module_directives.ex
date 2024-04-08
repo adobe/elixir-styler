@@ -31,7 +31,7 @@ defmodule Styler.Style.ModuleDirectives do
 
   **This can break your code.**
 
-  ### Strict Layout: alias referents
+  ### Strict Layout
 
   Modules directives are sorted into the following order:
 
@@ -229,6 +229,7 @@ defmodule Styler.Style.ModuleDirectives do
         aliases,
         requires
       ]
+      |> Stream.map(&dealias(&1, aliases))
       |> Enum.concat()
       |> Style.fix_line_numbers(List.first(nondirectives))
 
@@ -365,6 +366,46 @@ defmodule Styler.Style.ModuleDirectives do
         zipper
     end)
     |> Zipper.node()
+  end
+
+  # these are just lazy hacks so i can Enum.map the list of directives while not doing weird stuff to the aliases themselves
+  defp dealias([], _), do: []
+  defp dealias([{:alias, _, _} | _] = aliases, _), do: aliases
+  defp dealias([{:require, _, _} | _] = requires, _), do: requires
+
+  defp dealias(non_aliases, aliases) do
+    latest_non_aliases = non_aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.max(fn -> -1 end)
+    earliest_alias = aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.min(fn -> 999_999 end)
+
+    if earliest_alias >= latest_non_aliases do
+      non_aliases
+    else
+      Enum.map(non_aliases, fn {_, meta, _} = ast ->
+        line = meta[:line]
+
+        if line < earliest_alias do
+          ast
+        else
+          dealiases =
+            aliases
+            |> Enum.filter(fn {_, meta, _} -> meta[:line] < line end)
+            |> Map.new(fn {:alias, _, [{:__aliases__, _, aliases}]} -> {List.last(aliases), aliases} end)
+
+          ast
+          |> Zipper.zip()
+          |> Zipper.traverse(fn
+            {{:__aliases__, meta, [first | rest]}, _} = zipper ->
+              if dealias = dealiases[first],
+                do: Zipper.replace(zipper, {:__aliases__, meta, dealias ++ rest}),
+                else: zipper
+
+            zipper ->
+              zipper
+          end)
+          |> Zipper.node()
+        end
+      end)
+    end
   end
 
   defp expand_and_sort(directives) do

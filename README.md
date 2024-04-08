@@ -108,42 +108,7 @@ Once styled the first time, future styling formats shouldn't take noticeably mor
 
 ### Troubleshooting: Compilation broke due to Module Directive rearrangement
 
-Sometimes naively moving Module Directives around can break compilation.
-
-Here's helpers on how to manually fix that and have a happy styling for the rest of
-your codebase's life.
-
-#### Alias dependency
-
-If you have an alias that, for example, a `@behaviour` relies on, compilation will break after your first run.
-This requires one-time manual fixing to get your repo in line with Styler's standards.
-
-For example, if your code was this:
-```elixir
-defmodule MyModule do
-  @moduledoc "Implements MyBehaviour!"
-  alias Deeply.Nested.MyBehaviour
-  @behaviour MyBehaviour
-  ...
-end
-```
-
-then Styler will style the file like this, which cannot compile due to `MyBehaviour` not being defined.
-
-```elixir
-defmodule MyModule do
-  @moduledoc "Implements MyBehaviour!"
-  @behaviour MyBehaviour  # <------ compilation error, MyBehaviour is not defined!
-
-  alias Deeply.Nested.MyBehaviour
-
-  ...
-end
-```
-
-A simple solution is to manually expand the alias with a find-replace-all like:
-`@behaviour MyBehaviour` -> `@behaviour Deeply.Nested.MyBehaviour`. It's important to specify that you only want to
-find-replace with the `@behaviour` prefix or you'll unintentially expand `MyBehaviour` everywhere in the codebase.
+Styler naively moves module attributes, which can break compilation. For now, the only fix is some elbow grease.
 
 #### Module Attribute dependency
 
