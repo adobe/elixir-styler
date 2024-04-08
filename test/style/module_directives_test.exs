@@ -550,32 +550,34 @@ defmodule Styler.Style.ModuleDirectivesTest do
   end
 
   test "de-aliases use/behaviour/import/moduledoc" do
-    assert_style """
-                 defmodule MyModule do
-                   alias A.B.C
-                   @moduledoc "Implements \#{C.foo()}!"
-                   alias D.F.C
-                   import C
-                   alias G.H.C
-                   @behaviour C
-                   alias Z.X.C
-                   use SomeMacro, with: C
-                 end
-                 """,
-                 """
-                 defmodule MyModule do
-                   @moduledoc "Implements \#{A.B.C.foo()}!"
-                   @behaviour G.H.C
+    assert_style(
+      """
+      defmodule MyModule do
+        alias A.B.C
+        @moduledoc "Implements \#{C.foo()}!"
+        alias D.F.C
+        import C
+        alias G.H.C
+        @behaviour C
+        alias Z.X.C
+        use SomeMacro, with: C
+      end
+      """,
+      """
+      defmodule MyModule do
+        @moduledoc "Implements \#{A.B.C.foo()}!"
+        @behaviour G.H.C
 
-                   use SomeMacro, with: Z.X.C
+        use SomeMacro, with: Z.X.C
 
-                   import D.F.C
+        import D.F.C
 
-                   alias A.B.C
-                   alias D.F.C
-                   alias G.H.C
-                   alias Z.X.C
-                 end
-                 """
+        alias A.B.C
+        alias D.F.C
+        alias G.H.C
+        alias Z.X.C
+      end
+      """
+    )
   end
 end
