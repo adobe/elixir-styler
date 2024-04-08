@@ -295,8 +295,8 @@ defmodule Styler.Style.ModuleDirectives do
         acc =
           case args do
             [{:__aliases__, _, aliases} | _] when defx == :defmodule ->
-              aliased = List.last(aliases)
-              {Map.delete(lifts, aliased), MapSet.put(excluded, aliased)}
+              last = List.last(aliases)
+              {Map.replace(lifts, last, {:collision_with_submodule, false}), MapSet.put(excluded, last)}
 
             _ ->
               acc
@@ -308,10 +308,30 @@ defmodule Styler.Style.ModuleDirectives do
       {{:quote, _, _}, _} = zipper, acc ->
         {:skip, zipper, acc}
 
-      {{:__aliases__, _, [_, _, _ | _] = aliases}, _} = zipper, {lifts, excluded} = acc ->
-        if List.last(aliases) in excluded or not Enum.all?(aliases, &is_atom/1),
-          do: {:skip, zipper, acc},
-          else: {:skip, zipper, {Map.update(lifts, aliases, false, fn _ -> true end), excluded}}
+      {{:__aliases__, _, [_, _, _ | _] = aliases}, _} = zipper, {lifts, excluded} ->
+        last = List.last(aliases)
+
+        lifts =
+          if last in excluded or not Enum.all?(aliases, &is_atom/1) do
+            lifts
+          else
+            Map.update(lifts, last, {aliases, false}, fn
+              {^aliases, _} -> {aliases, true}
+              _ -> {:collision_with_last, false}
+            end)
+          end
+
+        {:skip, zipper, {lifts, excluded}}
+
+      {{:__aliases__, _, [first | _]}, _} = zipper, {lifts, excluded} ->
+        # given:
+        #   C.foo()
+        #   A.B.C.foo()
+        #   A.B.C.foo()
+        #   C.foo()
+        #
+        # lifting A.B.C would create a collision with C.
+        {:skip, zipper, {Map.replace(lifts, first, {:collision_with_first, false}), MapSet.put(excluded, first)}}
 
       zipper, acc ->
         {:cont, zipper, acc}
@@ -319,12 +339,8 @@ defmodule Styler.Style.ModuleDirectives do
     |> elem(0)
     # if we have `Foo.Bar.Baz` and `Foo.Bar.Bop.Baz` both not aliased, we'll create a collision by lifting both
     # grouping by last alias lets us detect these collisions
-    |> Enum.group_by(fn {aliases, _} -> List.last(aliases) end)
-    |> Enum.filter(fn
-      {_last, [{_aliases, repeated?}]} -> repeated?
-      _collision -> false
-    end)
-    |> MapSet.new(fn {_, [{aliases, _}]} -> aliases end)
+    |> Enum.filter(&match?({_last, {_aliases, true}}, &1))
+    |> MapSet.new(fn {_, {aliases, true}} -> aliases end)
   end
 
   defp do_lift_aliases(ast, to_alias) do

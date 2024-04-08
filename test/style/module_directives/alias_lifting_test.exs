@@ -349,5 +349,36 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       end
       """
     end
+
+    test "collisions with other callsites :(" do
+      # if the last module of a list in an alias
+      # is the first of any other
+      # do not do the lift of either?
+      assert_style """
+      defmodule A do
+        @moduledoc false
+
+        foo
+        |> Baz.Boom.bop()
+        |> boop()
+
+        Foo.Bar.Baz.bop()
+        Foo.Bar.Baz.bop()
+      end
+      """
+
+      assert_style """
+      defmodule A do
+        @moduledoc false
+
+        Foo.Bar.Baz.bop()
+        Foo.Bar.Baz.bop()
+
+        foo
+        |> Baz.Boom.bop()
+        |> boop()
+      end
+      """
+    end
   end
 end
