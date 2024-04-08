@@ -287,28 +287,27 @@ defmodule Styler.Style.ModuleDirectives do
   defp find_liftable_aliases(ast, excluded) do
     ast
     |> Zipper.zip()
-    |> Zipper.reduce_while({%{}, excluded}, fn
+    |> Zipper.reduce_while(%{}, fn
       # we don't want to rewrite alias name `defx Aliases ... do` of these three keywords
-      {{defx, _, args}, _} = zipper, {lifts, excluded} = acc when defx in ~w(defmodule defimpl defprotocol)a ->
+      {{defx, _, args}, _} = zipper, lifts when defx in ~w(defmodule defimpl defprotocol)a ->
         # don't conflict with submodules, which elixir automatically aliases
         # we could've done this earlier when building excludes from aliases, but this gets it done without two traversals.
-        acc =
+        lifts =
           case args do
             [{:__aliases__, _, aliases} | _] when defx == :defmodule ->
-              last = List.last(aliases)
-              {Map.replace(lifts, last, {:collision_with_submodule, false}), MapSet.put(excluded, last)}
+              Map.put(lifts, List.last(aliases), {:collision_with_submodule, false})
 
             _ ->
-              acc
+              lifts
           end
 
         # move the focus to the body block, zkipping over the alias (and the `for` keyword for `defimpl`)
-        {:skip, zipper |> Zipper.down() |> Zipper.rightmost() |> Zipper.down() |> Zipper.down(), acc}
+        {:skip, zipper |> Zipper.down() |> Zipper.rightmost() |> Zipper.down() |> Zipper.down(), lifts}
 
-      {{:quote, _, _}, _} = zipper, acc ->
-        {:skip, zipper, acc}
+      {{:quote, _, _}, _} = zipper, lifts ->
+        {:skip, zipper, lifts}
 
-      {{:__aliases__, _, [_, _, _ | _] = aliases}, _} = zipper, {lifts, excluded} ->
+      {{:__aliases__, _, [_, _, _ | _] = aliases}, _} = zipper, lifts ->
         last = List.last(aliases)
 
         lifts =
@@ -317,13 +316,15 @@ defmodule Styler.Style.ModuleDirectives do
           else
             Map.update(lifts, last, {aliases, false}, fn
               {^aliases, _} -> {aliases, true}
+              # if we have `Foo.Bar.Baz` and `Foo.Bar.Bop.Baz` both not aliased, we'll create a collision by lifting both
+              # grouping by last alias lets us detect these collisions
               _ -> {:collision_with_last, false}
             end)
           end
 
-        {:skip, zipper, {lifts, excluded}}
+        {:skip, zipper, lifts}
 
-      {{:__aliases__, _, [first | _]}, _} = zipper, {lifts, excluded} ->
+      {{:__aliases__, _, [first | _]}, _} = zipper, lifts ->
         # given:
         #   C.foo()
         #   A.B.C.foo()
@@ -331,14 +332,11 @@ defmodule Styler.Style.ModuleDirectives do
         #   C.foo()
         #
         # lifting A.B.C would create a collision with C.
-        {:skip, zipper, {Map.replace(lifts, first, {:collision_with_first, false}), MapSet.put(excluded, first)}}
+        {:skip, zipper, Map.put(lifts, first, {:collision_with_first, false})}
 
-      zipper, acc ->
-        {:cont, zipper, acc}
+      zipper, lifts ->
+        {:cont, zipper, lifts}
     end)
-    |> elem(0)
-    # if we have `Foo.Bar.Baz` and `Foo.Bar.Bop.Baz` both not aliased, we'll create a collision by lifting both
-    # grouping by last alias lets us detect these collisions
     |> Enum.filter(&match?({_last, {_aliases, true}}, &1))
     |> MapSet.new(fn {_, {aliases, true}} -> aliases end)
   end
