@@ -4,18 +4,53 @@
 
 ### Improvements
 
-* `alias`: implement alias lifting (`Credo.Check.Design.AliasUsage`). lifts aliases of depth >=3 (`A.B.C...`) that are used more than once.
-  **this is a big one!** please report any issues :) #135
+#### Alias Lifting
+
+Along the lines of `Credo.Check.Design.AliasUsage`, Styler now "lifts" deeply nested aliases (depth >= 3, ala `A.B.C....`) that are used more than once.
+
+Put plainly, this code:
+
+```elixir
+defmodule A do
+  def lift_me() do
+    A.B.C.foo()
+    A.B.C.baz()
+  end
+end
+```
+
+will become
+
+```elixir
+defmodule A do
+  @moduledoc false
+  alias A.B.C
+
+  def lift_me do
+    C.foo()
+    C.baz()
+  end
+end
+```
+
+#### Mix Config File Organization
+
+Styler now organizes `Mix.Config.config/2,3` stanzas according to erlang term sorting. This helps manage large configuration files, removing the "where should I put this" burden from developers AND helping find duplicated configuration stanzas.
+
+See the moduledoc for `Styler.Style.Configs` for more.
+
+#### Other Improvements
+
 * `if`/`unless`: invert if and unless with `!=` or `!==`, like we do for `!` and `not` #132
 * `@derive`: move `@derive` before `defstruct|schema|embedded_schema` declarations (fixes compiler warning!) #134
 * strings: rewrite double-quoted strings to use `~s` when there's 4+ escaped double-quotes
   (`"\"\"\"\""` -> `~s("""")`) (`Credo.Check.Readability.StringSigils`) #146
-* `config/*.exs` files: organize `config app, ...` stanzas. this is another big one!
 
 ### Fixes
 
 * module directives: various fixes for unreported obscure crashes
 * pipes: fix a comment-shifting scenario when unpiping
+* `Timex.now/1` will no longer be rewritten to `DateTime.utc_now!/1` due to Timex accepting a wider domain of "timezones" than the stdlib (#145, h/t @ivymarkwell)
 
 ### Breaking Changes
 
