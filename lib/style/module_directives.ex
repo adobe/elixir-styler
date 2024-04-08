@@ -372,10 +372,11 @@ defmodule Styler.Style.ModuleDirectives do
   defp dealias([], _), do: []
   defp dealias([{:alias, _, _} | _] = aliases, _), do: aliases
   defp dealias([{:require, _, _} | _] = requires, _), do: requires
+  defp dealias(directives, []), do: directives
 
   defp dealias(non_aliases, aliases) do
-    latest_non_aliases = non_aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.max(fn -> -1 end)
-    earliest_alias = aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.min(fn -> 999_999 end)
+    latest_non_aliases = non_aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.max()
+    earliest_alias = aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.min()
 
     if earliest_alias >= latest_non_aliases do
       non_aliases
