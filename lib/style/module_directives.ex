@@ -230,7 +230,8 @@ defmodule Styler.Style.ModuleDirectives do
         aliases,
         requires
       ]
-      |> Enum.flat_map(&dealias(&1, aliases, earliest_alias_line))
+      |> Stream.concat()
+      |> Enum.map(&dealias(&1, aliases, earliest_alias_line))
       |> Style.fix_line_numbers(List.first(nondirectives))
 
     # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
@@ -368,37 +369,34 @@ defmodule Styler.Style.ModuleDirectives do
     |> Zipper.node()
   end
 
-  # these are just lazy hacks so i can Enum.map the list of directives while not doing weird stuff to the aliases themselves
-  defp dealias([{:alias, _, _} | _] = aliases, _, _), do: aliases
-  defp dealias([{:require, _, _} | _] = requires, _, _), do: requires
-  defp dealias(directives, [], _), do: directives
+  # if a behaviour/use/import/whatever relied on an `alias` above it, de-aliasing
+  # fixes that node to have the full reference again - which is necessary since the alias will be moving below it
+  defp dealias(node, aliases, earliest_alias_line)
+  # skip alias/require nodes, as they don't need dealiasing
+  defp dealias({:alias, _, _} = ast, _, _), do: ast
+  defp dealias({:require, _, _} = ast, _, _), do: ast
+  # no aliases, so nothing to de-alias
+  defp dealias(ast, [], _), do: ast
 
-  defp dealias(directives, aliases, earliest_alias_line) do
-    Enum.map(directives, fn {_, meta, _} = ast ->
-      line = meta[:line]
+  defp dealias({_, meta, _} = ast, aliases, earliest_alias_line) do
+    line = meta[:line]
 
-      if line < earliest_alias_line do
-        ast
-      else
-        dealiases =
-          aliases
-          |> Enum.filter(fn {_, meta, _} -> meta[:line] < line end)
-          |> Map.new(fn {:alias, _, [{:__aliases__, _, aliases}]} -> {List.last(aliases), aliases} end)
+    if line < earliest_alias_line do
+      ast
+    else
+      dealiases =
+        aliases
+        |> Enum.filter(fn {_, meta, _} -> meta[:line] < line end)
+        |> Map.new(fn {:alias, _, [{:__aliases__, _, aliases}]} -> {List.last(aliases), aliases} end)
 
-        ast
-        |> Zipper.zip()
-        |> Zipper.traverse(fn
-          {{:__aliases__, meta, [first | rest]}, _} = zipper ->
-            if dealias = dealiases[first],
-              do: Zipper.replace(zipper, {:__aliases__, meta, dealias ++ rest}),
-              else: zipper
+      Macro.prewalk(ast, fn
+        {:__aliases__, meta, [first | rest]} = ast ->
+          if dealias = dealiases[first], do: {:__aliases__, meta, dealias ++ rest}, else: ast
 
-          zipper ->
-            zipper
-        end)
-        |> Zipper.node()
-      end
-    end)
+        ast ->
+          ast
+      end)
+    end
   end
 
   defp expand_and_sort(directives) do
