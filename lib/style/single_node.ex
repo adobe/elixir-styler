@@ -32,6 +32,12 @@ defmodule Styler.Style.SingleNode do
 
   @closing_delimiters [~s|"|, ")", "}", "|", "]", "'", ">", "/"]
 
+
+  # `|> Timex.now()` => `|> Timex.now()`
+  # skip over pipes into `Timex.now/1` so that we don't accidentally rewrite it as DateTime.utc_now/1
+  def run({{:|>, _, [_, {{:., _, [{:__aliases__, _, [:Timex]}, :now]}, _, []}]}, _} = zipper, ctx),
+    do: {:skip, zipper, ctx}
+
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 
   # rewrite double-quote strings with >= 4 escaped double-quotes as sigils
@@ -138,10 +144,6 @@ defmodule Styler.Style.SingleNode do
   # Timex.now() => DateTime.utc_now()
   defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, []}),
     do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :utc_now]}, funm, []}
-
-  # Timex.now(tz) => DateTime.now!(tz)
-  defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, [tz]}),
-    do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :now!]}, funm, [tz]}
 
   # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :lt => {DateTime,NaiveDateTime,Time,Date}.before?(a, b)
   # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :gt => {DateTime,NaiveDateTime,Time,Date}.after?(a, b)

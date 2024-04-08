@@ -44,8 +44,8 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style("Timex.now() |> foo() |> bar()", "DateTime.utc_now() |> foo() |> bar()")
     end
 
-    test "Timex.now/1 => DateTime.now!/1" do
-      assert_style("Timex.now(tz)", "DateTime.now!(tz)")
+    test "leaves Timex.now/1 alone" do
+      assert_style("Timex.now(tz)", "Timex.now(tz)")
 
       assert_style(
         """
@@ -55,7 +55,7 @@ defmodule Styler.Style.SingleNodeTest do
         """,
         """
         timezone
-        |> DateTime.now!()
+        |> Timex.now()
         |> foo()
         """
       )

@@ -198,10 +198,6 @@ defmodule Styler.Style.Pipes do
   defp fix_pipe({:|>, m, [lhs, {{:., m2, [{anon_fun, _, _}] = fun}, _, []}]}) when anon_fun in [:&, :fn],
     do: {:|>, m, [lhs, {:then, m2, fun}]}
 
-  # `|> Timex.now()` => `|> DateTime.now!()`
-  defp fix_pipe({:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, []}]}),
-    do: {:|>, m, [lhs, {{:., dm, [{:__aliases__, am, [:DateTime]}, :now!]}, funm, []}]}
-
   # `lhs |> Enum.reverse() |> Enum.concat(enum)` => `lhs |> Enum.reverse(enum)`
   defp fix_pipe(
          pipe_chain(
