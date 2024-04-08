@@ -218,6 +218,7 @@ defmodule Styler.Style.ModuleDirectives do
     requires = expand_and_sort(directives[:require] || [])
 
     {aliases, requires, nondirectives} = lift_aliases(aliases, requires, nondirectives)
+    earliest_alias_line = aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.min(fn -> nil end)
 
     directives =
       [
@@ -229,8 +230,7 @@ defmodule Styler.Style.ModuleDirectives do
         aliases,
         requires
       ]
-      |> Stream.map(&dealias(&1, aliases))
-      |> Enum.concat()
+      |> Enum.flat_map(&dealias(&1, aliases, earliest_alias_line))
       |> Style.fix_line_numbers(List.first(nondirectives))
 
     # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
@@ -369,44 +369,36 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   # these are just lazy hacks so i can Enum.map the list of directives while not doing weird stuff to the aliases themselves
-  defp dealias([], _), do: []
-  defp dealias([{:alias, _, _} | _] = aliases, _), do: aliases
-  defp dealias([{:require, _, _} | _] = requires, _), do: requires
-  defp dealias(directives, []), do: directives
+  defp dealias([{:alias, _, _} | _] = aliases, _, _), do: aliases
+  defp dealias([{:require, _, _} | _] = requires, _, _), do: requires
+  defp dealias(directives, [], _), do: directives
 
-  defp dealias(non_aliases, aliases) do
-    latest_non_aliases = non_aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.max()
-    earliest_alias = aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.min()
+  defp dealias(directives, aliases, earliest_alias_line) do
+    Enum.map(directives, fn {_, meta, _} = ast ->
+      line = meta[:line]
 
-    if earliest_alias >= latest_non_aliases do
-      non_aliases
-    else
-      Enum.map(non_aliases, fn {_, meta, _} = ast ->
-        line = meta[:line]
+      if line < earliest_alias_line do
+        ast
+      else
+        dealiases =
+          aliases
+          |> Enum.filter(fn {_, meta, _} -> meta[:line] < line end)
+          |> Map.new(fn {:alias, _, [{:__aliases__, _, aliases}]} -> {List.last(aliases), aliases} end)
 
-        if line < earliest_alias do
-          ast
-        else
-          dealiases =
-            aliases
-            |> Enum.filter(fn {_, meta, _} -> meta[:line] < line end)
-            |> Map.new(fn {:alias, _, [{:__aliases__, _, aliases}]} -> {List.last(aliases), aliases} end)
+        ast
+        |> Zipper.zip()
+        |> Zipper.traverse(fn
+          {{:__aliases__, meta, [first | rest]}, _} = zipper ->
+            if dealias = dealiases[first],
+              do: Zipper.replace(zipper, {:__aliases__, meta, dealias ++ rest}),
+              else: zipper
 
-          ast
-          |> Zipper.zip()
-          |> Zipper.traverse(fn
-            {{:__aliases__, meta, [first | rest]}, _} = zipper ->
-              if dealias = dealiases[first],
-                do: Zipper.replace(zipper, {:__aliases__, meta, dealias ++ rest}),
-                else: zipper
-
-            zipper ->
-              zipper
-          end)
-          |> Zipper.node()
-        end
-      end)
-    end
+          zipper ->
+            zipper
+        end)
+        |> Zipper.node()
+      end
+    end)
   end
 
   defp expand_and_sort(directives) do
