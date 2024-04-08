@@ -308,13 +308,10 @@ defmodule Styler.Style.ModuleDirectives do
       {{:quote, _, _}, _} = zipper, acc ->
         {:skip, zipper, acc}
 
-      {{:__aliases__, _, [_, _, _ | _] = modlist}, _} = zipper, {lifts, excluded} = acc ->
-        acc =
-          if Enum.any?(modlist, &(not is_atom(&1))) or List.last(modlist) in excluded,
-            do: acc,
-            else: {Map.update(lifts, modlist, false, fn _ -> true end), excluded}
-
-        {:skip, zipper, acc}
+      {{:__aliases__, _, [_, _, _ | _] = aliases}, _} = zipper, {lifts, excluded} = acc ->
+        if List.last(aliases) in excluded or not Enum.all?(aliases, &is_atom/1),
+          do: {:skip, zipper, acc},
+          else: {:skip, zipper, {Map.update(lifts, aliases, false, fn _ -> true end), excluded}}
 
       zipper, acc ->
         {:cont, zipper, acc}
