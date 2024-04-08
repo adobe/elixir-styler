@@ -155,24 +155,27 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
   end
 
   test "lifts in modules with only-child bodies" do
-    assert_style """
-    defmodule A do
-      def lift_me() do
-        A.B.C.foo()
-        A.B.C.baz()
+    assert_style(
+      """
+      defmodule A do
+        def lift_me() do
+          A.B.C.foo()
+          A.B.C.baz()
+        end
       end
-    end
-    ""","""
-    defmodule A do
-      @moduledoc false
-      alias A.B.C
+      """,
+      """
+      defmodule A do
+        @moduledoc false
+        alias A.B.C
 
-      def lift_me do
-        C.foo()
-        C.baz()
+        def lift_me do
+          C.foo()
+          C.baz()
+        end
       end
-    end
-    """
+      """
+    )
   end
 
   describe "comments stay put" do

@@ -31,7 +31,7 @@ defmodule Styler.Style.ModuleDirectives do
 
   **This can break your code.**
 
-  ### Strict Layout: alias referents
+  ### Strict Layout
 
   Modules directives are sorted into the following order:
 
@@ -218,6 +218,7 @@ defmodule Styler.Style.ModuleDirectives do
     requires = expand_and_sort(directives[:require] || [])
 
     {aliases, requires, nondirectives} = lift_aliases(aliases, requires, nondirectives)
+    earliest_alias_line = aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.min(fn -> nil end)
 
     directives =
       [
@@ -229,7 +230,8 @@ defmodule Styler.Style.ModuleDirectives do
         aliases,
         requires
       ]
-      |> Enum.concat()
+      |> Stream.concat()
+      |> Enum.map(&dealias(&1, aliases, earliest_alias_line))
       |> Style.fix_line_numbers(List.first(nondirectives))
 
     # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
@@ -365,6 +367,36 @@ defmodule Styler.Style.ModuleDirectives do
         zipper
     end)
     |> Zipper.node()
+  end
+
+  # if a behaviour/use/import/whatever relied on an `alias` above it, de-aliasing
+  # fixes that node to have the full reference again - which is necessary since the alias will be moving below it
+  defp dealias(node, aliases, earliest_alias_line)
+  # skip alias/require nodes, as they don't need dealiasing
+  defp dealias({:alias, _, _} = ast, _, _), do: ast
+  defp dealias({:require, _, _} = ast, _, _), do: ast
+  # no aliases, so nothing to de-alias
+  defp dealias(ast, [], _), do: ast
+
+  defp dealias({_, meta, _} = ast, aliases, earliest_alias_line) do
+    line = meta[:line]
+
+    if line < earliest_alias_line do
+      ast
+    else
+      dealiases =
+        aliases
+        |> Enum.filter(fn {_, meta, _} -> meta[:line] < line end)
+        |> Map.new(fn {:alias, _, [{:__aliases__, _, aliases}]} -> {List.last(aliases), aliases} end)
+
+      Macro.prewalk(ast, fn
+        {:__aliases__, meta, [first | rest]} = ast ->
+          if dealias = dealiases[first], do: {:__aliases__, meta, dealias ++ rest}, else: ast
+
+        ast ->
+          ast
+      end)
+    end
   end
 
   defp expand_and_sort(directives) do
