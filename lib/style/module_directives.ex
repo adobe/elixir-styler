@@ -249,20 +249,27 @@ defmodule Styler.Style.ModuleDirectives do
       if line < min_alias_line do
         ast
       else
-        dealiases =
-          aliases
-          |> Enum.filter(fn {_, meta, _} -> meta[:line] < line end)
-          |> build_dealiasing_map()
+        dealiases = aliases |> Enum.filter(fn {_, meta, _} -> meta[:line] < line end) |> build_dealiasing_map()
 
         Macro.prewalk(ast, fn
-          {:__aliases__, meta, [first | rest]} = ast ->
-            if dealias = dealiases[first], do: {:__aliases__, meta, dealias ++ rest}, else: ast
-
-          ast ->
-            ast
+          {:__aliases__, meta, modules} -> {:__aliases__, meta, do_dealias(modules, dealiases)}
+          ast -> ast
         end)
       end
     end)
+  end
+
+  # if the list of modules is itself already aliased, dealias it with the compound alias
+  # given:
+  #   alias Foo.Bar
+  #   Bar.Baz.Bop.baz()
+  #
+  # lifting Bar.Baz.Bop should result in:
+  #   alias Foo.Bar
+  #   alias Foo.Bar.Baz.Bop
+  #   Bop.baz()
+  defp do_dealias([first | rest] = modules, dealiases) do
+    if dealias = dealiases[first], do: dealias ++ rest, else: modules
   end
 
   defp lift_aliases(aliases, requires, nondirectives) do
@@ -274,24 +281,14 @@ defmodule Styler.Style.ModuleDirectives do
       # This is a silly hack that helps comments stay put.
       # the `cap_line` algo was designed to handle high-line stuff moving up into low line territory, so we set our
       # new node to have an abritrarily high line annnnd comments behave! i think.
-      line = 99_999
+      m = [line: 999_999]
 
-      new_aliases =
-        Enum.map(liftable, fn [first | rest] = modules ->
-          # if there's an existing alias for this alias, make sure the new one we make is the compound alias
-          # ex:
-          # alias Foo.Bar
-          # Bar.Baz.Bop <--- should lift to `Foo.Bar.Baz.Bop`
-          modules =
-            case dealiasing_map[first] do
-              nil -> modules
-              parent_alias -> parent_alias ++ rest
-            end
+      aliases =
+        liftable
+        |> Enum.map(&{:alias, m, [{:__aliases__, [{:last, m} | m], do_dealias(&1, dealiasing_map)}]})
+        |> Enum.concat(aliases)
+        |> sort()
 
-          {:alias, [line: line], [{:__aliases__, [last: [line: line], line: line], modules}]}
-        end)
-
-      aliases = sort(aliases ++ new_aliases)
       # lifting could've given us a new order
       requires = requires |> do_lift_aliases(liftable) |> sort()
       nondirectives = do_lift_aliases(nondirectives, liftable)
