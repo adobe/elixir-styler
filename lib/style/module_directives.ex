@@ -209,29 +209,22 @@ defmodule Styler.Style.ModuleDirectives do
         {directive, _, _} -> directive
       end)
 
-    shortdocs = directives[:"@shortdoc"] || []
-    moduledocs = directives[:"@moduledoc"] || List.wrap(moduledoc)
-    behaviours = expand_and_sort(directives[:"@behaviour"] || [])
-    uses = (directives[:use] || []) |> Enum.flat_map(&expand_directive/1) |> Style.reset_newlines()
-    imports = expand_and_sort(directives[:import] || [])
-    aliases = expand_and_sort(directives[:alias] || [])
-    requires = expand_and_sort(directives[:require] || [])
-
+    aliases = directives[:alias] |> List.wrap() |> expand() |> sort()
+    requires = directives[:require] |> List.wrap() |> expand() |> sort()
     {aliases, requires, nondirectives} = lift_aliases(aliases, requires, nondirectives)
-    earliest_alias_line = aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.min(fn -> nil end)
+    min_alias_line = aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.min(fn -> nil end)
 
     directives =
       [
-        shortdocs,
-        moduledocs,
-        behaviours,
-        uses,
-        imports,
+        directives[:"@shortdoc"] |> List.wrap() |> dealias(aliases, min_alias_line),
+        directives[:"@moduledoc"] |> Kernel.||(moduledoc) |> List.wrap() |> dealias(aliases, min_alias_line),
+        directives[:"@behaviour"] |> List.wrap() |> dealias(aliases, min_alias_line) |> sort(),
+        directives[:use] |> List.wrap() |> expand() |> dealias(aliases, min_alias_line) |> Style.reset_newlines(),
+        directives[:import] |> List.wrap() |> expand() |> dealias(aliases, min_alias_line) |> sort(),
         aliases,
         requires
       ]
       |> Stream.concat()
-      |> Enum.map(&dealias(&1, aliases, earliest_alias_line))
       |> Style.fix_line_numbers(List.first(nondirectives))
 
     # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
@@ -247,17 +240,34 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
+  defp dealias(directives, [], _), do: directives
+
+  defp dealias(directives, aliases, min_alias_line) do
+    Enum.map(directives, fn {_, meta, _} = ast ->
+      line = meta[:line]
+
+      if line < min_alias_line do
+        ast
+      else
+        dealiases =
+          aliases
+          |> Enum.filter(fn {_, meta, _} -> meta[:line] < line end)
+          |> build_dealiasing_map()
+
+        Macro.prewalk(ast, fn
+          {:__aliases__, meta, [first | rest]} = ast ->
+            if dealias = dealiases[first], do: {:__aliases__, meta, dealias ++ rest}, else: ast
+
+          ast ->
+            ast
+        end)
+      end
+    end)
+  end
+
   defp lift_aliases(aliases, requires, nondirectives) do
-    aliasing =
-      Map.new(aliases, fn
-        {:alias, _, [{:__aliases__, _, aliases}]} -> {List.last(aliases), aliases}
-        {:alias, _, [{:__aliases__, _, aliases}, [{_as, {:__aliases__, _, [as]}}]]} -> {as, aliases}
-        # `alias __MODULE__` or other oddities
-        {:alias, _, _} -> {nil, nil}
-      end)
-
-    excluded = aliasing |> Map.keys() |> MapSet.new() |> MapSet.union(Styler.Config.get(:lifting_excludes))
-
+    dealiasing_map = build_dealiasing_map(aliases)
+    excluded = dealiasing_map |> Map.keys() |> MapSet.new() |> MapSet.union(Styler.Config.get(:lifting_excludes))
     liftable = find_liftable_aliases(requires ++ nondirectives, excluded)
 
     if Enum.any?(liftable) do
@@ -269,8 +279,11 @@ defmodule Styler.Style.ModuleDirectives do
       new_aliases =
         Enum.map(liftable, fn [first | rest] = modules ->
           # if there's an existing alias for this alias, make sure the new one we make is the compound alias
+          # ex:
+          # alias Foo.Bar
+          # Bar.Baz.Bop <--- should lift to `Foo.Bar.Baz.Bop`
           modules =
-            case aliasing[first] do
+            case dealiasing_map[first] do
               nil -> modules
               parent_alias -> parent_alias ++ rest
             end
@@ -278,8 +291,9 @@ defmodule Styler.Style.ModuleDirectives do
           {:alias, [line: line], [{:__aliases__, [last: [line: line], line: line], modules}]}
         end)
 
-      aliases = expand_and_sort(aliases ++ new_aliases)
-      requires = do_lift_aliases(requires, liftable)
+      aliases = sort(aliases ++ new_aliases)
+      # lifting could've given us a new order
+      requires = requires |> do_lift_aliases(liftable) |> sort()
       nondirectives = do_lift_aliases(nondirectives, liftable)
       {aliases, requires, nondirectives}
     else
@@ -369,46 +383,7 @@ defmodule Styler.Style.ModuleDirectives do
     |> Zipper.node()
   end
 
-  # if a behaviour/use/import/whatever relied on an `alias` above it, de-aliasing
-  # fixes that node to have the full reference again - which is necessary since the alias will be moving below it
-  defp dealias(node, aliases, earliest_alias_line)
-  # skip alias/require nodes, as they don't need dealiasing
-  defp dealias({:alias, _, _} = ast, _, _), do: ast
-  defp dealias({:require, _, _} = ast, _, _), do: ast
-  # no aliases, so nothing to de-alias
-  defp dealias(ast, [], _), do: ast
-
-  defp dealias({_, meta, _} = ast, aliases, earliest_alias_line) do
-    line = meta[:line]
-
-    if line < earliest_alias_line do
-      ast
-    else
-      dealiases =
-        aliases
-        |> Enum.filter(fn {_, meta, _} -> meta[:line] < line end)
-        |> Map.new(fn {:alias, _, [{:__aliases__, _, aliases}]} -> {List.last(aliases), aliases} end)
-
-      Macro.prewalk(ast, fn
-        {:__aliases__, meta, [first | rest]} = ast ->
-          if dealias = dealiases[first], do: {:__aliases__, meta, dealias ++ rest}, else: ast
-
-        ast ->
-          ast
-      end)
-    end
-  end
-
-  defp expand_and_sort(directives) do
-    # sorting is done with `downcase` to match Credo
-    directives
-    |> Enum.flat_map(&expand_directive/1)
-    |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
-    |> Enum.uniq_by(&elem(&1, 1))
-    |> List.keysort(1)
-    |> Enum.map(&elem(&1, 0))
-    |> Style.reset_newlines()
-  end
+  defp expand(directives), do: Enum.flat_map(directives, &expand_directive/1)
 
   # Deletes root level aliases ala (`alias Foo` -> ``)
   defp expand_directive({:alias, _, [{:__aliases__, _, [_]}]}), do: []
@@ -431,4 +406,23 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   defp expand_directive(other), do: [other]
+
+  defp sort(directives) do
+    # sorting is done with `downcase` to match Credo
+    directives
+    |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
+    |> Enum.uniq_by(&elem(&1, 1))
+    |> List.keysort(1)
+    |> Enum.map(&elem(&1, 0))
+    |> Style.reset_newlines()
+  end
+
+  defp build_dealiasing_map(aliases) do
+    Map.new(aliases, fn
+      {:alias, _, [{:__aliases__, _, aliases}]} -> {List.last(aliases), aliases}
+      {:alias, _, [{:__aliases__, _, aliases}, [{_as, {:__aliases__, _, [as]}}]]} -> {as, aliases}
+      # `alias __MODULE__` or other oddities
+      {:alias, _, _} -> {nil, nil}
+    end)
+  end
 end

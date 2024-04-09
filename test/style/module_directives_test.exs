@@ -561,6 +561,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
         @behaviour C
         alias Z.X.C
         use SomeMacro, with: C
+        alias A.B, as: D
+        import D
       end
       """,
       """
@@ -570,8 +572,10 @@ defmodule Styler.Style.ModuleDirectivesTest do
 
         use SomeMacro, with: Z.X.C
 
+        import A.B
         import D.F.C
 
+        alias A.B, as: D
         alias A.B.C
         alias D.F.C
         alias G.H.C

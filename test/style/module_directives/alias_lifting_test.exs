@@ -178,6 +178,30 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
     )
   end
 
+  test "re-sorts requires after lifting" do
+    assert_style(
+      """
+      defmodule A do
+        require A.B.C
+        require B
+
+        A.B.C.foo()
+      end
+      """,
+      """
+      defmodule A do
+        @moduledoc false
+        alias A.B.C
+
+        require B
+        require C
+
+        C.foo()
+      end
+      """
+    )
+  end
+
   describe "comments stay put" do
     test "comments before alias stanza" do
       assert_style(
@@ -270,6 +294,17 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
 
         A.B.C.f()
         A.B.C.f()
+        X.Y.C.f()
+      end
+      """
+
+      assert_style """
+      defmodule NuhUh do
+        @moduledoc false
+
+        A.B.C.f()
+        A.B.C.f()
+        X.Y.C.f()
         X.Y.C.f()
       end
       """
