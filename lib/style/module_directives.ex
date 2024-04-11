@@ -90,10 +90,11 @@ defmodule Styler.Style.ModuleDirectives do
 
   alias Styler.Style
   alias Styler.Zipper
+  alias Styler.Dealias
 
   @directives ~w(alias import require use)a
   @callback_attrs ~w(before_compile after_compile after_verify)a
-  @attr_directives ~w(moduledoc shortdoc behaviour)a ++ @callback_attrs
+  @attr_directives ~w(moduledoc shortdoc behaviour)a
   @defstruct ~w(schema embedded_schema defstruct)a
 
   @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
@@ -189,40 +190,68 @@ defmodule Styler.Style.ModuleDirectives do
   # a dynamic module name, like `defmodule my_variable do ... end`
   defp moduledoc(_), do: nil
 
+  @acc %{
+    "@shortdoc": [],
+    "@moduledoc": [],
+    "@behaviour": [],
+    use: [],
+    import: [],
+    alias: [],
+    require: [],
+    nondirectives: [],
+    dealiases: %{}
+  }
+
   defp organize_directives(parent, moduledoc \\ nil) do
-    {directives, nondirectives} =
+    acc =
       parent
       |> Zipper.children()
-      |> Enum.split_with(fn
-        {:@, _, [{attr, _, _}]} -> attr in @attr_directives
-        {directive, _, _} -> directive in @directives
-        _ -> false
-      end)
+      |> Enum.reduce(@acc, fn
+        {:@, _, [{attr, _, _}]} = ast, acc ->
+          key =
+            cond do
+              # TODO drop for a 1.0 release?
+              # the order of callbacks relative to use can matter if the use is also doing callbacks
+              # looking back, this is probably a hack to support one person's weird hackery 🤣
+              attr in @callback_attrs -> :use
+              attr in @attr_directives -> :"@#{attr}"
+              true -> :nondirectives
+            end
+          # both callback and attr_directives are moved above aliases, so we need to dealias them
+          ast = if key == :nondirectives, do: ast, else: Dealias.apply(acc.dealiases, ast)
+          %{acc | key => [ast | acc[key]]}
 
-    directives =
-      Enum.group_by(directives, fn
-        # the order of callbacks relative to use can matter if the use is also doing callbacks
-        # looking back, this is probably a hack to support one person's weird hackery 🤣
-        # TODO drop for a 1.0 release?
-        {:@, _, [{callback, _, _}]} when callback in @callback_attrs -> :use
-        {:@, _, [{attr_name, _, _}]} -> :"@#{attr_name}"
-        {directive, _, _} -> directive
-      end)
+        {directive, _, _} = ast, acc when directive in @directives ->
+          ast = expand(ast)
+          # import and used get hoisted above aliases, so need to dealias
+          ast = if directive in ~w(import use)a, do: Dealias.apply(acc.dealiases, ast), else: ast
+          dealiases = if directive == :alias, do: Dealias.put(acc.dealiases, ast), else: acc.dealiases
+          # the reverse accounts for `expand` putting things in reading order, whereas we're accumulating in reverse
+          %{acc | directive => Enum.reverse(ast, acc[directive]), :dealiases => dealiases}
 
-    aliases = directives[:alias] |> List.wrap() |> expand() |> sort()
-    requires = directives[:require] |> List.wrap() |> expand() |> sort()
-    {aliases, requires, nondirectives} = lift_aliases(aliases, requires, nondirectives)
-    min_alias_line = aliases |> Stream.map(fn {_, meta, _} -> meta[:line] end) |> Enum.min(fn -> nil end)
+        ast, acc -> %{acc | nondirectives: [ast | acc.nondirectives]}
+      end)
+      # Reversing once we're done accumulating since `reduce`ing into list accs means you're reversed!
+      |> Map.new(fn
+        {:"@moduledoc", []} -> {:"@moduledoc", List.wrap(moduledoc)}
+        {:use, uses} -> {:use, uses |> Enum.reverse() |> Style.reset_newlines()}
+        {directive, to_sort} when directive in ~w(@behaviour import alias require)a -> {directive, sort(to_sort)}
+        {:dealiases, d} -> {:dealiases, d}
+        {k, v} -> {k, Enum.reverse(v)}
+      end)
+      |> lift_aliases()
+
+    nondirectives = acc.nondirectives
 
     directives =
       [
-        directives[:"@shortdoc"] |> List.wrap() |> dealias(aliases, min_alias_line),
-        directives[:"@moduledoc"] |> Kernel.||(moduledoc) |> List.wrap() |> dealias(aliases, min_alias_line),
-        directives[:"@behaviour"] |> List.wrap() |> dealias(aliases, min_alias_line) |> sort(),
-        directives[:use] |> List.wrap() |> expand() |> dealias(aliases, min_alias_line) |> Style.reset_newlines(),
-        directives[:import] |> List.wrap() |> expand() |> dealias(aliases, min_alias_line) |> sort(),
-        aliases,
-        requires
+        acc."@shortdoc",
+        acc."@moduledoc",
+        acc."@behaviour",
+        acc.use,
+        acc.import,
+        acc.alias,
+        acc.require
       ]
       |> Stream.concat()
       |> Style.fix_line_numbers(List.first(nondirectives))
@@ -240,41 +269,11 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  defp dealias(directives, [], _), do: directives
-
-  defp dealias(directives, aliases, min_alias_line) do
-    Enum.map(directives, fn {_, meta, _} = ast ->
-      line = meta[:line]
-
-      if line < min_alias_line do
-        ast
-      else
-        dealiases = aliases |> Enum.filter(fn {_, meta, _} -> meta[:line] < line end) |> build_dealiasing_map()
-
-        Macro.prewalk(ast, fn
-          {:__aliases__, meta, modules} -> {:__aliases__, meta, do_dealias(modules, dealiases)}
-          ast -> ast
-        end)
-      end
-    end)
-  end
-
-  # if the list of modules is itself already aliased, dealias it with the compound alias
-  # given:
-  #   alias Foo.Bar
-  #   Bar.Baz.Bop.baz()
-  #
-  # lifting Bar.Baz.Bop should result in:
-  #   alias Foo.Bar
-  #   alias Foo.Bar.Baz.Bop
-  #   Bop.baz()
-  defp do_dealias([first | rest] = modules, dealiases) do
-    if dealias = dealiases[first], do: dealias ++ rest, else: modules
-  end
-
-  defp lift_aliases(aliases, requires, nondirectives) do
-    dealiasing_map = build_dealiasing_map(aliases)
-    excluded = dealiasing_map |> Map.keys() |> MapSet.new() |> MapSet.union(Styler.Config.get(:lifting_excludes))
+  defp lift_aliases(%{alias: aliases, require: requires, nondirectives: nondirectives} = acc) do
+    # we can't use the dealias map built into state as that's what things look like before sorting
+    # now that we've sorted, it could be different!
+    dealiases = Dealias.new(aliases)
+    excluded = dealiases |> Map.keys() |> Enum.into(Styler.Config.get(:lifting_excludes))
     liftable = find_liftable_aliases(requires ++ nondirectives, excluded)
 
     if Enum.any?(liftable) do
@@ -285,16 +284,16 @@ defmodule Styler.Style.ModuleDirectives do
 
       aliases =
         liftable
-        |> Enum.map(&{:alias, m, [{:__aliases__, [{:last, m} | m], do_dealias(&1, dealiasing_map)}]})
+        |> Enum.map(&Dealias.apply(dealiases, {:alias, m, [{:__aliases__, [{:last, m} | m], &1}]}))
         |> Enum.concat(aliases)
         |> sort()
 
       # lifting could've given us a new order
       requires = requires |> do_lift_aliases(liftable) |> sort()
       nondirectives = do_lift_aliases(nondirectives, liftable)
-      {aliases, requires, nondirectives}
+      %{acc |  alias: aliases,  require: requires,  nondirectives: nondirectives}
     else
-      {aliases, requires, nondirectives}
+      acc
     end
   end
 
@@ -309,7 +308,7 @@ defmodule Styler.Style.ModuleDirectives do
         lifts =
           case args do
             [{:__aliases__, _, aliases} | _] when defx == :defmodule ->
-              Map.put(lifts, List.last(aliases), {:collision_with_submodule, false})
+              Map.put(lifts, List.last(aliases), :collision_with_submodule)
 
             _ ->
               lifts
@@ -332,7 +331,7 @@ defmodule Styler.Style.ModuleDirectives do
               {^aliases, _} -> {aliases, true}
               # if we have `Foo.Bar.Baz` and `Foo.Bar.Bop.Baz` both not aliased, we'll create a collision by lifting both
               # grouping by last alias lets us detect these collisions
-              _ -> {:collision_with_last, false}
+              _ -> :collision_with_last
             end)
           end
 
@@ -346,7 +345,7 @@ defmodule Styler.Style.ModuleDirectives do
         #   C.foo()
         #
         # lifting A.B.C would create a collision with C.
-        {:skip, zipper, Map.put(lifts, first, {:collision_with_first, false})}
+        {:skip, zipper, Map.put(lifts, first, :collision_with_first)}
 
       zipper, lifts ->
         {:cont, zipper, lifts}
@@ -380,29 +379,27 @@ defmodule Styler.Style.ModuleDirectives do
     |> Zipper.node()
   end
 
-  defp expand(directives), do: Enum.flat_map(directives, &expand_directive/1)
-
   # Deletes root level aliases ala (`alias Foo` -> ``)
-  defp expand_directive({:alias, _, [{:__aliases__, _, [_]}]}), do: []
+  defp expand({:alias, _, [{:__aliases__, _, [_]}]}), do: []
 
   # import Foo.{Bar, Baz}
   # =>
   # import Foo.Bar
   # import Foo.Baz
-  defp expand_directive({directive, _, [{{:., _, [{:__aliases__, _, module}, :{}]}, _, right}]}) do
+  defp expand({directive, _, [{{:., _, [{:__aliases__, _, module}, :{}]}, _, right}]}) do
     Enum.map(right, fn {_, meta, segments} ->
       {directive, meta, [{:__aliases__, [line: meta[:line]], module ++ segments}]}
     end)
   end
 
   # alias __MODULE__.{Bar, Baz}
-  defp expand_directive({directive, _, [{{:., _, [{:__MODULE__, _, _} = module, :{}]}, _, right}]}) do
+  defp expand({directive, _, [{{:., _, [{:__MODULE__, _, _} = module, :{}]}, _, right}]}) do
     Enum.map(right, fn {_, meta, segments} ->
       {directive, meta, [{:__aliases__, [line: meta[:line]], [module | segments]}]}
     end)
   end
 
-  defp expand_directive(other), do: [other]
+  defp expand(other), do: [other]
 
   defp sort(directives) do
     # sorting is done with `downcase` to match Credo
@@ -412,14 +409,5 @@ defmodule Styler.Style.ModuleDirectives do
     |> List.keysort(1)
     |> Enum.map(&elem(&1, 0))
     |> Style.reset_newlines()
-  end
-
-  defp build_dealiasing_map(aliases) do
-    Map.new(aliases, fn
-      {:alias, _, [{:__aliases__, _, aliases}]} -> {List.last(aliases), aliases}
-      {:alias, _, [{:__aliases__, _, aliases}, [{_as, {:__aliases__, _, [as]}}]]} -> {as, aliases}
-      # `alias __MODULE__` or other oddities
-      {:alias, _, _} -> {nil, nil}
-    end)
   end
 end
