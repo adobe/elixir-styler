@@ -206,13 +206,6 @@ defmodule Styler.Style.ModuleDirectives do
     acc =
       parent
       |> Zipper.children()
-      # @TODO if i switch this to a reduce, i can keep information about whether or not i saw
-      # - alias before short/module/behaviour/use/import (can get min_alias_line in that way)
-      # - non-callback, non short/moduledoc/behaviour attr before any directives
-      # and then use that information to conditionally dealias, conditionally de-attribute,
-      # holy crap actually, i can keep track of aliases seen so far, and whenever i see a pre-alias node,
-      # immediately call de-alias on it!
-      # i believe i could simultaneously find liftable aliases?
       |> Enum.reduce(@acc, fn
         {:@, _, [{attr, _, _}]} = ast, acc ->
           key =
