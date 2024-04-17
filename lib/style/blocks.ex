@@ -305,11 +305,9 @@ defmodule Styler.Style.Blocks do
 
   defp max_line(ast) do
     {_, max_line} =
-      ast
-      |> Zipper.zip()
-      |> Zipper.traverse(0, fn
-        {{_, meta, _}, _} = z, max -> {z, max(meta[:line] || max, max)}
-        z, max -> {z, max}
+      Macro.prewalk(ast, 0, fn
+        {_, meta, _} = ast, max -> {ast, max(meta[:line] || max, max)}
+        ast, max -> {ast, max}
       end)
 
     max_line

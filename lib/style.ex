@@ -57,12 +57,7 @@ defmodule Styler.Style do
   end
 
   @doc "Traverses an ast node, updating all nodes' meta with `meta_fun`"
-  def update_all_meta(node, meta_fun) do
-    node
-    |> Zipper.zip()
-    |> Zipper.traverse(fn zipper -> Zipper.update(zipper, &Macro.update_meta(&1, meta_fun)) end)
-    |> Zipper.root()
-  end
+  def update_all_meta(node, meta_fun), do: Macro.prewalk(node, &Macro.update_meta(&1, meta_fun))
 
   # useful for comparing AST without meta (line numbers, etc) interfering
   def without_meta(ast), do: update_all_meta(ast, fn _ -> nil end)

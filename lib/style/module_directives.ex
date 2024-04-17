@@ -88,9 +88,9 @@ defmodule Styler.Style.ModuleDirectives do
   """
   @behaviour Styler.Style
 
+  alias Styler.Dealias
   alias Styler.Style
   alias Styler.Zipper
-  alias Styler.Dealias
 
   @directives ~w(alias import require use)a
   @callback_attrs ~w(before_compile after_compile after_verify)a
@@ -217,6 +217,7 @@ defmodule Styler.Style.ModuleDirectives do
               attr in @attr_directives -> :"@#{attr}"
               true -> :nondirectives
             end
+
           # both callback and attr_directives are moved above aliases, so we need to dealias them
           ast = if key == :nondirectives, do: ast, else: Dealias.apply(acc.dealiases, ast)
           %{acc | key => [ast | acc[key]]}
@@ -229,7 +230,8 @@ defmodule Styler.Style.ModuleDirectives do
           # the reverse accounts for `expand` putting things in reading order, whereas we're accumulating in reverse
           %{acc | directive => Enum.reverse(ast, acc[directive]), :dealiases => dealiases}
 
-        ast, acc -> %{acc | nondirectives: [ast | acc.nondirectives]}
+        ast, acc ->
+          %{acc | nondirectives: [ast | acc.nondirectives]}
       end)
       # Reversing once we're done accumulating since `reduce`ing into list accs means you're reversed!
       |> Map.new(fn
@@ -291,7 +293,7 @@ defmodule Styler.Style.ModuleDirectives do
       # lifting could've given us a new order
       requires = requires |> do_lift_aliases(liftable) |> sort()
       nondirectives = do_lift_aliases(nondirectives, liftable)
-      %{acc |  alias: aliases,  require: requires,  nondirectives: nondirectives}
+      %{acc | alias: aliases, require: requires, nondirectives: nondirectives}
     else
       acc
     end

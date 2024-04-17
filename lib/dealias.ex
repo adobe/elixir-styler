@@ -29,6 +29,7 @@ defmodule Styler.Dealias do
       ast -> ast
     end)
   end
+
   # if the list of modules is itself already aliased, dealias it with the compound alias
   # given:
   #   alias Foo.Bar

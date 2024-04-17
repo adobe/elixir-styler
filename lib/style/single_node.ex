@@ -28,8 +28,6 @@ defmodule Styler.Style.SingleNode do
 
   @behaviour Styler.Style
 
-  alias Styler.Zipper
-
   @closing_delimiters [~s|"|, ")", "}", "|", "]", "'", ">", "/"]
 
   # `|> Timex.now()` => `|> Timex.now()`
@@ -185,18 +183,15 @@ defmodule Styler.Style.SingleNode do
   defp rewrite_arrows(macros_or_something_crazy_oh_no_abooort), do: macros_or_something_crazy_oh_no_abooort
 
   defp put_matches_on_right(ast) do
-    ast
-    |> Zipper.zip()
-    |> Zipper.traverse(fn
+    Macro.prewalk(ast, fn
       # `_ = var ->` => `var ->`
-      {{:=, _, [{:_, _, nil}, var]}, _} = zipper -> Zipper.replace(zipper, var)
+      {:=, _, [{:_, _, nil}, var]} -> var
       # `var = _ ->` => `var ->`
-      {{:=, _, [var, {:_, _, nil}]}, _} = zipper -> Zipper.replace(zipper, var)
+      {:=, _, [var, {:_, _, nil}]} -> var
       # `var = *match*`  -> `*match -> var`
-      {{:=, m, [{_, _, nil} = var, match]}, _} = zipper -> Zipper.replace(zipper, {:=, m, [match, var]})
-      zipper -> zipper
+      {:=, m, [{_, _, nil} = var, match]} -> {:=, m, [match, var]}
+      node -> node
     end)
-    |> Zipper.node()
   end
 
   defp delimit(token), do: token |> String.to_charlist() |> remove_underscores([]) |> add_underscores([])
