@@ -2,6 +2,12 @@
 
 ## main
 
+## 1.0.0-alpha.0
+
+An alpha! You probably want to hold off for the beta, but feel free to take this for a spin and give feedback!
+
+Documentation to come.
+
 ### Improvements
 
 #### Alias Lifting
@@ -32,6 +38,8 @@ defmodule A do
   end
 end
 ```
+
+To exclude modules ending in `.Foo` from being lifted, add `styler: [alias_lifting_exclude: [Foo]]` to your `.formatter.exs`
 
 #### Mix Config File Organization
 
