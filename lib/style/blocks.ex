@@ -121,7 +121,7 @@ defmodule Styler.Style.Blocks do
         # disable keyword `, do:` since there will be multiple statements in the body
         with_meta =
           if Enum.any?(postroll),
-            do: Keyword.merge(with_meta, do: [line: with_meta[:line]], end: [line: max_line(children) + 1]),
+            do: Keyword.merge(with_meta, do: [line: with_meta[:line]], end: [line: Style.max_line(children) + 1]),
             else: with_meta
 
         with_children = Enum.reverse(reversed_clauses, [[{do_block, do_body} | elses]])
@@ -186,7 +186,7 @@ defmodule Styler.Style.Blocks do
         {:cont, Zipper.replace(zipper, {:if, m, [head, [do_block]]}), ctx}
 
       [head, [do_, else_]] ->
-        if max_line(do_) > max_line(else_) do
+        if Style.max_line(do_) > Style.max_line(else_) do
           # we inverted the if/else blocks of this `if` statement in a previous pass (due to negators or unless)
           # shift comments etc to make it happy now
           if_ast(zipper, head, do_, else_, ctx)
@@ -268,8 +268,8 @@ defmodule Styler.Style.Blocks do
     do_body = Macro.update_meta(do_body, &Keyword.delete(&1, :end_of_expression))
     else_body = Macro.update_meta(else_body, &Keyword.delete(&1, :end_of_expression))
 
-    max_do_line = max_line(do_body)
-    max_else_line = max_line(else_body)
+    max_do_line = Style.max_line(do_body)
+    max_else_line = Style.max_line(else_body)
     end_line = max(max_do_line, max_else_line)
 
     # Change ast meta and comment lines to fit the `if` ast
@@ -301,16 +301,6 @@ defmodule Styler.Style.Blocks do
     zipper
     |> Zipper.replace({:if, [do: [line: line], end: [line: end_line], line: line], [head, [do_, else_]]})
     |> run(%{ctx | comments: comments})
-  end
-
-  defp max_line(ast) do
-    {_, max_line} =
-      Macro.prewalk(ast, 0, fn
-        {_, meta, _} = ast, max -> {ast, max(meta[:line] || max, max)}
-        ast, max -> {ast, max}
-      end)
-
-    max_line
   end
 
   defp invert({:!=, m, [a, b]}), do: {:==, m, [a, b]}

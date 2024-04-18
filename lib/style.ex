@@ -229,4 +229,15 @@ defmodule Styler.Style do
       do: do_fix_lines(nodes, max, [shift_line(node, max - line - 2) | acc]),
       else: do_fix_lines(nodes, line, [node | acc])
   end
+
+  # @TODO can i shortcut and just return end_of_expression[:line] when it's available?
+  def max_line(ast) do
+    {_, max_line} =
+      Macro.prewalk(ast, 0, fn
+        {_, meta, _} = ast, max -> {ast, max(meta[:line] || max, max)}
+        ast, max -> {ast, max}
+      end)
+
+    max_line
+  end
 end

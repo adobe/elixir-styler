@@ -261,8 +261,8 @@ defmodule Styler.Zipper do
   end
 
   @doc """
-  Returns the previous zipper in depth-first pre-order. If it's already at
-  the end, it returns nil.
+  Returns the previous zipper in depth-first pre-order.
+  Returns nil if the tree is already at the top.
   """
   @spec prev(zipper) :: zipper | nil
   def prev(zipper) do

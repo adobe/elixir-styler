@@ -218,15 +218,11 @@ defmodule Styler.Style.ConfigsTest do
         import Config
 
         dog_sound = :woof
-        # z is best when configged w/ dog sounds
-        # dog sounds ftw
 
         # this is my big c
         # comment i'd like to leave c
         # about c
         c = :c
-        # Multiline comment
-        # comment in a block
 
         # this is my big my_app
         # comment i'd like to leave my_app
@@ -244,8 +240,12 @@ defmodule Styler.Style.ConfigsTest do
 
         config :a,
           a_longer_name: :a_longer_value,
+          # Multiline comment
+          # comment in a block
           multiple_things: :that_could_all_fit_on_one_line_though
 
+        # z is best when configged w/ dog sounds
+        # dog sounds ftw
         config :z, :x, dog_sound
 
         config my_app, :nooooooooo
@@ -260,6 +260,93 @@ defmodule Styler.Style.ConfigsTest do
         config :a, :b, a_sad_overwrite_that_will_be_hard_to_notice
 
         config :z, a: :meow
+        """
+      )
+    end
+
+    test "comments, more nuanced" do
+      assert_style(
+        """
+        # start config
+        # import
+        import Config
+
+        # random noise
+
+        config :c,
+          # ca
+          ca: :ca,
+          # cb 1
+          # cb 2
+          cb: :cb,
+          cc: :cc,
+          # cd
+          cd: :cd
+
+        # yeehaw
+        config :b, :yeehaw, :meow
+        config :b, :apples, :oranges
+        config :b,
+          a: :b,
+          # bcd
+          c: :d,
+          e: :f
+
+        # some junk after b, idk
+
+        config :a,
+          # aa
+          aa: :aa,
+          # ab 1
+          # ab 2
+          ab: :ab,
+          ac: :ac,
+          # ad
+          ad: :cd
+
+        # end of config
+        """,
+        """
+        # start config
+        # import
+        import Config
+
+        # random noise
+
+        config :a,
+          # aa
+          aa: :aa,
+          # ab 1
+          # ab 2
+          ab: :ab,
+          ac: :ac,
+          # ad
+          ad: :cd
+
+        config :b, :apples, :oranges
+
+        # yeehaw
+        config :b, :yeehaw, :meow
+
+        config :b,
+          a: :b,
+          # bcd
+          c: :d,
+          e: :f
+
+        config :c,
+          # some junk after b, idk
+
+          # ca
+          ca: :ca,
+          # cb 1
+          # cb 2
+          cb: :cb,
+          cc: :cc,
+          # cd
+          cd: :cd
+
+        # end of config
         """
       )
     end
