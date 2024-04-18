@@ -59,7 +59,7 @@ See the moduledoc for `Styler.Style.Configs` for more.
 * `alias`: expands aliases when moving an alias after another directive that relied on it (#137)
 * module directives: various fixes for unreported obscure crashes
 * pipes: fix a comment-shifting scenario when unpiping
-* `Timex.now/1` will no longer be rewritten to `DateTime.utc_now!/1` due to Timex accepting a wider domain of "timezones" than the stdlib (#145, h/t @ivymarkwell)
+* `Timex.now/1` will no longer be rewritten to `DateTime.now!/1` due to Timex accepting a wider domain of "timezones" than the stdlib (#145, h/t @ivymarkwell)
 
 ### Breaking Changes
 
