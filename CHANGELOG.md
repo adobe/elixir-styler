@@ -60,6 +60,7 @@ See the moduledoc for `Styler.Style.Configs` for more.
 * module directives: various fixes for unreported obscure crashes
 * pipes: fix a comment-shifting scenario when unpiping
 * `Timex.now/1` will no longer be rewritten to `DateTime.now!/1` due to Timex accepting a wider domain of "timezones" than the stdlib (#145, h/t @ivymarkwell)
+* `with`: skip nodes which (unexpectedly) do not contain a `do` body (#158, h/t @DavidB59)
 
 ### Breaking Changes
 

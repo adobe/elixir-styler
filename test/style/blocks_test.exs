@@ -716,6 +716,19 @@ defmodule Styler.Style.BlocksTest do
         """
       )
     end
+
+    test "skips with statements with no `do` block" do
+      assert_style """
+      def example_input(app_id, identifier) do
+        with {:ok, _} <- function_one(app_id, identifier)
+
+        {:ok, _} <-
+          function_two(app_id, identifier) do
+            :ok
+          end
+      end
+      """
+    end
   end
 
   test "Credo.Check.Refactor.CondStatements" do
