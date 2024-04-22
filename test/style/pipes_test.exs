@@ -504,6 +504,9 @@ defmodule Styler.Style.PipesTest do
       assert_style "a |> then(&fun/1)", "fun(a)"
       assert_style "a |> then(&fun(&1)) |> c", "a |> fun() |> c()"
       assert_style "a |> then(&fun(&1, d)) |> c", "a |> fun(d) |> c()"
+      assert_style "a |> then(&M.f(&1)) |> c", "a |> M.f() |> c()"
+
+      # Doens't rewrite multiple refs / non-starting argument
       assert_style "a |> then(&fun(d, &1)) |> c()"
       assert_style "a |> then(&fun(&1, d, %{foo: &1})) |> c()"
 
@@ -536,6 +539,25 @@ defmodule Styler.Style.PipesTest do
         a
         |> Enum.reverse()
         |> Enum.concat([bar, baz])
+        |> Enum.sum()
+        """,
+        """
+        a
+        |> Enum.reverse([bar, baz])
+        |> Enum.sum()
+        """
+      )
+    end
+
+    test "reverse/Kernel.++" do
+      assert_style("a |> Enum.reverse(bar) |> Kernel.++(foo)")
+      assert_style("a |> Enum.reverse() |> Kernel.++(foo)", "Enum.reverse(a, foo)")
+
+      assert_style(
+        """
+        a
+        |> Enum.reverse()
+        |> Kernel.++([bar, baz])
         |> Enum.sum()
         """,
         """

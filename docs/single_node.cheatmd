@@ -1,0 +1,52 @@
+# Single Node Styles
+
+## Elixir Deprecation Rewrites
+
+1.15+
+
+- Logger.warn -> Logger.warning
+- Path.safe_relative_to/2 => Path.safe_relative/2
+- Enum/String.slice/2 w/ ranges -> explicit steps
+- ~R/my_regex/ -> ~r/my_regex/
+- Date.range/2 -> Date.range/3 when decreasing range
+- IO.read/bin_read -> use `:eof` instead of `:all`
+1.16+
+- File.stream!(file, options, line_or_bytes) => File.stream!(file, line_or_bytes, options)
+
+## Literal Rewrites
+
+- string sigils
+- large base 10 numbers
+
+## Function Optimizations
+
+These apply to the piped versions as well
+
+- Enum.into(%{}/Map/Keyword/MapSet.new) -> X.new
+- Map/Keyword.merge w/ single key literal -> X.put
+- Enum.reverse(foo) ++ bar -> Enum.reverse(foo, bar)
+
+## Function Readability
+
+- Timex.now/0 -> DateTime.utc_now/0
+- DateModule.compare(x, y) == :lt/:gt -> DateModule.before?/after?
+
+## Code Readability
+- put matches on right
+- `Credo.Check.Readability.PreferImplicitTry`
+
+## Consistency
+- `def foo()` -> `def foo`
+
+## Credo Rules This Hit
+
+* Credo.Check.Consistency.ParameterPatternMatching
+* Credo.Check.Readability.LargeNumbers
+* Credo.Check.Readability.ParenthesesOnZeroArityDefs
+* Credo.Check.Readability.PreferImplicitTry
+* Credo.Check.Readability.StringSigils
+* Credo.Check.Readability.WithSingleClause
+* Credo.Check.Refactor.CaseTrivialMatches
+* Credo.Check.Refactor.CondStatements
+* Credo.Check.Refactor.RedundantWithClauseResult
+* Credo.Check.Refactor.WithClauses
