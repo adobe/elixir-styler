@@ -44,6 +44,11 @@ These apply to the piped versions as well
 
 - File.stream!(file, options, line_or_bytes) => File.stream!(file, line_or_bytes, options)
 
+### Function Definitions
+
+- Shrink multi-line function defs
+- Put assignments on the right
+
 ## Module Directives (`use`, `import`, `alias`, `require`, ...)
 
 ## Mix Configs
@@ -60,6 +65,36 @@ Once a file is detected as a mix config, its `config/2,3` stanzas are grouped an
 - group config stanzas separated by assignments (`x = y`) together
 - sort each group according to erlang term sorting
 - move all existing assignments between the config stanzas to above the stanzas (without changing their ordering)
+
+## Control Flow Structures (aka "Blocks": `case`, `if`, `unless`, `cond`, `with`)
+
+### `case`
+
+- rewrite to `if` for `true/false`, `true/_`, `false/true`
+
+
+### `with`
+
+`with` great power comes a great responsibility. don't use `with` when another (simpler!) "Control Flow Structure"
+
+- single statement `with` with `else` clauses is rewritten to `case` (which can be further rewritten to an `if`!)
+- move non `<-` out of the head and into preroll or body
+- fully replace with statement with normal code as
+- drop redundant identity else clause `else: (error -> error)` (also more complex matches, ala `{:error, error} -> {:error, error}`)
+- Credo.Check.Refactor.RedundantWithClauseResult
+
+### `cond`
+- Credo.Check.Refactor.CondStatements
+
+### `if`/`unless`
+
+if/unless often looks to see if the root of the statement is a "negator", defined as one of the following operators: `:!, :not, :!=, :!==`. We always try to rewrite if/unless statements to not be negated, using the inverse construct when appropriate (but we'll never write an unless with an `else`)
+
+- repeated negators (`!!`) are removed
+- negated if/unless without an `else` are inverted to unless/if (this is done recursively until 0 or 1 negations remain)
+- `unless` with `else` are inverted to negated `if` statements
+- negated `if` with `else` have their clauses inverted to remove the negation
+- if/unless with `else: nil` is dropped as redundant
 
 ## Pipe Chains
 
