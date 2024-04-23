@@ -1,0 +1,94 @@
+# Styles
+
+## Simple (Single Node) Styles
+
+These styles typically modify a single function call or similarly minor one-line(-ish) changes. In nerd terms, they are styles that can be executed without regard to sibling or parent nodes in the AST -- "Single Node Styles".
+
+### Literal Rewrites
+
+- string sigils
+- large base 10 numbers
+
+### Function Optimizations
+
+These apply to the piped versions as well
+
+- Enum.into(%{}/Map/Keyword/MapSet.new) -> X.new
+- Map/Keyword.merge w/ single key literal -> X.put
+- Enum.reverse(foo) ++ bar -> Enum.reverse(foo, bar)
+
+### Function Readability
+
+- Timex.now/0 -> DateTime.utc_now/0
+- DateModule.compare(x, y) == :lt/:gt -> DateModule.before?/after?
+
+### Code Readability
+- put matches on right
+- `Credo.Check.Readability.PreferImplicitTry`
+
+### Consistency
+- `def foo()` -> `def foo`
+
+### Elixir Deprecation Rewrites
+
+1.15+
+
+- Logger.warn -> Logger.warning
+- Path.safe_relative_to/2 => Path.safe_relative/2
+- Enum/String.slice/2 w/ ranges -> explicit steps
+- ~R/my_regex/ -> ~r/my_regex/
+- Date.range/2 -> Date.range/3 when decreasing range
+- IO.read/bin_read -> use `:eof` instead of `:all`
+
+1.16+
+
+- File.stream!(file, options, line_or_bytes) => File.stream!(file, line_or_bytes, options)
+
+## Module Directives (`use`, `import`, `alias`, `require`, ...)
+
+## Mix Configs
+
+Mix Config files have their config stanzas sorted. Similar to the sorting of aliases, this delivers consistency to an otherwise arbitrary world, and can even help catch bugs like configuring the same key multiple times.
+
+A file is considered a config file if
+
+1. its path matches `config/.*\.exs` or `rel/overlays/.*\.exs`
+2. the file imports Mix.Config (`import Mix.Config`)
+
+Once a file is detected as a mix config, its `config/2,3` stanzas are grouped and ordered like so:
+
+- group config stanzas separated by assignments (`x = y`) together
+- sort each group according to erlang term sorting
+- move all existing assignments between the config stanzas to above the stanzas (without changing their ordering)
+
+## Pipe Chains
+
+### Pipe Start
+
+- raw value
+- blocks are extracted to variables
+- ecto's `from` is allowed
+
+### Piped function rewrites
+
+- add parens to function calls `|> fun |>` => `|> fun() |>`
+- remove unnecessary `then/2`: `|> then(&f(&1, ...))` -> `|> f(...)`
+- add `then` when defining anon funs in pipe `|> (& &1).() |>` => `|> |> then(& &1) |>`
+
+### Piped function optimizations
+
+- tries to fit everything on one line
+- `lhs |> Enum.reverse() |> Enum.concat(enum)` => `lhs |> Enum.reverse(enum)` (also Kernel.++)
+- `lhs |> Enum.filter(filterer) |> Enum.count()` => `lhs |> Enum.count(count)`
+- `lhs |> Enum.map(mapper) |> Enum.join(joiner)` => `lhs |> Enum.map_join(joiner, mapper)`
+- `lhs |> Enum.map(mapper) |> Enum.into(empty_map)` => `lhs |> Map.new(mapper)`
+- `lhs |> Enum.map(mapper) |> Enum.into(collectable)` => `lhs |> Enum.into(collectable, mapper)`
+- `lhs |> Enum.into(%{}, ...) => lhs |> Map.new(...)`
+- `lhs |> Enum.map(mapper) |> Map.new()` => `lhs |> Map.new(mapper)` mapset & keyword also
+- `lhs |> Map.merge(%{key: value}) => lhs |> Map.put(key, value)` (keyword literal also)
+
+### Unpiping Single Pipes
+
+- notably, optimizations might turn a 2 pipe into a single pipe
+- doesn't unpipe when we're starting w/ quote
+- pretty straight forward i daresay
