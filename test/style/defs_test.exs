@@ -47,7 +47,8 @@ defmodule Styler.Style.DefsTest do
         # Socket comment
         # Params comment
         def save(%Socket{assigns: %{user: user, live_action: :new}} = initial_socket, params), do: :ok
-        """
+        """,
+        enable: :defs
       )
     end
 
@@ -93,7 +94,8 @@ defmodule Styler.Style.DefsTest do
         def save(%Socket{assigns: %{user: user, live_action: :new}} = initial_socket, params) do
           :ok
         end
-        """
+        """,
+        enable: :defs
       )
     end
 
@@ -117,7 +119,8 @@ defmodule Styler.Style.DefsTest do
 
         # Another comment for this head
         def no_body(nil, _), do: nil
-        """
+        """,
+        enable: :defs
       )
     end
 
@@ -139,7 +142,8 @@ defmodule Styler.Style.DefsTest do
         # Obviously, this is a
         # ... and this is b
         def foo(%{bar: baz}) when baz in [:a, :b], do: :never_write_code_like_this
-        """
+        """,
+        enable: :defs
       )
     end
 
@@ -155,7 +159,8 @@ defmodule Styler.Style.DefsTest do
         """
         # Weirdo comment
         def foo, do: [:never_write_code_like_this]
-        """
+        """,
+        enable: :defs
       )
     end
 
@@ -171,11 +176,12 @@ defmodule Styler.Style.DefsTest do
         ), do: :ok
         """,
         """
-        def foo, do: :ok
+        def foo(), do: :ok
 
         # Long long is too long
         def foo(too, long), do: :ok
-        """
+        """,
+        enable: :defs
       )
     end
 
@@ -206,7 +212,8 @@ defmodule Styler.Style.DefsTest do
           :never_write_code_like_this
           # Below the body
         end
-        """
+        """,
+        enable: :defs
       )
     end
 
