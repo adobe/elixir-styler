@@ -12,12 +12,12 @@ defmodule Styler.Style.DeprecationsTest do
   use Styler.StyleCase, async: true
 
   test "Logger.warn to Logger.warning" do
-    assert_style("Logger.warn(foo)", "Logger.warning(foo)")
-    assert_style("Logger.warn(foo, bar)", "Logger.warning(foo, bar)")
+    assert_style("Logger.warn(foo)", "Logger.warning(foo)", enable: :deprecations)
+    assert_style("Logger.warn(foo, bar)", "Logger.warning(foo, bar)", enable: :deprecations)
   end
 
   test "Path.safe_relative_to/2 to Path.safe_relative/2" do
-    assert_style("Path.safe_relative_to(foo, bar)", "Path.safe_relative(foo, bar)")
+    assert_style("Path.safe_relative_to(foo, bar)", "Path.safe_relative(foo, bar)", enable: :deprecations)
 
     assert_style(
       """
@@ -29,7 +29,8 @@ defmodule Styler.Style.DeprecationsTest do
       "FOO"
       |> String.downcase()
       |> Path.safe_relative("/")
-      """
+      """,
+      enable: :deprecations
     )
   end
 
@@ -39,26 +40,31 @@ defmodule Styler.Style.DeprecationsTest do
     test "File.stream!(path, modes, line_or_bytes) to File.stream!(path, line_or_bytes, modes)" do
       assert_style(
         "File.stream!(path, [encoding: :utf8, trim_bom: true], :line)",
-        "File.stream!(path, :line, encoding: :utf8, trim_bom: true)"
+        "File.stream!(path, :line, encoding: :utf8, trim_bom: true)",
+        enable: :deprecations
       )
 
       assert_style(
         "f |> File.stream!([encoding: :utf8, trim_bom: true], :line) |> Enum.take(2)",
-        "f |> File.stream!(:line, encoding: :utf8, trim_bom: true) |> Enum.take(2)"
+        "f |> File.stream!(:line, encoding: :utf8, trim_bom: true) |> Enum.take(2)",
+        enable: :deprecations
       )
     end
   end
 
   test "~R is deprecated in favor of ~r" do
-    assert_style(~s|Regex.match?(~R/foo/, "foo")|, ~s|Regex.match?(~r/foo/, "foo")|)
+    assert_style(~s|Regex.match?(~R/foo/, "foo")|, ~s|Regex.match?(~r/foo/, "foo")|, enable: :deprecations)
   end
 
   test "replace Date.range/2 with Date.range/3 when first > last" do
-    assert_style("Date.range(~D[2000-01-01], ~D[1999-01-01])", "Date.range(~D[2000-01-01], ~D[1999-01-01], -1)")
+    assert_style("Date.range(~D[2000-01-01], ~D[1999-01-01])", "Date.range(~D[2000-01-01], ~D[1999-01-01], -1)",
+      enable: :deprecations
+    )
 
     assert_style(
       "~D[2000-01-01] |> Date.range(~D[1999-01-01]) |> foo()",
-      "~D[2000-01-01] |> Date.range(~D[1999-01-01], -1) |> foo()"
+      "~D[2000-01-01] |> Date.range(~D[1999-01-01], -1) |> foo()",
+      enable: :deprecations
     )
 
     assert_style("Date.range(~D[1999-01-01], ~D[2000-01-01])")
@@ -66,35 +72,40 @@ defmodule Styler.Style.DeprecationsTest do
   end
 
   test "use :eof instead of :all in IO.read/2 and IO.binread/2" do
-    assert_style("IO.read(:all)", "IO.read(:eof)")
-    assert_style("IO.read(device, :all)", "IO.read(device, :eof)")
-    assert_style("IO.binread(:all)", "IO.binread(:eof)")
-    assert_style("IO.binread(device, :all)", "IO.binread(device, :eof)")
+    assert_style("IO.read(:all)", "IO.read(:eof)", enable: :deprecations)
+    assert_style("IO.read(device, :all)", "IO.read(device, :eof)", enable: :deprecations)
+    assert_style("IO.binread(:all)", "IO.binread(:eof)", enable: :deprecations)
+    assert_style("IO.binread(device, :all)", "IO.binread(device, :eof)", enable: :deprecations)
 
     assert_style(
       "file |> IO.binread(:all) |> :binary.bin_to_list()",
-      "file |> IO.binread(:eof) |> :binary.bin_to_list()"
+      "file |> IO.binread(:eof) |> :binary.bin_to_list()",
+      enable: :deprecations
     )
   end
 
   test "negative steps with [Enum|String].slice/2" do
     for mod <- ~w(Enum String) do
-      assert_style("#{mod}.slice(x, 1..-2)", "#{mod}.slice(x, 1..-2//1)")
-      assert_style("#{mod}.slice(x, -1..-2)", "#{mod}.slice(x, -1..-2//1)")
-      assert_style("#{mod}.slice(x, 2..1)", "#{mod}.slice(x, 2..1//1)")
+      assert_style("#{mod}.slice(x, 1..-2)", "#{mod}.slice(x, 1..-2//1)", enable: :deprecations)
+      assert_style("#{mod}.slice(x, -1..-2)", "#{mod}.slice(x, -1..-2//1)", enable: :deprecations)
+      assert_style("#{mod}.slice(x, 2..1)", "#{mod}.slice(x, 2..1//1)", enable: :deprecations)
       assert_style("#{mod}.slice(x, 1..3)")
       assert_style("#{mod}.slice(x, ..)")
 
       # piped
-      assert_style("foo |> bar() |> #{mod}.slice(1..-2)", "foo |> bar() |> #{mod}.slice(1..-2//1)")
-      assert_style("foo |> bar() |> #{mod}.slice(-1..-2)", "foo |> bar() |> #{mod}.slice(-1..-2//1)")
-      assert_style("foo |> bar() |> #{mod}.slice(2..1)", "foo |> bar() |> #{mod}.slice(2..1//1)")
+      assert_style("foo |> bar() |> #{mod}.slice(1..-2)", "foo |> bar() |> #{mod}.slice(1..-2//1)", enable: :deprecations)
+
+      assert_style("foo |> bar() |> #{mod}.slice(-1..-2)", "foo |> bar() |> #{mod}.slice(-1..-2//1)",
+        enable: :deprecations
+      )
+
+      assert_style("foo |> bar() |> #{mod}.slice(2..1)", "foo |> bar() |> #{mod}.slice(2..1//1)", enable: :deprecations)
       assert_style("foo |> bar() |> #{mod}.slice(1..3)")
 
       # non-trivial ranges
       assert_style "#{mod}.slice(x, y..z)"
       assert_style "#{mod}.slice(x, (y - 1)..f)"
-      assert_style("foo |> bar() |> #{mod}.slice(x..y)")
+      assert_style "foo |> bar() |> #{mod}.slice(x..y)"
     end
   end
 end
