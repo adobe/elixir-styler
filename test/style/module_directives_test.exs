@@ -42,7 +42,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
           alias Foo.A
           alias Foo.B
         end
-        """
+        """,
+        enable: :module_directives
       )
     end
 
@@ -56,7 +57,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
         defmodule A do
           @moduledoc false
         end
-        """
+        """,
+        enable: :module_directives
       )
 
       assert_style(
@@ -73,7 +75,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
             @moduledoc false
           end
         end
-        """
+        """,
+        enable: :module_directives
       )
 
       assert_style(
@@ -91,7 +94,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
 
           :ok
         end
-        """
+        """,
+        enable: :module_directives
       )
 
       assert_style(
@@ -104,7 +108,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
         defmodule DocsOnly do
           @moduledoc "woohoo"
         end
-        """
+        """,
+        enable: :module_directives
       )
 
       assert_style(
@@ -118,7 +123,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
           @moduledoc false
           use Bar
         end
-        """
+        """,
+        enable: :module_directives
       )
 
       assert_style(
@@ -133,7 +139,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
           alias Foo.Bar
           alias Foo.Baz
         end
-        """
+        """,
+        enable: :module_directives
       )
 
       assert_style(
@@ -153,7 +160,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
             :literal
           end
         end
-        """
+        """,
+        enable: :module_directives
       )
     end
 
@@ -250,7 +258,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
             X.foo()
           end
         end
-        """
+        """,
+        enable: :module_directives
       )
     end
   end
@@ -289,7 +298,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
           alias A.B
           alias A.C
         end
-        """
+        """,
+        enable: :module_directives
       )
     end
 
@@ -318,7 +328,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
           import A
           import B
         end
-        """
+        """,
+        enable: :module_directives
       )
     end
 
@@ -349,7 +360,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
           #{d} A.C
           #{d} B.B
           #{d} D.D
-          """
+          """,
+          enable: :module_directives
         )
       end
     end
@@ -362,7 +374,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
         """
         alias __MODULE__.A
         alias __MODULE__.B.D
-        """
+        """,
+        enable: :module_directives
       )
     end
 
@@ -384,7 +397,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
         use A.B
 
         import F
-        """
+        """,
+        enable: :module_directives
       )
     end
 
@@ -422,7 +436,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
         require A.C
 
         @type foo :: :ok
-        """
+        """,
+        enable: :module_directives
       )
     end
 
@@ -475,7 +490,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
           # C
           # A
         end
-        """
+        """,
+        enable: :module_directives
       )
     end
   end
@@ -489,7 +505,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
 
       Foo.bar()
       """,
-      "Foo.bar()"
+      "Foo.bar()",
+      enable: :module_directives
     )
 
     assert_style(
@@ -503,7 +520,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
       alias __MODULE__
       alias Bar, as: Bop
       alias unquote(Foo)
-      """
+      """,
+      enable: :module_directives
     )
 
     assert_style(
@@ -519,7 +537,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
       alias B.B
 
       require D
-      """
+      """,
+      enable: :module_directives
     )
   end
 
@@ -543,7 +562,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
         # comment for foo
         def foo, do: :ok
       end
-      """
+      """,
+      enable: :module_directives
     )
 
     assert_style "@derive Inspect"
@@ -581,7 +601,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
         alias G.H.C
         alias Z.X.C
       end
-      """
+      """,
+      enable: :module_directives
     )
   end
 end
