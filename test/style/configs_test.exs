@@ -53,7 +53,8 @@ defmodule Styler.Style.ConfigsTest do
       config :y, :x, :z
 
       config :z, :x, :c
-      """
+      """,
+      enable: :configs
     )
   end
 
@@ -86,7 +87,6 @@ defmodule Styler.Style.ConfigsTest do
       """,
       """
       import Config
-
       dog_sound = :woof
       c = :c
 
@@ -116,7 +116,8 @@ defmodule Styler.Style.ConfigsTest do
       config :a, :b, a_sad_overwrite_that_will_be_hard_to_notice
 
       config :z, a: :meow
-      """
+      """,
+      enable: :configs
     )
   end
 
@@ -170,7 +171,8 @@ defmodule Styler.Style.ConfigsTest do
         # b comment
         config :b, 1
         config :b, 2
-        """
+        """,
+        enable: :configs
       )
     end
 
@@ -216,7 +218,6 @@ defmodule Styler.Style.ConfigsTest do
         """,
         """
         import Config
-
         dog_sound = :woof
 
         # this is my big c
@@ -260,7 +261,8 @@ defmodule Styler.Style.ConfigsTest do
         config :a, :b, a_sad_overwrite_that_will_be_hard_to_notice
 
         config :z, a: :meow
-        """
+        """,
+        enable: :configs
       )
     end
 
@@ -347,7 +349,8 @@ defmodule Styler.Style.ConfigsTest do
           cd: :cd
 
         # end of config
-        """
+        """,
+        enable: :configs
       )
     end
   end
