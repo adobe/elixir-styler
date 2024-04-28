@@ -30,7 +30,8 @@ defmodule Styler.Style.BlocksTest do
           # b
           :error
         end
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -50,7 +51,8 @@ defmodule Styler.Style.BlocksTest do
           # b
           :error
         end
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -69,7 +71,8 @@ defmodule Styler.Style.BlocksTest do
         end
 
         # b
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -83,7 +86,8 @@ defmodule Styler.Style.BlocksTest do
         if foo do
           :ok
         end
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -102,7 +106,8 @@ defmodule Styler.Style.BlocksTest do
           Logger.warning("it's false")
           nil
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -126,7 +131,8 @@ defmodule Styler.Style.BlocksTest do
           # a
           :error
         end
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -148,7 +154,8 @@ defmodule Styler.Style.BlocksTest do
           # a
           :error
         end
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -168,7 +175,8 @@ defmodule Styler.Style.BlocksTest do
           # a
           :error
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -234,7 +242,8 @@ defmodule Styler.Style.BlocksTest do
           # e
           :ok
         end
-        """
+        """,
+        enable: :blocks
       )
     end
   end
@@ -266,7 +275,8 @@ defmodule Styler.Style.BlocksTest do
           )
 
         y()
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -282,7 +292,8 @@ defmodule Styler.Style.BlocksTest do
         c = d()
         e = f()
         g
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -305,7 +316,8 @@ defmodule Styler.Style.BlocksTest do
         e = f()
         g
         y()
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -317,10 +329,11 @@ defmodule Styler.Style.BlocksTest do
         end
         """,
         """
-        def run do
+        def run() do
           arg
         end
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -335,7 +348,8 @@ defmodule Styler.Style.BlocksTest do
         fn ->
           arg
         end
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -355,7 +369,8 @@ defmodule Styler.Style.BlocksTest do
             g
           )
         )
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -380,7 +395,8 @@ defmodule Styler.Style.BlocksTest do
           weeee()
           :ok
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -397,10 +413,11 @@ defmodule Styler.Style.BlocksTest do
         """
         case foo do
           :ok -> :success
-          :error = error -> error
+          error = :error -> error
           :fail -> :failure
         end
-        """
+        """,
+        enable: :blocks
       )
 
       for nontrivial_head <- ["foo", ":ok = foo", ":ok <- foo, :ok <- bar"] do
@@ -418,7 +435,8 @@ defmodule Styler.Style.BlocksTest do
         with :ok <- foo(),
           do: :ok
         """,
-        "foo()"
+        "foo()",
+        enable: :blocks
       )
     end
 
@@ -442,7 +460,8 @@ defmodule Styler.Style.BlocksTest do
           foo = bar
           :ok
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -473,7 +492,8 @@ defmodule Styler.Style.BlocksTest do
           bar
           :ok
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -496,7 +516,8 @@ defmodule Styler.Style.BlocksTest do
         else
           :error
         end
-        """
+        """,
+        enable: :blocks
       )
 
       # no pre or postroll
@@ -514,7 +535,8 @@ defmodule Styler.Style.BlocksTest do
         else
           :error
         end
-        """
+        """,
+        enable: :blocks
       )
 
       # with postroll
@@ -533,7 +555,8 @@ defmodule Styler.Style.BlocksTest do
         else
           :error
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -549,7 +572,8 @@ defmodule Styler.Style.BlocksTest do
           bar()
           :ok
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -571,7 +595,8 @@ defmodule Styler.Style.BlocksTest do
         with {:ok, _} <- woo() do
           :ok
         end
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -605,7 +630,8 @@ defmodule Styler.Style.BlocksTest do
             DB.Repo.one(query, timeout: bar[\"timeout\"])
           end
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -622,7 +648,8 @@ defmodule Styler.Style.BlocksTest do
           shifted_datetime = DateTime.shift_zone!(datetime, full_name)
           Calendar.strftime(shifted_datetime, \"%Y/%m/%d - %I:%M %p\")
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -644,7 +671,8 @@ defmodule Styler.Style.BlocksTest do
           boop
           :horay!
         end
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -661,7 +689,8 @@ defmodule Styler.Style.BlocksTest do
           boop
           :horay!
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -679,7 +708,8 @@ defmodule Styler.Style.BlocksTest do
         with {:ok, a} <- foo() do
           bar(a)
         end
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style("""
@@ -713,7 +743,8 @@ defmodule Styler.Style.BlocksTest do
           bop()
           :ok
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -746,7 +777,8 @@ defmodule Styler.Style.BlocksTest do
         else
           c
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -771,13 +803,17 @@ defmodule Styler.Style.BlocksTest do
 
   describe "if/unless" do
     test "drops if else nil" do
-      assert_style("if a, do: b, else: nil", "if a, do: b")
+      assert_style("if a, do: b, else: nil", "if a, do: b", enable: :blocks)
 
-      assert_style("if a do b else nil end", """
-      if a do
-        b
-      end
-      """)
+      assert_style(
+        "if a do b else nil end",
+        """
+        if a do
+          b
+        end
+        """,
+        enable: :blocks
+      )
     end
 
     test "if not => unless" do
@@ -802,7 +838,8 @@ defmodule Styler.Style.BlocksTest do
           else
             c
           end
-          """
+          """,
+          enable: :blocks
         )
       end
 
@@ -821,7 +858,8 @@ defmodule Styler.Style.BlocksTest do
           else
             c
           end
-          """
+          """,
+          enable: :blocks
         )
       end
 
@@ -839,7 +877,8 @@ defmodule Styler.Style.BlocksTest do
         else
           b
         end
-        """
+        """,
+        enable: :blocks
       )
     end
 
@@ -857,12 +896,13 @@ defmodule Styler.Style.BlocksTest do
           if foo do
             bar
           end
-          """
+          """,
+          enable: :blocks
         )
       end
 
       for negator <- ["!=", "!=="], inverse = String.replace(negator, "!", "=") do
-        assert_style("unless a #{negator} b, do: :bar", "if a #{inverse} b, do: :bar")
+        assert_style("unless a #{negator} b, do: :bar", "if a #{inverse} b, do: :bar", enable: :blocks)
 
         assert_style(
           """
@@ -874,7 +914,8 @@ defmodule Styler.Style.BlocksTest do
           if a #{inverse} b do
             c
           end
-          """
+          """,
+          enable: :blocks
         )
       end
     end
@@ -897,7 +938,8 @@ defmodule Styler.Style.BlocksTest do
           else
             bar
           end
-          """
+          """,
+          enable: :blocks
         )
       end
 
@@ -918,7 +960,8 @@ defmodule Styler.Style.BlocksTest do
           else
             bar
           end
-          """
+          """,
+          enable: :blocks
         )
       end
     end
@@ -938,7 +981,8 @@ defmodule Styler.Style.BlocksTest do
         else
           b
         end
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style(
@@ -955,7 +999,8 @@ defmodule Styler.Style.BlocksTest do
         else
           b
         end
-        """
+        """,
+        enable: :blocks
       )
 
       assert_style("if not (a != b), do: c", "if a == b, do: c")
@@ -980,7 +1025,8 @@ defmodule Styler.Style.BlocksTest do
           # b
           b
         end
-        """
+        """,
+        enable: :blocks
       )
     end
   end
