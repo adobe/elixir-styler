@@ -13,7 +13,7 @@ defmodule Styler.Style.PipesTest do
 
   describe "big picture" do
     test "unnests multiple steps" do
-      assert_style("f(g(h(x))) |> j()", "x |> h() |> g() |> f() |> j()")
+      assert_style("f(g(h(x))) |> j()", "x |> h() |> g() |> f() |> j()", enable: :pipes)
     end
 
     test "doesn't modify valid pipe" do
@@ -38,7 +38,8 @@ defmodule Styler.Style.PipesTest do
         |> M.f(b)
         |> g()
         |> h()
-        """
+        """,
+        enable: :pipes
       )
     end
 
@@ -75,7 +76,8 @@ defmodule Styler.Style.PipesTest do
           |> baz()
         end)
         |> c()
-        """
+        """,
+        enable: :pipes
       )
     end
   end
@@ -118,7 +120,8 @@ defmodule Styler.Style.PipesTest do
           end
 
         IO.puts(foo_result)
-        """
+        """,
+        enable: :pipes
       )
 
       assert_style(
@@ -139,7 +142,8 @@ defmodule Styler.Style.PipesTest do
           end
 
         IO.puts(foo_result)
-        """
+        """,
+        enable: :pipes
       )
     end
 
@@ -164,7 +168,8 @@ defmodule Styler.Style.PipesTest do
           :ok -> :ok
           _ -> :error
         end
-        """
+        """,
+        enable: :pipes
       )
     end
 
@@ -198,7 +203,8 @@ defmodule Styler.Style.PipesTest do
           case_result
           |> bar()
           |> baz()
-        """
+        """,
+        enable: :pipes
       )
     end
 
@@ -215,7 +221,8 @@ defmodule Styler.Style.PipesTest do
         for_result
         |> bar()
         |> baz()
-        """
+        """,
+        enable: :pipes
       )
     end
 
@@ -234,7 +241,8 @@ defmodule Styler.Style.PipesTest do
           end
 
         wee(unless_result)
-        """
+        """,
+        enable: :pipes
       )
     end
 
@@ -251,7 +259,8 @@ defmodule Styler.Style.PipesTest do
         with_result
         |> bar()
         |> baz()
-        """
+        """,
+        enable: :pipes
       )
     end
 
@@ -273,7 +282,8 @@ defmodule Styler.Style.PipesTest do
         cond_result
         |> bar()
         |> baz()
-        """
+        """,
+        enable: :pipes
       )
     end
 
@@ -292,7 +302,8 @@ defmodule Styler.Style.PipesTest do
           end
 
         foo(case_result)
-        """
+        """,
+        enable: :pipes
       )
 
       assert_style(
@@ -313,7 +324,8 @@ defmodule Styler.Style.PipesTest do
 
           foo(case_result)
         end
-        """
+        """,
+        enable: :pipes
       )
     end
 
@@ -339,7 +351,8 @@ defmodule Styler.Style.PipesTest do
           |> a()
           |> b()
         end
-        """
+        """,
+        enable: :pipes
       )
     end
 
@@ -361,7 +374,8 @@ defmodule Styler.Style.PipesTest do
         quote_result
         |> bar()
         |> baz()
-        """
+        """,
+        enable: :pipes
       )
     end
   end
@@ -372,10 +386,10 @@ defmodule Styler.Style.PipesTest do
     end
 
     test "fixes simple single pipes" do
-      assert_style("b(a) |> c()", "a |> b() |> c()")
-      assert_style("a |> f()", "f(a)")
-      assert_style("x |> bar", "bar(x)")
-      assert_style("def a, do: b |> c()", "def a, do: c(b)")
+      assert_style("b(a) |> c()", "a |> b() |> c()", enable: :pipes)
+      assert_style("a |> f()", "f(a)", enable: :pipes)
+      assert_style("x |> bar", "bar(x)", enable: :pipes)
+      assert_style("def a, do: b |> c()", "def a, do: c(b)", enable: :pipes)
     end
 
     test "keeps invocation on a single line" do
@@ -386,7 +400,8 @@ defmodule Styler.Style.PipesTest do
         """,
         """
         bar(foo, baz, bop, boom)
-        """
+        """,
+        enable: :pipes
       )
 
       assert_style(
@@ -396,7 +411,8 @@ defmodule Styler.Style.PipesTest do
         """,
         """
         bar(foo, baz)
-        """
+        """,
+        enable: :pipes
       )
 
       assert_style(
@@ -410,7 +426,8 @@ defmodule Styler.Style.PipesTest do
         def halt(exec, halt_message) do
           put_halt_message(%__MODULE__{exec | halted: true}, halt_message)
         end
-        """
+        """,
+        enable: :pipes
       )
 
       assert_style(
@@ -429,16 +446,17 @@ defmodule Styler.Style.PipesTest do
           end
 
         foo(if_result, bar)
-        """
+        """,
+        enable: :pipes
       )
     end
   end
 
   describe "valid pipe starts & unpiping" do
     test "writes brackets for unpiped kwl" do
-      assert_style("foo(kwl: :arg) |> bar()", "[kwl: :arg] |> foo() |> bar()")
-      assert_style("%{a: foo(a: :b, c: :d) |> bar()}", "%{a: [a: :b, c: :d] |> foo() |> bar()}")
-      assert_style("%{a: foo([a: :b, c: :d]) |> bar()}", "%{a: [a: :b, c: :d] |> foo() |> bar()}")
+      assert_style("foo(kwl: :arg) |> bar()", "[kwl: :arg] |> foo() |> bar()", enable: :pipes)
+      assert_style("%{a: foo(a: :b, c: :d) |> bar()}", "%{a: [a: :b, c: :d] |> foo() |> bar()}", enable: :pipes)
+      assert_style("%{a: foo([a: :b, c: :d]) |> bar()}", "%{a: [a: :b, c: :d] |> foo() |> bar()}", enable: :pipes)
     end
 
     test "allows fn" do
@@ -453,8 +471,8 @@ defmodule Styler.Style.PipesTest do
     end
 
     test "recognizes infix ops as valid pipe starts" do
-      assert_style("(bar() == 1) |> foo()", "foo(bar() == 1)")
-      assert_style("(x in 1..100) |> foo()", "foo(x in 1..100)")
+      assert_style("(bar() == 1) |> foo()", "foo(bar() == 1)", enable: :pipes)
+      assert_style("(x in 1..100) |> foo()", "foo(x in 1..100)", enable: :pipes)
     end
 
     test "0 arity is just fine!" do
@@ -475,44 +493,46 @@ defmodule Styler.Style.PipesTest do
     end
 
     test "ranges" do
-      assert_style("start..stop//step |> foo()", "foo(start..stop//step)")
+      assert_style("start..stop//step |> foo()", "foo(start..stop//step)", enable: :pipes)
       assert_style("start..stop//step |> foo() |> bar()")
-      assert_style("foo(start..stop//step) |> bar()", "start..stop//step |> foo() |> bar()")
+      assert_style("foo(start..stop//step) |> bar()", "start..stop//step |> foo() |> bar()", enable: :pipes)
     end
   end
 
   describe "simple rewrites" do
     test "{Keyword/Map}.merge/2 of a single key => *.put/3" do
       for module <- ~w(Map Keyword) do
-        assert_style("foo |> #{module}.merge(%{one_key: :bar}) |> bop()", "foo |> #{module}.put(:one_key, :bar) |> bop()")
+        assert_style("foo |> #{module}.merge(%{one_key: :bar}) |> bop()", "foo |> #{module}.put(:one_key, :bar) |> bop()",
+          enable: :pipes
+        )
       end
     end
 
     test "rewrites anon fun def ahd invoke to use then" do
-      assert_style("a |> (& &1).()", "then(a, & &1)")
-      assert_style("a |> (& {&1, &2}).(b)", "(&{&1, &2}).(a, b)")
-      assert_style("a |> (& &1).() |> c", "a |> then(& &1) |> c()")
+      assert_style("a |> (& &1).()", "then(a, & &1)", enable: :pipes)
+      assert_style("a |> (& {&1, &2}).(b)", "(&{&1, &2}).(a, b)", enable: :pipes)
+      assert_style("a |> (& &1).() |> c", "a |> then(& &1) |> c()", enable: :pipes)
 
-      assert_style("a |> (fn x, y -> {x, y} end).() |> c", "a |> then(fn x, y -> {x, y} end) |> c()")
-      assert_style("a |> (fn x -> x end).()", "then(a, fn x -> x end)")
-      assert_style("a |> (fn x -> x end).() |> c", "a |> then(fn x -> x end) |> c()")
+      assert_style("a |> (fn x, y -> {x, y} end).() |> c", "a |> then(fn x, y -> {x, y} end) |> c()", enable: :pipes)
+      assert_style("a |> (fn x -> x end).()", "then(a, fn x -> x end)", enable: :pipes)
+      assert_style("a |> (fn x -> x end).() |> c", "a |> then(fn x -> x end) |> c()", enable: :pipes)
     end
 
     test "rewrites then/2 when the passed function is a named function reference" do
-      assert_style "a |> then(&fun/1) |> c", "a |> fun() |> c()"
-      assert_style "a |> then(&(&1 / 1)) |> c", "a |> Kernel./(1) |> c()"
-      assert_style "a |> then(&fun/1)", "fun(a)"
-      assert_style "a |> then(&fun(&1)) |> c", "a |> fun() |> c()"
-      assert_style "a |> then(&fun(&1, d)) |> c", "a |> fun(d) |> c()"
+      assert_style("a |> then(&fun/1) |> c", "a |> fun() |> c()", enable: :pipes)
+      assert_style("a |> then(&(&1 / 1)) |> c", "a |> Kernel./(1) |> c()", enable: :pipes)
+      assert_style("a |> then(&fun/1)", "fun(a)", enable: :pipes)
+      assert_style("a |> then(&fun(&1)) |> c", "a |> fun() |> c()", enable: :pipes)
+      assert_style("a |> then(&fun(&1, d)) |> c", "a |> fun(d) |> c()", enable: :pipes)
       assert_style "a |> then(&fun(d, &1)) |> c()"
       assert_style "a |> then(&fun(&1, d, %{foo: &1})) |> c()"
 
       # then + kernel ops
-      assert_style "a |> then(&(-&1)) |> c", "a |> Kernel.-() |> c()"
-      assert_style "a |> then(&(+&1)) |> c", "a |> Kernel.+() |> c()"
+      assert_style("a |> then(&(-&1)) |> c", "a |> Kernel.-() |> c()", enable: :pipes)
+      assert_style("a |> then(&(+&1)) |> c", "a |> Kernel.+() |> c()", enable: :pipes)
 
       for op <- ~w(++ -- && || in - * + / > < <= >= == and or != !== === <>) do
-        assert_style "a |> then(&(&1 #{op} x)) |> c", "a |> Kernel.#{op}(x) |> c()"
+        assert_style("a |> then(&(&1 #{op} x)) |> c", "a |> Kernel.#{op}(x) |> c()", enable: :pipes)
       end
 
       # Doesn't rewrite non-kernel operators
@@ -522,14 +542,14 @@ defmodule Styler.Style.PipesTest do
     end
 
     test "adds parens to 1-arity pipes" do
-      assert_style("a |> b |> c", "a |> b() |> c()")
+      assert_style("a |> b |> c", "a |> b() |> c()", enable: :pipes)
     end
 
     test "reverse/concat" do
       assert_style("a |> Enum.reverse() |> Enum.concat()")
       assert_style("a |> Enum.reverse(bar) |> Enum.concat()")
       assert_style("a |> Enum.reverse(bar) |> Enum.concat(foo)")
-      assert_style("a |> Enum.reverse() |> Enum.concat(foo)", "Enum.reverse(a, foo)")
+      assert_style("a |> Enum.reverse() |> Enum.concat(foo)", "Enum.reverse(a, foo)", enable: :pipes)
 
       assert_style(
         """
@@ -542,7 +562,8 @@ defmodule Styler.Style.PipesTest do
         a
         |> Enum.reverse([bar, baz])
         |> Enum.sum()
-        """
+        """,
+        enable: :pipes
       )
     end
 
@@ -559,7 +580,8 @@ defmodule Styler.Style.PipesTest do
           a
           |> Enum.count(fun)
           |> IO.puts()
-          """
+          """,
+          enable: :pipes
         )
 
         assert_style(
@@ -570,7 +592,8 @@ defmodule Styler.Style.PipesTest do
           """,
           """
           Enum.count(a, fun)
-          """
+          """,
+          enable: :pipes
         )
 
         assert_style(
@@ -592,25 +615,27 @@ defmodule Styler.Style.PipesTest do
             end
 
           Enum.count(if_result, fun)
-          """
+          """,
+          enable: :pipes
         )
       end
     end
 
     test "map/join" do
       for enum <- ~w(Enum Stream) do
-        assert_style("a|> #{enum}.map(b) |> Enum.join(x)", "Enum.map_join(a, x, b)")
+        assert_style("a|> #{enum}.map(b) |> Enum.join(x)", "Enum.map_join(a, x, b)", enable: :pipes)
       end
     end
 
     test "map/into" do
       for enum <- ~w(Enum Stream) do
-        assert_style("a|> #{enum}.map(b)|> Enum.into(%{})", "Map.new(a, b)")
-        assert_style("a |> #{enum}.map(b) |> Enum.into(unk)", "Enum.into(a, unk, b)")
+        assert_style("a|> #{enum}.map(b)|> Enum.into(%{})", "Map.new(a, b)", enable: :pipes)
+        assert_style("a |> #{enum}.map(b) |> Enum.into(unk)", "Enum.into(a, unk, b)", enable: :pipes)
 
         assert_style(
           "a |> #{enum}.map(b) |> Enum.into(%{some: :existing_map})",
-          "Enum.into(a, %{some: :existing_map}, b)"
+          "Enum.into(a, %{some: :existing_map}, b)",
+          enable: :pipes
         )
 
         assert_style(
@@ -627,11 +652,12 @@ defmodule Styler.Style.PipesTest do
             IO.puts("woo!")
             {shrunk, to_a_more_reasonable}
           end)
-          """
+          """,
+          enable: :pipes
         )
 
         for collectable <- ~W(Map Keyword MapSet), new = "#{collectable}.new" do
-          assert_style("a |> #{enum}.map(b) |> Enum.into(#{new}())", "#{new}(a, b)")
+          assert_style("a |> #{enum}.map(b) |> Enum.into(#{new}())", "#{new}(a, b)", enable: :pipes)
 
           # Regression: something about the meta wants newlines when it's in a def
           assert_style(
@@ -641,10 +667,11 @@ defmodule Styler.Style.PipesTest do
             end
             """,
             """
-            def foo do
+            def foo() do
               filename_map = Map.new(foo, &{&1.filename, true})
             end
-            """
+            """,
+            enable: :pipes
           )
         end
       end
@@ -652,13 +679,13 @@ defmodule Styler.Style.PipesTest do
 
     test "map/new" do
       for collectable <- ~W(Map Keyword MapSet), new = "#{collectable}.new" do
-        assert_style("a |> Enum.map(b) |> #{new}()", "#{new}(a, b)")
+        assert_style("a |> Enum.map(b) |> #{new}()", "#{new}(a, b)", enable: :pipes)
       end
     end
 
     test "into(%{})" do
-      assert_style("a |> Enum.into(%{}) |> b()", "a |> Map.new() |> b()")
-      assert_style("a |> Enum.into(%{}, mapper) |> b()", "a |> Map.new(mapper) |> b()")
+      assert_style("a |> Enum.into(%{}) |> b()", "a |> Map.new() |> b()", enable: :pipes)
+      assert_style("a |> Enum.into(%{}, mapper) |> b()", "a |> Map.new(mapper) |> b()", enable: :pipes)
     end
 
     test "into(Collectable.new())" do
@@ -666,8 +693,8 @@ defmodule Styler.Style.PipesTest do
       assert_style("a |> Enum.into(foo, mapper) |> b()")
 
       for collectable <- ~W(Map Keyword MapSet), new = "#{collectable}.new" do
-        assert_style("a |> Enum.into(#{new}) |> b()", "a |> #{new}() |> b()")
-        assert_style("a |> Enum.into(#{new}, mapper) |> b()", "a |> #{new}(mapper) |> b()")
+        assert_style("a |> Enum.into(#{new}) |> b()", "a |> #{new}() |> b()", enable: :pipes)
+        assert_style("a |> Enum.into(#{new}, mapper) |> b()", "a |> #{new}(mapper) |> b()", enable: :pipes)
 
         assert_style(
           """
@@ -679,7 +706,8 @@ defmodule Styler.Style.PipesTest do
           a
           |> Enum.map(b)
           |> #{new}(c)
-          """
+          """,
+          enable: :pipes
         )
       end
     end
@@ -687,29 +715,32 @@ defmodule Styler.Style.PipesTest do
 
   describe "comments" do
     test "unpiping doens't move comment in anon fun" do
-      assert_style """
-                     aliased =
-                       aliases
-                       |> MapSet.new(fn
-                         {:alias, _, [{:__aliases__, _, aliases}]} -> List.last(aliases)
-                         {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]} -> as
-                         # alias __MODULE__ or other oddities
-                         {:alias, _, _} -> nil
-                       end)
+      assert_style(
+        """
+          aliased =
+            aliases
+            |> MapSet.new(fn
+              {:alias, _, [{:__aliases__, _, aliases}]} -> List.last(aliases)
+              {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]} -> as
+              # alias __MODULE__ or other oddities
+              {:alias, _, _} -> nil
+            end)
 
-                     excluded_first = MapSet.union(aliased, @excluded_namespaces)
-                   """,
-                   """
-                   aliased =
-                     MapSet.new(aliases, fn
-                       {:alias, _, [{:__aliases__, _, aliases}]} -> List.last(aliases)
-                       {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]} -> as
-                       # alias __MODULE__ or other oddities
-                       {:alias, _, _} -> nil
-                     end)
+          excluded_first = MapSet.union(aliased, @excluded_namespaces)
+        """,
+        """
+        aliased =
+          MapSet.new(aliases, fn
+            {:alias, _, [{:__aliases__, _, aliases}]} -> List.last(aliases)
+            {:alias, _, [{:__aliases__, _, _}, [{_as, {:__aliases__, _, [as]}}]]} -> as
+            # alias __MODULE__ or other oddities
+            {:alias, _, _} -> nil
+          end)
 
-                   excluded_first = MapSet.union(aliased, @excluded_namespaces)
-                   """
+        excluded_first = MapSet.union(aliased, @excluded_namespaces)
+        """,
+        enable: :pipes
+      )
     end
   end
 end
