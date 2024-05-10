@@ -189,7 +189,7 @@ defmodule Styler.Style.Pipes do
 
   # a |> then(&fun/1) |> c => a |> fun() |> c()
   # recurses to add the `()` to `fun` as it gets unwound
-  defp fix_pipe({:|>, m, [lhs, {:then, _, [{:&, _, [{:/, _, [fun, {:__block__, _, [1]}]}]}]}]}),
+  defp fix_pipe({:|>, m, [lhs, {:then, _, [{:&, _, [{:/, _, [{_, _, nil} = fun, {:__block__, _, [1]}]}]}]}]}),
     do: fix_pipe({:|>, m, [lhs, fun]})
 
   # Credo.Check.Readability.PipeIntoAnonymousFunctions
