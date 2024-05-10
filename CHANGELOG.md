@@ -61,6 +61,7 @@ See the moduledoc for `Styler.Style.Configs` for more.
 * pipes: fix a comment-shifting scenario when unpiping
 * `Timex.now/1` will no longer be rewritten to `DateTime.now!/1` due to Timex accepting a wider domain of "timezones" than the stdlib (#145, h/t @ivymarkwell)
 * `with`: skip nodes which (unexpectedly) do not contain a `do` body (#158, h/t @DavidB59)
+* `then(&fun/1)`: fix false positives on arithmetic `&1 + x / 1` (#164, h/t @aenglisc)
 
 ### Breaking Changes
 
