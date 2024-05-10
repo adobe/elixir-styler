@@ -17,7 +17,14 @@ defmodule Styler.StyleCase do
   using options do
     quote do
       import unquote(__MODULE__),
-        only: [assert_style: 1, assert_style: 2, style: 1, style: 2, format_diff: 2, format_diff: 3]
+        only: [
+          assert_style: 1,
+          assert_style: 2,
+          assert_style: 3,
+          style: 3,
+          format_diff: 2,
+          format_diff: 3
+        ]
 
       @filename unquote(options)[:filename] || "testfile"
       @ordered_siblings unquote(options)[:ordered_siblings] || false
@@ -28,14 +35,19 @@ defmodule Styler.StyleCase do
     Styler.Config.set([])
   end
 
-  defmacro assert_style(before, expected \\ nil) do
+  defmacro assert_style(before, expected \\ nil, opts \\ [])
+
+  defmacro assert_style(before, expected, opts) do
     expected = expected || before
 
-    quote bind_quoted: [before: before, expected: expected], location: :keep do
+    quote bind_quoted: [before: before, expected: expected, opts: opts], location: :keep do
       alias Styler.Zipper
 
       expected = String.trim(expected)
-      {styled_ast, styled, styled_comments} = style(before, @filename)
+      on_error = opts[:on_error] || :raise
+      enabled = opts[:enable]
+      opts = Keyword.put(opts, :on_error, on_error)
+      {styled_ast, styled, styled_comments} = style(before, @filename, opts)
 
       if styled != expected and ExUnit.configuration()[:trace] do
         IO.puts("\n======Given=============\n")
@@ -120,7 +132,7 @@ defmodule Styler.StyleCase do
       end)
 
       # Idempotency
-      {_, restyled, _} = style(styled, @filename)
+      {_, restyled, _} = style(styled, @filename, opts)
 
       if restyled == styled do
         assert true
@@ -132,9 +144,9 @@ defmodule Styler.StyleCase do
     end
   end
 
-  def style(code, filename \\ "testfile") do
+  def style(code, filename, opts) do
     {ast, comments} = Styler.string_to_quoted_with_comments(code)
-    {styled_ast, comments} = Styler.style({ast, comments}, filename, on_error: :raise)
+    {styled_ast, comments} = Styler.style({ast, comments}, filename, opts)
 
     try do
       styled_code = styled_ast |> Styler.quoted_to_string(comments) |> String.trim_trailing("\n")

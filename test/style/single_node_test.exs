@@ -16,21 +16,21 @@ defmodule Styler.Style.SingleNodeTest do
     assert_style ~s|"\\""|
     assert_style ~s|"\\"\\""|
     assert_style ~s|"\\"\\"\\""|
-    assert_style ~s|"\\"\\"\\"\\""|, ~s|~s("""")|
+    assert_style(~s|"\\"\\"\\"\\""|, ~s|~s("""")|, enable: :single_node)
     # choose closing delimiter wisely, based on what has the least conflicts, in the styliest order
-    assert_style ~s/"\\"\\"\\"\\" )"/, ~s/~s{"""" )}/
-    assert_style ~s/"\\"\\"\\"\\" })"/, ~s/~s|"""" })|/
-    assert_style ~s/"\\"\\"\\"\\" |})"/, ~s/~s["""" |})]/
-    assert_style ~s/"\\"\\"\\"\\" ]|})"/, ~s/~s'"""" ]|})'/
-    assert_style ~s/"\\"\\"\\"\\" ']|})"/, ~s/~s<"""" ']|})>/
-    assert_style ~s/"\\"\\"\\"\\" >']|})"/, ~s|~s/"""" >']\|})/|
-    assert_style ~s/"\\"\\"\\"\\" \/>']|})"/, ~s|~s("""" />']\|}\\))|
+    assert_style(~s/"\\"\\"\\"\\" )"/, ~s/~s{"""" )}/, enable: :single_node)
+    assert_style(~s/"\\"\\"\\"\\" })"/, ~s/~s|"""" })|/, enable: :single_node)
+    assert_style(~s/"\\"\\"\\"\\" |})"/, ~s/~s["""" |})]/, enable: :single_node)
+    assert_style(~s/"\\"\\"\\"\\" ]|})"/, ~s/~s'"""" ]|})'/, enable: :single_node)
+    assert_style(~s/"\\"\\"\\"\\" ']|})"/, ~s/~s<"""" ']|})>/, enable: :single_node)
+    assert_style(~s/"\\"\\"\\"\\" >']|})"/, ~s|~s/"""" >']\|})/|, enable: :single_node)
+    assert_style(~s/"\\"\\"\\"\\" \/>']|})"/, ~s|~s("""" />']\|}\\))|, enable: :single_node)
   end
 
   test "{Map/Keyword}.merge with a single static key" do
     for module <- ~w(Map Keyword) do
-      assert_style("#{module}.merge(foo, %{one_key: :bar})", "#{module}.put(foo, :one_key, :bar)")
-      assert_style("#{module}.merge(foo, one_key: :bar)", "#{module}.put(foo, :one_key, :bar)")
+      assert_style("#{module}.merge(foo, %{one_key: :bar})", "#{module}.put(foo, :one_key, :bar)", enable: :single_node)
+      assert_style("#{module}.merge(foo, one_key: :bar)", "#{module}.put(foo, :one_key, :bar)", enable: :single_node)
       # # doesn't rewrite if there's a custom merge strategy
       assert_style("#{module}.merge(foo, %{one_key: :bar}, custom_merge_strategy)")
       # # doesn't rewrite if > 1 key
@@ -40,8 +40,8 @@ defmodule Styler.Style.SingleNodeTest do
 
   describe "Timex.now/0,1" do
     test "Timex.now/0 => DateTime.utc_now/0" do
-      assert_style("Timex.now()", "DateTime.utc_now()")
-      assert_style("Timex.now() |> foo() |> bar()", "DateTime.utc_now() |> foo() |> bar()")
+      assert_style("Timex.now()", "DateTime.utc_now()", enable: :single_node)
+      assert_style("Timex.now() |> foo() |> bar()", "DateTime.utc_now() |> foo() |> bar()", enable: :single_node)
     end
 
     test "leaves Timex.now/1 alone" do
@@ -57,29 +57,30 @@ defmodule Styler.Style.SingleNodeTest do
         timezone
         |> Timex.now()
         |> foo()
-        """
+        """,
+        enable: :single_node
       )
     end
   end
 
   test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.before?" do
-    assert_style("DateTime.compare(foo, bar) == :lt", "DateTime.before?(foo, bar)")
-    assert_style("NaiveDateTime.compare(foo, bar) == :lt", "NaiveDateTime.before?(foo, bar)")
-    assert_style("Time.compare(foo, bar) == :lt", "Time.before?(foo, bar)")
-    assert_style("Date.compare(foo, bar) == :lt", "Date.before?(foo, bar)")
+    assert_style("DateTime.compare(foo, bar) == :lt", "DateTime.before?(foo, bar)", enable: :single_node)
+    assert_style("NaiveDateTime.compare(foo, bar) == :lt", "NaiveDateTime.before?(foo, bar)", enable: :single_node)
+    assert_style("Time.compare(foo, bar) == :lt", "Time.before?(foo, bar)", enable: :single_node)
+    assert_style("Date.compare(foo, bar) == :lt", "Date.before?(foo, bar)", enable: :single_node)
   end
 
   test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.after?" do
-    assert_style("DateTime.compare(foo, bar) == :gt", "DateTime.after?(foo, bar)")
-    assert_style("NaiveDateTime.compare(foo, bar) == :gt", "NaiveDateTime.after?(foo, bar)")
-    assert_style("Time.compare(foo, bar) == :gt", "Time.after?(foo, bar)")
-    assert_style("Time.compare(foo, bar) == :gt", "Time.after?(foo, bar)")
+    assert_style("DateTime.compare(foo, bar) == :gt", "DateTime.after?(foo, bar)", enable: :single_node)
+    assert_style("NaiveDateTime.compare(foo, bar) == :gt", "NaiveDateTime.after?(foo, bar)", enable: :single_node)
+    assert_style("Time.compare(foo, bar) == :gt", "Time.after?(foo, bar)", enable: :single_node)
+    assert_style("Time.compare(foo, bar) == :gt", "Time.after?(foo, bar)", enable: :single_node)
   end
 
   describe "def / defp" do
     test "0-arity functions have parens removed" do
-      assert_style("def foo(), do: :ok", "def foo, do: :ok")
-      assert_style("defp foo(), do: :ok", "defp foo, do: :ok")
+      assert_style("def foo(), do: :ok", "def foo, do: :ok", enable: :single_node)
+      assert_style("defp foo(), do: :ok", "defp foo, do: :ok", enable: :single_node)
 
       assert_style(
         """
@@ -91,7 +92,8 @@ defmodule Styler.Style.SingleNodeTest do
         def foo do
           :ok
         end
-        """
+        """,
+        enable: :single_node
       )
 
       assert_style(
@@ -104,7 +106,8 @@ defmodule Styler.Style.SingleNodeTest do
         defp foo do
           :ok
         end
-        """
+        """,
+        enable: :single_node
       )
 
       # Regression: be wary of invocations with extra parens from metaprogramming
@@ -141,7 +144,8 @@ defmodule Styler.Style.SingleNodeTest do
           after
             :done
           end
-          """
+          """,
+          enable: :single_node
         )
       end
     end
@@ -163,8 +167,11 @@ defmodule Styler.Style.SingleNodeTest do
 
   describe "RHS pattern matching" do
     test "left arrows" do
-      assert_style("with {:ok, result = %{}} <- foo, do: result", "with {:ok, %{} = result} <- foo, do: result")
-      assert_style("for map = %{} <- maps, do: map[:key]", "for %{} = map <- maps, do: map[:key]")
+      assert_style("with {:ok, result = %{}} <- foo, do: result", "with {:ok, %{} = result} <- foo, do: result",
+        enable: :single_node
+      )
+
+      assert_style("for map = %{} <- maps, do: map[:key]", "for %{} = map <- maps, do: map[:key]", enable: :single_node)
     end
 
     test "case statements" do
@@ -180,7 +187,8 @@ defmodule Styler.Style.SingleNodeTest do
           %{baz: true = baz?} = bar -> :baz?
           [[%{} = a] | _] = opts -> a
         end
-        """
+        """,
+        enable: :single_node
       )
     end
 
@@ -189,8 +197,8 @@ defmodule Styler.Style.SingleNodeTest do
     end
 
     test "removes a double-var assignment when one var is _" do
-      assert_style("def foo(_ = bar), do: bar", "def foo(bar), do: bar")
-      assert_style("def foo(bar = _), do: bar", "def foo(bar), do: bar")
+      assert_style("def foo(_ = bar), do: bar", "def foo(bar), do: bar", enable: :single_node)
+      assert_style("def foo(bar = _), do: bar", "def foo(bar), do: bar", enable: :single_node)
 
       assert_style(
         """
@@ -202,7 +210,8 @@ defmodule Styler.Style.SingleNodeTest do
         case foo do
           bar -> :ok
         end
-        """
+        """,
+        enable: :single_node
       )
 
       assert_style(
@@ -215,21 +224,24 @@ defmodule Styler.Style.SingleNodeTest do
         case foo do
           bar -> :ok
         end
-        """
+        """,
+        enable: :single_node
       )
     end
 
     test "defs" do
       assert_style(
         "def foo(bar = %{baz: baz? = true}, opts = [[a = %{}] | _]), do: :ok",
-        "def foo(%{baz: true = baz?} = bar, [[%{} = a] | _] = opts), do: :ok"
+        "def foo(%{baz: true = baz?} = bar, [[%{} = a] | _] = opts), do: :ok",
+        enable: :single_node
       )
     end
 
     test "anon funs" do
       assert_style(
         "fn bar = %{baz: baz? = true}, opts = [[a = %{}] | _] -> :ok end",
-        "fn %{baz: true = baz?} = bar, [[%{} = a] | _] = opts -> :ok end"
+        "fn %{baz: true = baz?} = bar, [[%{} = a] | _] = opts -> :ok end",
+        enable: :single_node
       )
     end
 
@@ -260,19 +272,20 @@ defmodule Styler.Style.SingleNodeTest do
           :error = error -> error
           other -> other
         end
-        """
+        """,
+        enable: :single_node
       )
     end
   end
 
   describe "numbers" do
     test "styles floats and integers with >4 digits" do
-      assert_style("10000", "10_000")
-      assert_style("1_0_0_0_0", "10_000")
-      assert_style("-543213", "-543_213")
-      assert_style("123456789", "123_456_789")
-      assert_style("55333.22", "55_333.22")
-      assert_style("-123456728.0001", "-123_456_728.0001")
+      assert_style("10000", "10_000", enable: :single_node)
+      assert_style("1_0_0_0_0", "10_000", enable: :single_node)
+      assert_style("-543213", "-543_213", enable: :single_node)
+      assert_style("123456789", "123_456_789", enable: :single_node)
+      assert_style("55333.22", "55_333.22", enable: :single_node)
+      assert_style("-123456728.0001", "-123_456_728.0001", enable: :single_node)
     end
 
     test "stays away from small numbers, strings and science" do
@@ -288,8 +301,8 @@ defmodule Styler.Style.SingleNodeTest do
 
   describe "Enum.into and $collectable.new" do
     test "into an empty map" do
-      assert_style("Enum.into(a, %{})", "Map.new(a)")
-      assert_style("Enum.into(a, %{}, mapper)", "Map.new(a, mapper)")
+      assert_style("Enum.into(a, %{})", "Map.new(a)", enable: :single_node)
+      assert_style("Enum.into(a, %{}, mapper)", "Map.new(a, mapper)", enable: :single_node)
     end
 
     test "into a collectable" do
@@ -297,15 +310,15 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style("Enum.into(a, foo, mapper)")
 
       for collectable <- ~W(Map Keyword MapSet), new = "#{collectable}.new" do
-        assert_style("Enum.into(a, #{new})", "#{new}(a)")
-        assert_style("Enum.into(a, #{new}, mapper)", "#{new}(a, mapper)")
+        assert_style("Enum.into(a, #{new})", "#{new}(a)", enable: :single_node)
+        assert_style("Enum.into(a, #{new}, mapper)", "#{new}(a, mapper)", enable: :single_node)
       end
     end
   end
 
   describe "Enum.reverse/1 and ++" do
     test "optimizes into `Enum.reverse/2`" do
-      assert_style("Enum.reverse(foo) ++ bar", "Enum.reverse(foo, bar)")
+      assert_style("Enum.reverse(foo) ++ bar", "Enum.reverse(foo, bar)", enable: :single_node)
       assert_style("Enum.reverse(foo, bar) ++ bar")
     end
   end

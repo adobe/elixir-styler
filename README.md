@@ -40,6 +40,17 @@ like shrinking function heads down to a single line when possible - that Credo d
 
 Ultimately, the best way to see what Styler does is to just try it out! What could go wrong? (You're using version control, right?)
 
+If you only want to use a specific combination of styles, they can be enabled individually via the `:enable` option within `:styler` in your `.formatter.exs` file, e.g.:
+```elixir
+...
+plugins: [Styler],
+styler: [
+  enable: [:defs, :module_directives]
+],
+...
+
+```
+
 ### Credo Rules Styler Replaces
 
 If you're using Credo and Styler, **we recommend disabling these rules in `.credo.exs`** to save on unnecessary checks in CI.

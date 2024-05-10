@@ -15,18 +15,27 @@ defmodule Styler do
   @behaviour Mix.Tasks.Format
 
   alias Mix.Tasks.Format
+  alias Styler.Style.Blocks
+  alias Styler.Style.Configs
+  alias Styler.Style.Defs
+  alias Styler.Style.Deprecations
+  alias Styler.Style.ModuleDirectives
+  alias Styler.Style.Pipes
+  alias Styler.Style.SingleNode
   alias Styler.StyleError
   alias Styler.Zipper
 
-  @styles [
-    Styler.Style.ModuleDirectives,
-    Styler.Style.Pipes,
-    Styler.Style.SingleNode,
-    Styler.Style.Defs,
-    Styler.Style.Blocks,
-    Styler.Style.Deprecations,
-    Styler.Style.Configs
-  ]
+  @styles_map %{
+    blocks: Blocks,
+    configs: Configs,
+    defs: Defs,
+    deprecations: Deprecations,
+    module_directives: ModuleDirectives,
+    pipes: Pipes,
+    single_node: SingleNode
+  }
+
+  @styles Map.values(@styles_map)
 
   @doc false
   def style({ast, comments}, file, opts) do
@@ -34,8 +43,18 @@ defmodule Styler do
     Styler.Config.set(opts)
     zipper = Zipper.zip(ast)
 
+    enabled_styles =
+      case Keyword.fetch(opts, :enable) do
+        {:ok, enabled} ->
+          for enabled_style <- List.wrap(enabled),
+              do: Map.fetch!(@styles_map, enabled_style)
+
+        :error ->
+          @styles
+      end
+
     {{ast, _}, comments} =
-      Enum.reduce(@styles, {zipper, comments}, fn style, {zipper, comments} ->
+      Enum.reduce(enabled_styles, {zipper, comments}, fn style, {zipper, comments} ->
         context = %{comments: comments, file: file}
 
         try do

@@ -14,7 +14,7 @@ defmodule Styler.Style.StylesTest do
   """
   use Styler.StyleCase, async: true
 
-  describe "pipes + defs" do
+  describe "pipes + defs + single_node" do
     test "pipes doesnt abuse meta and break defs" do
       assert_style(
         """
@@ -31,7 +31,8 @@ defmodule Styler.Style.StylesTest do
             :bop
           end
         end)
-        """
+        """,
+        enable: [:pipes, :defs, :single_node]
       )
     end
   end
