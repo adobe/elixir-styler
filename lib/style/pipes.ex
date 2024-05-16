@@ -209,7 +209,7 @@ defmodule Styler.Style.Pipes do
     {:|>, [line: meta[:line]], [lhs, {reverse, [line: meta[:line]], [enum]}]}
   end
 
-  # `lhs |> Enum.reverse() |> Enum.concat(enum)` => `lhs |> Enum.reverse(enum)`
+  # `lhs |> Enum.reverse() |> Kernel.++(enum)` => `lhs |> Enum.reverse(enum)`
   defp fix_pipe(
          pipe_chain(
            lhs,
@@ -245,7 +245,7 @@ defmodule Styler.Style.Pipes do
     {:|>, [line: dm[:line]], [lhs, rhs]}
   end
 
-  # `lhs |> Enum.map(mapper) |> Enum.into(empty_map)` => `lhs |> Map.new(mapper)
+  # `lhs |> Enum.map(mapper) |> Enum.into(empty_map)` => `lhs |> Map.new(mapper)`
   # or
   # `lhs |> Enum.map(mapper) |> Enum.into(collectable)` => `lhs |> Enum.into(collectable, mapper)
   defp fix_pipe(
@@ -271,7 +271,7 @@ defmodule Styler.Style.Pipes do
     Style.set_line({:|>, [], [lhs, rhs]}, dm[:line])
   end
 
-  # `lhs |> Enum.into(%{}, ...)`` => `lhs |> Map.new(...)``
+  # lhs |> Enum.into(%{}, ...) => lhs |> Map.new(...)
   defp fix_pipe({:|>, meta, [lhs, {{:., dm, [{_, _, [:Enum]}, :into]}, _, [collectable | rest]}]} = node) do
     replacement =
       case collectable do
@@ -288,7 +288,7 @@ defmodule Styler.Style.Pipes do
     if replacement, do: {:|>, meta, [lhs, {replacement, dm, rest}]}, else: node
   end
 
-  # `lhs |> Enum.map(mapper) |> Map.new()` => `lhs |> Map.new(mapper)``
+  # `lhs |> Enum.map(mapper) |> Map.new()` => `lhs |> Map.new(mapper)`
   defp fix_pipe(
          pipe_chain(lhs, {{:., _, [{_, _, [enum]}, :map]}, _, [mapper]}, {{:., _, [{_, _, [mod]}, :new]} = new, nm, []})
        )
