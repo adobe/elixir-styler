@@ -128,17 +128,29 @@ defmodule Styler.Style.SingleNode do
     if new_collectable, do: {new_collectable, funm, [enum | rest]}, else: node
   end
 
-  for mod <- [:Map, :Keyword] do
+  for m <- [:Map, :Keyword] do
+    # lhs |> Map.merge(%{key: value}) => lhs |> Map.put(key, value)
+    defp style({:|>, pm, [lhs, {{:., dm, [{_, _, [unquote(m)]} = module, :merge]}, m, [{:%{}, _, [{key, value}]}]}]}),
+      do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
+
+    # lhs |> Map.merge(key: value) => lhs |> Map.put(:key, value)
+    defp style({:|>, pm, [lhs, {{:., dm, [{_, _, [unquote(m)]} = module, :merge]}, m, [[{key, value}]]}]}),
+      do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
+
     # Map.merge(foo, %{one_key: :bar}) => Map.put(foo, :one_key, :bar)
-    defp style({{:., dm, [{_, _, [unquote(mod)]} = module, :merge]}, m, [lhs, {:%{}, _, [{key, value}]}]}),
+    defp style({{:., dm, [{_, _, [unquote(m)]} = module, :merge]}, m, [lhs, {:%{}, _, [{key, value}]}]}),
       do: {{:., dm, [module, :put]}, m, [lhs, key, value]}
 
     # Map.merge(foo, one_key: :bar) => Map.put(foo, :one_key, :bar)
-    defp style({{:., dm, [{_, _, [unquote(mod)]} = module, :merge]}, m, [lhs, [{key, value}]]}),
+    defp style({{:., dm, [{_, _, [unquote(m)]} = module, :merge]}, m, [lhs, [{key, value}]]}),
       do: {{:., dm, [module, :put]}, m, [lhs, key, value]}
 
+    # lhs |> Map.drop([key]) => lhs |> Map.delete(key)
+    defp style({:|>, pm, [lhs, {{:., dm, [{_, _, [unquote(m)]} = module, :drop]}, m, [{:__block__, _, [[key]]}]}]}),
+      do: {:|>, pm, [lhs, {{:., dm, [module, :delete]}, m, [key]}]}
+
     # Map.drop(foo, [one_key]) => Map.delete(foo, one_key)
-    defp style({{:., dm, [{_, _, [unquote(mod)]} = module, :drop]}, m, [lhs, {:__block__, _, [[key]]}]}),
+    defp style({{:., dm, [{_, _, [unquote(m)]} = module, :drop]}, m, [lhs, {:__block__, _, [[key]]}]}),
       do: {{:., dm, [module, :delete]}, m, [lhs, key]}
   end
 

@@ -285,16 +285,6 @@ defmodule Styler.Style.Pipes do
     Style.set_line({:|>, [], [lhs, {new, nm, [mapper]}]}, nm[:line])
   end
 
-  # lhs |> Map.merge(%{key: value}) => lhs |> Map.put(key, value)
-  defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [mod]} = module, :merge]}, m, [{:%{}, _, [{key, value}]}]}]})
-       when mod in [:Map, :Keyword],
-       do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
-
-  # lhs |> Map.merge(key: value) => lhs |> Map.put(:key, value)
-  defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [mod]} = module, :merge]}, m, [[{key, value}]]}]})
-       when mod in [:Map, :Keyword],
-       do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
-
   defp fix_pipe(node), do: node
 
   defp valid_pipe_start?({op, _, _}) when op in @special_ops, do: true

@@ -482,12 +482,6 @@ defmodule Styler.Style.PipesTest do
   end
 
   describe "simple rewrites" do
-    test "{Keyword/Map}.merge/2 of a single key => *.put/3" do
-      for module <- ~w(Map Keyword) do
-        assert_style("foo |> #{module}.merge(%{one_key: :bar}) |> bop()", "foo |> #{module}.put(:one_key, :bar) |> bop()")
-      end
-    end
-
     test "rewrites anon fun def ahd invoke to use then" do
       assert_style("a |> (& &1).()", "then(a, & &1)")
       assert_style("a |> (& {&1, &2}).(b)", "(&{&1, &2}).(a, b)")
