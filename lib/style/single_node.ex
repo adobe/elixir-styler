@@ -136,6 +136,10 @@ defmodule Styler.Style.SingleNode do
     # Map.merge(foo, one_key: :bar) => Map.put(foo, :one_key, :bar)
     defp style({{:., dm, [{_, _, [unquote(mod)]} = module, :merge]}, m, [lhs, [{key, value}]]}),
       do: {{:., dm, [module, :put]}, m, [lhs, key, value]}
+
+    # Map.drop(foo, [one_key]) => Map.delete(foo, one_key)
+    defp style({{:., dm, [{_, _, [unquote(mod)]} = module, :drop]}, m, [lhs, {:__block__, _, [[key]]}]}),
+      do: {{:., dm, [module, :delete]}, m, [lhs, key]}
   end
 
   # Timex.now() => DateTime.utc_now()
