@@ -541,6 +541,25 @@ defmodule Styler.Style.PipesTest do
       )
     end
 
+    test "reverse/Kernel.++" do
+      assert_style("a |> Enum.reverse(bar) |> Kernel.++(foo)")
+      assert_style("a |> Enum.reverse() |> Kernel.++(foo)", "Enum.reverse(a, foo)")
+
+      assert_style(
+        """
+        a
+        |> Enum.reverse()
+        |> Kernel.++([bar, baz])
+        |> Enum.sum()
+        """,
+        """
+        a
+        |> Enum.reverse([bar, baz])
+        |> Enum.sum()
+        """
+      )
+    end
+
     test "filter/count" do
       for enum <- ~w(Enum Stream) do
         assert_style(
