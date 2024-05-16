@@ -53,8 +53,9 @@ See the moduledoc for `Styler.Style.Configs` for more.
 * `@derive`: move `@derive` before `defstruct|schema|embedded_schema` declarations (fixes compiler warning!) #134
 * strings: rewrite double-quoted strings to use `~s` when there's 4+ escaped double-quotes
   (`"\"\"\"\""` -> `~s("""")`) (`Credo.Check.Readability.StringSigils`) #146
-* `Map.drop(foo, [single_key])` => `Map.delete(foo, single_key)` #161
-* `Keyword.drop(foo, [single_key])` => `Keyword.delete(foo, single_key)` #161
+* `Map.drop(foo, [single_key])` => `Map.delete(foo, single_key)` #161 (also in pipes)
+* `Keyword.drop(foo, [single_key])` => `Keyword.delete(foo, single_key)` #161 (also in pipes)
+* `lhs |> Enum.reverse() |> Kernel.++(enum)` => `lhs |> Enum.reverse(enum)`
 
 ### Fixes
 

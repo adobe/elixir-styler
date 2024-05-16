@@ -27,24 +27,44 @@ defmodule Styler.Style.SingleNodeTest do
     assert_style ~s/"\\"\\"\\"\\" \/>']|})"/, ~s|~s("""" />']\|}\\))|
   end
 
-  test "{Map/Keyword}.merge with a single static key" do
-    for module <- ~w(Map Keyword) do
-      assert_style("#{module}.merge(foo, %{one_key: :bar})", "#{module}.put(foo, :one_key, :bar)")
-      assert_style("#{module}.merge(foo, one_key: :bar)", "#{module}.put(foo, :one_key, :bar)")
-      # # doesn't rewrite if there's a custom merge strategy
-      assert_style("#{module}.merge(foo, %{one_key: :bar}, custom_merge_strategy)")
-      # # doesn't rewrite if > 1 key
-      assert_style("#{module}.merge(foo, %{a: :b, c: :d})")
+  describe "{Keyword/Map}.merge/2 of a single key => *.put/3" do
+    test "in a pipe" do
+      for module <- ~w(Map Keyword) do
+        assert_style("foo |> #{module}.merge(%{one_key: :bar}) |> bop()", "foo |> #{module}.put(:one_key, :bar) |> bop()")
+      end
+    end
+
+    test "normal call" do
+      for module <- ~w(Map Keyword) do
+        assert_style("#{module}.merge(foo, %{one_key: :bar})", "#{module}.put(foo, :one_key, :bar)")
+        assert_style("#{module}.merge(foo, one_key: :bar)", "#{module}.put(foo, :one_key, :bar)")
+        # # doesn't rewrite if there's a custom merge strategy
+        assert_style("#{module}.merge(foo, %{one_key: :bar}, custom_merge_strategy)")
+        # # doesn't rewrite if > 1 key
+        assert_style("#{module}.merge(foo, %{a: :b, c: :d})")
+      end
     end
   end
 
-  test "{Map/Keyword}.drop with a single key" do
-    for module <- ~w(Map Keyword) do
-      assert_style("#{module}.drop(foo, [key])", "#{module}.delete(foo, key)")
-      assert_style("#{module}.drop(foo, [:key])", "#{module}.delete(foo, :key)")
-      assert_style("#{module}.drop(foo, [])")
-      assert_style("#{module}.drop(foo, [a, b])")
-      assert_style("#{module}.drop(foo, keys)")
+  describe "{Map/Keyword}.drop with a single key" do
+    test "in a pipe" do
+      for module <- ~w(Map Keyword) do
+        assert_style("foo |> #{module}.drop([key]) |> bar()", "foo |> #{module}.delete(key) |> bar()")
+        assert_style("foo |> #{module}.drop([:key]) |> bar()", "foo |> #{module}.delete(:key) |> bar()")
+        assert_style("foo |> #{module}.drop([]) |> bar()")
+        assert_style("foo |> #{module}.drop([a, b]) |> bar()")
+        assert_style("foo |> #{module}.drop(keys) |> bar()")
+      end
+    end
+
+    test "normal call" do
+      for module <- ~w(Map Keyword) do
+        assert_style("#{module}.drop(foo, [key])", "#{module}.delete(foo, key)")
+        assert_style("#{module}.drop(foo, [:key])", "#{module}.delete(foo, :key)")
+        assert_style("#{module}.drop(foo, [])")
+        assert_style("#{module}.drop(foo, [a, b])")
+        assert_style("#{module}.drop(foo, keys)")
+      end
     end
   end
 

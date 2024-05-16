@@ -209,6 +209,17 @@ defmodule Styler.Style.Pipes do
     {:|>, [line: meta[:line]], [lhs, {reverse, [line: meta[:line]], [enum]}]}
   end
 
+  # `lhs |> Enum.reverse() |> Enum.concat(enum)` => `lhs |> Enum.reverse(enum)`
+  defp fix_pipe(
+         pipe_chain(
+           lhs,
+           {{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, meta, []},
+           {{:., _, [{_, _, [:Kernel]}, :++]}, _, [enum]}
+         )
+       ) do
+    {:|>, [line: meta[:line]], [lhs, {reverse, [line: meta[:line]], [enum]}]}
+  end
+
   # `lhs |> Enum.filter(filterer) |> Enum.count()` => `lhs |> Enum.count(count)`
   defp fix_pipe(
          pipe_chain(
@@ -284,16 +295,6 @@ defmodule Styler.Style.Pipes do
        when mod in @collectable and enum in @enum do
     Style.set_line({:|>, [], [lhs, {new, nm, [mapper]}]}, nm[:line])
   end
-
-  # lhs |> Map.merge(%{key: value}) => lhs |> Map.put(key, value)
-  defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [mod]} = module, :merge]}, m, [{:%{}, _, [{key, value}]}]}]})
-       when mod in [:Map, :Keyword],
-       do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
-
-  # lhs |> Map.merge(key: value) => lhs |> Map.put(:key, value)
-  defp fix_pipe({:|>, pm, [lhs, {{:., dm, [{_, _, [mod]} = module, :merge]}, m, [[{key, value}]]}]})
-       when mod in [:Map, :Keyword],
-       do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
 
   defp fix_pipe(node), do: node
 
