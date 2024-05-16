@@ -53,6 +53,8 @@ See the moduledoc for `Styler.Style.Configs` for more.
 * `@derive`: move `@derive` before `defstruct|schema|embedded_schema` declarations (fixes compiler warning!) #134
 * strings: rewrite double-quoted strings to use `~s` when there's 4+ escaped double-quotes
   (`"\"\"\"\""` -> `~s("""")`) (`Credo.Check.Readability.StringSigils`) #146
+* `Map.drop(foo, [single_key])` => `Map.delete(foo, single_key)` #161
+* `Keyword.drop(foo, [single_key])` => `Keyword.delete(foo, single_key)` #161
 
 ### Fixes
 
@@ -61,6 +63,7 @@ See the moduledoc for `Styler.Style.Configs` for more.
 * pipes: fix a comment-shifting scenario when unpiping
 * `Timex.now/1` will no longer be rewritten to `DateTime.now!/1` due to Timex accepting a wider domain of "timezones" than the stdlib (#145, h/t @ivymarkwell)
 * `with`: skip nodes which (unexpectedly) do not contain a `do` body (#158, h/t @DavidB59)
+* `then(&fun/1)`: fix false positives on arithmetic `&1 + x / 1` (#164, h/t @aenglisc)
 
 ### Breaking Changes
 

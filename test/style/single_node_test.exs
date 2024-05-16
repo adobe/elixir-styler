@@ -38,6 +38,16 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
+  test "{Map/Keyword}.drop with a single key" do
+    for module <- ~w(Map Keyword) do
+      assert_style("#{module}.drop(foo, [key])", "#{module}.delete(foo, key)")
+      assert_style("#{module}.drop(foo, [:key])", "#{module}.delete(foo, :key)")
+      assert_style("#{module}.drop(foo, [])")
+      assert_style("#{module}.drop(foo, [a, b])")
+      assert_style("#{module}.drop(foo, keys)")
+    end
+  end
+
   describe "Timex.now/0,1" do
     test "Timex.now/0 => DateTime.utc_now/0" do
       assert_style("Timex.now()", "DateTime.utc_now()")
