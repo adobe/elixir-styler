@@ -93,7 +93,6 @@ defmodule Styler.Style.ModuleDirectives do
   alias Styler.Zipper
 
   @directives ~w(alias import require use)a
-  @callback_attrs ~w(before_compile after_compile after_verify)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a
   @defstruct ~w(schema embedded_schema defstruct)a
 
@@ -191,65 +190,119 @@ defmodule Styler.Style.ModuleDirectives do
   defp moduledoc(_), do: nil
 
   @acc %{
-    "@shortdoc": [],
-    "@moduledoc": [],
-    "@behaviour": [],
+    shortdoc: [],
+    moduledoc: [],
+    behaviour: [],
     use: [],
     import: [],
     alias: [],
     require: [],
     nondirectives: [],
-    dealiases: %{}
+    dealiases: %{},
+    attrs: MapSet.new(),
+    attr_lifts: []
   }
+
+  defp lift_module_attrs({node, _, _} = ast, %{attrs: attrs} = acc) do
+    if Enum.empty?(attrs) do
+      {ast, acc}
+    else
+      use? = node == :use
+
+      Macro.prewalk(ast, acc, fn
+        {:@, m, [{attr, _, _} = var]} = ast, acc ->
+          if attr in attrs do
+            replacement =
+              if use?,
+                do: {:unquote, [closing: [line: m[:line]], line: m[:line]], [var]},
+                else: var
+
+            {replacement, %{acc | attr_lifts: [attr | acc.attr_lifts]}}
+          else
+            {ast, acc}
+          end
+
+        ast, acc ->
+          {ast, acc}
+      end)
+    end
+  end
 
   defp organize_directives(parent, moduledoc \\ nil) do
     acc =
       parent
       |> Zipper.children()
       |> Enum.reduce(@acc, fn
-        {:@, _, [{attr, _, _}]} = ast, acc ->
-          key =
-            cond do
-              # TODO drop for a 1.0 release?
-              # the order of callbacks relative to use can matter if the use is also doing callbacks
-              # looking back, this is probably a hack to support one person's weird hackery 🤣
-              attr in @callback_attrs -> :use
-              attr in @attr_directives -> :"@#{attr}"
-              true -> :nondirectives
-            end
+        {:@, _, [{attr_directive, _, _}]} = ast, acc when attr_directive in @attr_directives ->
+          # attr_directives are moved above aliases, so we need to dealias them
+          {ast, acc} = acc.dealiases |> Dealias.apply(ast) |> lift_module_attrs(acc)
+          %{acc | attr_directive => [ast | acc[attr_directive]]}
 
-          # both callback and attr_directives are moved above aliases, so we need to dealias them
-          ast = if key == :nondirectives, do: ast, else: Dealias.apply(acc.dealiases, ast)
-          %{acc | key => [ast | acc[key]]}
+        {:@, _, [{attr, _, _}]} = ast, acc ->
+          %{acc | nondirectives: [ast | acc.nondirectives], attrs: MapSet.put(acc.attrs, attr)}
 
         {directive, _, _} = ast, acc when directive in @directives ->
+          {ast, acc} = lift_module_attrs(ast, acc)
           ast = expand(ast)
           # import and used get hoisted above aliases, so need to dealias
           ast = if directive in ~w(import use)a, do: Dealias.apply(acc.dealiases, ast), else: ast
           dealiases = if directive == :alias, do: Dealias.put(acc.dealiases, ast), else: acc.dealiases
+
           # the reverse accounts for `expand` putting things in reading order, whereas we're accumulating in reverse
-          %{acc | directive => Enum.reverse(ast, acc[directive]), :dealiases => dealiases}
+          %{acc | directive => Enum.reverse(ast, acc[directive]), dealiases: dealiases}
 
         ast, acc ->
           %{acc | nondirectives: [ast | acc.nondirectives]}
       end)
       # Reversing once we're done accumulating since `reduce`ing into list accs means you're reversed!
       |> Map.new(fn
-        {:"@moduledoc", []} -> {:"@moduledoc", List.wrap(moduledoc)}
+        {:moduledoc, []} -> {:moduledoc, List.wrap(moduledoc)}
         {:use, uses} -> {:use, uses |> Enum.reverse() |> Style.reset_newlines()}
-        {directive, to_sort} when directive in ~w(@behaviour import alias require)a -> {directive, sort(to_sort)}
+        {directive, to_sort} when directive in ~w(behaviour import alias require)a -> {directive, sort(to_sort)}
         {:dealiases, d} -> {:dealiases, d}
         {k, v} -> {k, Enum.reverse(v)}
       end)
       |> lift_aliases()
 
+    # Not happy with it, but this does the work to move module attribute assignments above the module or quote or whatever
+    # Given that it'll only be run once and not again, i'm okay with it being inefficient
+    {acc, parent} =
+      if Enum.any?(acc.attr_lifts) do
+        lifts = acc.attr_lifts
+
+        nondirectives =
+          Enum.map(acc.nondirectives, fn
+            {:@, m, [{attr, am, _}]} = ast -> if attr in lifts, do: {:@, m, [{attr, am, [{attr, am, nil}]}]}, else: ast
+            ast -> ast
+          end)
+
+        assignments =
+          Enum.flat_map(acc.nondirectives, fn
+            {:@, m, [{attr, am, [val]}]} -> if attr in lifts, do: [{:=, m, [{attr, am, nil}, val]}], else: []
+            _ -> []
+          end)
+
+        {past, _} = parent
+
+        parent =
+          parent
+          |> Zipper.up()
+          |> Style.find_nearest_block()
+          |> Zipper.prepend_siblings(assignments)
+          |> Zipper.find(&(&1 == past))
+
+        {%{acc | nondirectives: nondirectives}, parent}
+      else
+        {acc, parent}
+      end
+
     nondirectives = acc.nondirectives
 
     directives =
       [
-        acc."@shortdoc",
-        acc."@moduledoc",
-        acc."@behaviour",
+        acc.shortdoc,
+        acc.moduledoc,
+        acc.behaviour,
         acc.use,
         acc.import,
         acc.alias,
