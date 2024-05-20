@@ -200,8 +200,7 @@ defmodule Styler.Style.ModuleDirectives do
     nondirectives: [],
     dealiases: %{},
     attrs: MapSet.new(),
-    attr_lifts: [],
-    assignments: []
+    attr_lifts: []
   }
 
   defp lift_module_attrs({node, _, _} = ast, %{attrs: attrs} = acc) do
@@ -243,8 +242,8 @@ defmodule Styler.Style.ModuleDirectives do
           %{acc | nondirectives: [ast | acc.nondirectives], attrs: MapSet.put(acc.attrs, attr)}
 
         {directive, _, _} = ast, acc when directive in @directives ->
-          {ast, acc} = ast |> lift_module_attrs(acc)
-          ast = ast |> expand()
+          {ast, acc} = lift_module_attrs(ast, acc)
+          ast = expand(ast)
           # import and used get hoisted above aliases, so need to dealias
           ast = if directive in ~w(import use)a, do: Dealias.apply(acc.dealiases, ast), else: ast
           dealiases = if directive == :alias, do: Dealias.put(acc.dealiases, ast), else: acc.dealiases
@@ -265,30 +264,42 @@ defmodule Styler.Style.ModuleDirectives do
       end)
       |> lift_aliases()
 
-    acc =
+    # Not happy with it, but this does the work to move module attribute assignments above the module or quote or whatever
+    # Given that it'll only be run once and not again, i'm okay with it being inefficient
+    {acc, parent} =
       if Enum.any?(acc.attr_lifts) do
         lifts = acc.attr_lifts
 
-        nondirectives = Enum.map(acc.nondirectives, fn
-          {:@, m, [{attr, am, _}]} = ast -> if attr in lifts, do: {:@, m, [{attr, am, [{attr, am, nil}]}]}, else: ast
-          ast -> ast
-        end)
+        nondirectives =
+          Enum.map(acc.nondirectives, fn
+            {:@, m, [{attr, am, _}]} = ast -> if attr in lifts, do: {:@, m, [{attr, am, [{attr, am, nil}]}]}, else: ast
+            ast -> ast
+          end)
 
-        assignments = Enum.flat_map(acc.nondirectives, fn
-          {:@, m, [{attr, am, [val]}]} -> if attr in lifts, do: [{:=, m, [{attr, am, nil}, val]}], else: []
-          _ -> []
-        end)
+        assignments =
+          Enum.flat_map(acc.nondirectives, fn
+            {:@, m, [{attr, am, [val]}]} -> if attr in lifts, do: [{:=, m, [{attr, am, nil}, val]}], else: []
+            _ -> []
+          end)
 
-        %{acc | nondirectives: nondirectives, assignments: assignments}
+        {past, _} = parent
+
+        parent =
+          parent
+          |> Zipper.up()
+          |> Style.find_nearest_block()
+          |> Zipper.prepend_siblings(assignments)
+          |> Zipper.find(&(&1 == past))
+
+        {%{acc | nondirectives: nondirectives}, parent}
       else
-        acc
+        {acc, parent}
       end
 
     nondirectives = acc.nondirectives
 
     directives =
       [
-        acc.assignments,
         acc.shortdoc,
         acc.moduledoc,
         acc.behaviour,

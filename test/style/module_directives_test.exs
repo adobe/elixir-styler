@@ -574,25 +574,49 @@ defmodule Styler.Style.ModuleDirectivesTest do
     )
   end
 
-  test "module attribute variable extraction" do
-    assert_style(
-      """
-      defmodule MyGreatLibrary do
-        @library_options [...]
-        @moduledoc make_pretty_docs(@library_options)
-        use OptionsMagic, my_opts: @library_options
-      end
-      """,
-      """
-
-      defmodule MyGreatLibrary do
+  describe "module attribute lifting" do
+    test "replaces uses in other attributes and `use` correctly" do
+      assert_style(
+        """
+        defmodule MyGreatLibrary do
+          @library_options [...]
+          @moduledoc make_pretty_docs(@library_options)
+          use OptionsMagic, my_opts: @library_options
+        end
+        """,
+        """
         library_options = [...]
-        @moduledoc make_pretty_docs(library_options)
-        use OptionsMagic, my_opts: unquote(library_options)
 
-        @library_options library_options
-      end
-      """
-    )
+        defmodule MyGreatLibrary do
+          @moduledoc make_pretty_docs(library_options)
+          use OptionsMagic, my_opts: unquote(library_options)
+
+          @library_options library_options
+        end
+        """
+      )
+    end
+
+    test "works with `quote`" do
+      assert_style(
+        """
+        quote do
+          @library_options [...]
+          @moduledoc make_pretty_docs(@library_options)
+          use OptionsMagic, my_opts: @library_options
+        end
+        """,
+        """
+        library_options = [...]
+
+        quote do
+          @moduledoc make_pretty_docs(library_options)
+          use OptionsMagic, my_opts: unquote(library_options)
+
+          @library_options library_options
+        end
+        """
+      )
+    end
   end
 end
