@@ -69,6 +69,7 @@ See the moduledoc for `Styler.Style.Configs` for more.
 ### Breaking Changes
 
 * drop support for elixir `1.14`
+* ModuleDirectives: group callback attributes (`before_compile after_compile after_verify`) with nondirectives (previously, were grouped with `use`, their relative order maintained). to keep the desired behaviour, you can make new `use` macros that wrap these callbacks. Apologies if this makes using Styler untenable for your codebase, but it's probably not a good tool for macro-heavy libraries.
 * sorting configs for the first time can change your configuration; see `Styler.Style.Configs` moduledoc for more
 
 ## v0.11.9

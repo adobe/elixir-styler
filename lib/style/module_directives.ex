@@ -93,7 +93,6 @@ defmodule Styler.Style.ModuleDirectives do
   alias Styler.Zipper
 
   @directives ~w(alias import require use)a
-  @callback_attrs ~w(before_compile after_compile after_verify)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a
   @defstruct ~w(schema embedded_schema defstruct)a
 
@@ -191,9 +190,9 @@ defmodule Styler.Style.ModuleDirectives do
   defp moduledoc(_), do: nil
 
   @acc %{
-    "@shortdoc": [],
-    "@moduledoc": [],
-    "@behaviour": [],
+    shortdoc: [],
+    moduledoc: [],
+    behaviour: [],
     use: [],
     import: [],
     alias: [],
@@ -207,20 +206,12 @@ defmodule Styler.Style.ModuleDirectives do
       parent
       |> Zipper.children()
       |> Enum.reduce(@acc, fn
-        {:@, _, [{attr, _, _}]} = ast, acc ->
-          key =
-            cond do
-              # TODO drop for a 1.0 release?
-              # the order of callbacks relative to use can matter if the use is also doing callbacks
-              # looking back, this is probably a hack to support one person's weird hackery 🤣
-              attr in @callback_attrs -> :use
-              attr in @attr_directives -> :"@#{attr}"
-              true -> :nondirectives
-            end
+        {:@, _, [{attr_directive, _, _}]} = ast, acc when attr_directive in @attr_directives ->
+          # attr_directives are moved above aliases, so we need to dealias them
+          %{acc | attr_directive => [Dealias.apply(acc.dealiases, ast) | acc[attr_directive]]}
 
-          # both callback and attr_directives are moved above aliases, so we need to dealias them
-          ast = if key == :nondirectives, do: ast, else: Dealias.apply(acc.dealiases, ast)
-          %{acc | key => [ast | acc[key]]}
+        {:@, _, [{_non_directive, _, _}]} = ast, acc ->
+          %{acc | :nondirectives => [ast | acc[:nondirectives]]}
 
         {directive, _, _} = ast, acc when directive in @directives ->
           ast = expand(ast)
@@ -235,9 +226,9 @@ defmodule Styler.Style.ModuleDirectives do
       end)
       # Reversing once we're done accumulating since `reduce`ing into list accs means you're reversed!
       |> Map.new(fn
-        {:"@moduledoc", []} -> {:"@moduledoc", List.wrap(moduledoc)}
+        {:moduledoc, []} -> {:moduledoc, List.wrap(moduledoc)}
         {:use, uses} -> {:use, uses |> Enum.reverse() |> Style.reset_newlines()}
-        {directive, to_sort} when directive in ~w(@behaviour import alias require)a -> {directive, sort(to_sort)}
+        {directive, to_sort} when directive in ~w(behaviour import alias require)a -> {directive, sort(to_sort)}
         {:dealiases, d} -> {:dealiases, d}
         {k, v} -> {k, Enum.reverse(v)}
       end)
@@ -247,9 +238,9 @@ defmodule Styler.Style.ModuleDirectives do
 
     directives =
       [
-        acc."@shortdoc",
-        acc."@moduledoc",
-        acc."@behaviour",
+        acc.shortdoc,
+        acc.moduledoc,
+        acc.behaviour,
         acc.use,
         acc.import,
         acc.alias,
