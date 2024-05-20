@@ -573,4 +573,26 @@ defmodule Styler.Style.ModuleDirectivesTest do
       """
     )
   end
+
+  test "module attribute variable extraction" do
+    assert_style(
+      """
+      defmodule MyGreatLibrary do
+        @library_options [...]
+        @moduledoc make_pretty_docs(@library_options)
+        use OptionsMagic, my_opts: @library_options
+      end
+      """,
+      """
+
+      defmodule MyGreatLibrary do
+        library_options = [...]
+        @moduledoc make_pretty_docs(library_options)
+        use OptionsMagic, my_opts: unquote(library_options)
+
+        @library_options library_options
+      end
+      """
+    )
+  end
 end

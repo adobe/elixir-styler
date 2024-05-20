@@ -198,8 +198,36 @@ defmodule Styler.Style.ModuleDirectives do
     alias: [],
     require: [],
     nondirectives: [],
-    dealiases: %{}
+    dealiases: %{},
+    attrs: MapSet.new(),
+    attr_lifts: [],
+    assignments: []
   }
+
+  defp lift_module_attrs({node, _, _} = ast, %{attrs: attrs} = acc) do
+    if Enum.empty?(attrs) do
+      {ast, acc}
+    else
+      use? = node == :use
+
+      Macro.prewalk(ast, acc, fn
+        {:@, m, [{attr, _, _} = var]} = ast, acc ->
+          if attr in attrs do
+            replacement =
+              if use?,
+                do: {:unquote, [closing: [line: m[:line]], line: m[:line]], [var]},
+                else: var
+
+            {replacement, %{acc | attr_lifts: [attr | acc.attr_lifts]}}
+          else
+            {ast, acc}
+          end
+
+        ast, acc ->
+          {ast, acc}
+      end)
+    end
+  end
 
   defp organize_directives(parent, moduledoc \\ nil) do
     acc =
@@ -208,18 +236,21 @@ defmodule Styler.Style.ModuleDirectives do
       |> Enum.reduce(@acc, fn
         {:@, _, [{attr_directive, _, _}]} = ast, acc when attr_directive in @attr_directives ->
           # attr_directives are moved above aliases, so we need to dealias them
-          %{acc | attr_directive => [Dealias.apply(acc.dealiases, ast) | acc[attr_directive]]}
+          {ast, acc} = acc.dealiases |> Dealias.apply(ast) |> lift_module_attrs(acc)
+          %{acc | attr_directive => [ast | acc[attr_directive]]}
 
-        {:@, _, [{_non_directive, _, _}]} = ast, acc ->
-          %{acc | :nondirectives => [ast | acc[:nondirectives]]}
+        {:@, _, [{attr, _, _}]} = ast, acc ->
+          %{acc | nondirectives: [ast | acc.nondirectives], attrs: MapSet.put(acc.attrs, attr)}
 
         {directive, _, _} = ast, acc when directive in @directives ->
-          ast = expand(ast)
+          {ast, acc} = ast |> lift_module_attrs(acc)
+          ast = ast |> expand()
           # import and used get hoisted above aliases, so need to dealias
           ast = if directive in ~w(import use)a, do: Dealias.apply(acc.dealiases, ast), else: ast
           dealiases = if directive == :alias, do: Dealias.put(acc.dealiases, ast), else: acc.dealiases
+
           # the reverse accounts for `expand` putting things in reading order, whereas we're accumulating in reverse
-          %{acc | directive => Enum.reverse(ast, acc[directive]), :dealiases => dealiases}
+          %{acc | directive => Enum.reverse(ast, acc[directive]), dealiases: dealiases}
 
         ast, acc ->
           %{acc | nondirectives: [ast | acc.nondirectives]}
@@ -234,10 +265,30 @@ defmodule Styler.Style.ModuleDirectives do
       end)
       |> lift_aliases()
 
+    acc =
+      if Enum.any?(acc.attr_lifts) do
+        lifts = acc.attr_lifts
+
+        nondirectives = Enum.map(acc.nondirectives, fn
+          {:@, m, [{attr, am, _}]} = ast -> if attr in lifts, do: {:@, m, [{attr, am, [{attr, am, nil}]}]}, else: ast
+          ast -> ast
+        end)
+
+        assignments = Enum.flat_map(acc.nondirectives, fn
+          {:@, m, [{attr, am, [val]}]} -> if attr in lifts, do: [{:=, m, [{attr, am, nil}, val]}], else: []
+          _ -> []
+        end)
+
+        %{acc | nondirectives: nondirectives, assignments: assignments}
+      else
+        acc
+      end
+
     nondirectives = acc.nondirectives
 
     directives =
       [
+        acc.assignments,
         acc.shortdoc,
         acc.moduledoc,
         acc.behaviour,
