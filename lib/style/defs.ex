@@ -43,7 +43,7 @@ defmodule Styler.Style.Defs do
   # so we're catching it here and skipping all module attribute nodes - shouldn't be defs inside them anyways
   def run({{:@, _, _}, _} = zipper, ctx), do: {:skip, zipper, ctx}
 
-  # defs with no body like
+  # a def with no body like
   #
   #  def example(foo, bar \\ nil)
   #
@@ -62,7 +62,7 @@ defmodule Styler.Style.Defs do
     end
   end
 
-  # other kinds of defs
+  # all the other kinds of defs!
   # @TODO all paths here skip, which means that `def a .. quote do def b ...` won't style `def b`
   def run({{def, def_meta, [head, body]}, _} = zipper, ctx) when def in [:def, :defp] do
     def_line = def_meta[:line]

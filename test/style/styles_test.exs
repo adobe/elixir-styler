@@ -15,7 +15,7 @@ defmodule Styler.Style.StylesTest do
   use Styler.StyleCase, async: true
 
   describe "pipes + defs" do
-    test "pipes don't abuse meta and break defs" do
+    test "pipes doesnt abuse meta and break defs" do
       assert_style(
         """
         foo
