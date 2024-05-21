@@ -249,7 +249,7 @@ defmodule Styler.Style.SingleNodeTest do
       )
     end
 
-    test "definitions" do
+    test "defs" do
       assert_style(
         "def foo(bar = %{baz: baz? = true}, opts = [[a = %{}] | _]), do: :ok",
         "def foo(%{baz: true = baz?} = bar, [[%{} = a] | _] = opts), do: :ok"
