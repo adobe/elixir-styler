@@ -256,7 +256,7 @@ defmodule Styler.Style.SingleNodeTest do
       )
     end
 
-    test "anon funs" do
+    test "anonymous functions" do
       assert_style(
         "fn bar = %{baz: baz? = true}, opts = [[a = %{}] | _] -> :ok end",
         "fn %{baz: true = baz?} = bar, [[%{} = a] | _] = opts -> :ok end"

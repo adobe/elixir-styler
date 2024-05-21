@@ -268,7 +268,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
       """)
     end
 
-    test "anon function" do
+    test "anonymous function" do
       assert_style("fn -> alias A.{C, B} end", """
       fn ->
         alias A.B
