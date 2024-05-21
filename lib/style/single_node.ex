@@ -81,7 +81,7 @@ defmodule Styler.Style.SingleNode do
   #
   # `?-` isn't part of the number node - it's its parent - so all numbers are positive at this point
   defp style({:__block__, meta, [number]}) when is_number(number) and number >= 10_000 do
-    # Checking here rather than in the anon function due to compiler bug https://github.com/elixir-lang/elixir/issues/10485
+    # Checking here rather than in the anonymous function due to compiler bug https://github.com/elixir-lang/elixir/issues/10485
     integer? = is_integer(number)
 
     meta =

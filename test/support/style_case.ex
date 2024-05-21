@@ -77,7 +77,7 @@ defmodule Styler.StyleCase do
                 nil -> true
                 # do/else/etc
                 {{:__block__, _, [_]}, {:__block__, [], _}} -> true
-                # anon fun
+                # anonymous function
                 {:->, _, _} -> true
                 _ -> false
               end
