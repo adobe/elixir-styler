@@ -333,8 +333,8 @@ defmodule Styler.Style.ModuleDirectives do
 
     if Enum.any?(liftable) do
       # This is a silly hack that helps comments stay put.
-      # The `cap_line` algorithm was designed to handle high-line stuff moving up into low line territory,
-      # so we set our new node to have an arbitrarily high line so comments stay where they are.
+      # The `cap_line` algo was designed to handle high-line stuff moving up into low line territory, so we set our
+      # new node to have an arbitrarily high line annnnd comments behave! i think.
       m = [line: 999_999]
 
       aliases =
