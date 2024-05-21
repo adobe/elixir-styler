@@ -482,7 +482,7 @@ defmodule Styler.Style.PipesTest do
   end
 
   describe "simple rewrites" do
-    test "rewrites anon fun def ahd invoke to use then" do
+    test "rewrites anonymous function invocation to use then" do
       assert_style("a |> (& &1).()", "then(a, & &1)")
       assert_style("a |> (& {&1, &2}).(b)", "(&{&1, &2}).(a, b)")
       assert_style("a |> (& &1).() |> c", "a |> then(& &1) |> c()")
@@ -700,7 +700,7 @@ defmodule Styler.Style.PipesTest do
   end
 
   describe "comments" do
-    test "unpiping doens't move comment in anon fun" do
+    test "unpiping doesn't move comment in anonymous function" do
       assert_style """
                      aliased =
                        aliases

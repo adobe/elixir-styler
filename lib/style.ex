@@ -169,7 +169,7 @@ defmodule Styler.Style do
 
   @doc """
   "Fixes" the line numbers of nodes who have had their orders changed via sorting or other methods.
-  This "fix" siply ensures that comments don't get wrecked as part of us moving AST nodes willy-nilly.
+  This "fix" simply ensures that comments don't get wrecked as part of us moving AST nodes willy-nilly.
 
   The fix is rather naive, and simply enforces the following property on the code:
   A given node must have a line number less than the following node.
