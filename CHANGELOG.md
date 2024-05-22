@@ -103,6 +103,7 @@ See the moduledoc for `Styler.Style.Configs` for more.
 * `Timex.now/1` will no longer be rewritten to `DateTime.now!/1` due to Timex accepting a wider domain of "timezones" than the stdlib (#145, h/t @ivymarkwell)
 * `with`: skip nodes which (unexpectedly) do not contain a `do` body (#158, h/t @DavidB59)
 * `then(&fun/1)`: fix false positives on arithmetic `&1 + x / 1` (#164, h/t @aenglisc)
+* rewrite `a |> Enum.map(m) |> Enum.join()` to `map_join(a, m)`. we already did this for `join/2`, but missed the case for `join/1`
 
 ### Breaking Changes
 

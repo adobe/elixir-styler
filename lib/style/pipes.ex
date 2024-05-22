@@ -236,12 +236,12 @@ defmodule Styler.Style.Pipes do
   defp fix_pipe(
          pipe_chain(
            lhs,
-           {{:., dm, [{_, _, [mod]}, :map]}, em, [mapper]},
-           {{:., _, [{_, _, [:Enum]} = enum, :join]}, _, [joiner]}
+           {{:., dm, [{_, _, [mod]}, :map]}, em, map_args},
+           {{:., _, [{_, _, [:Enum]} = enum, :join]}, _, join_args}
          )
        )
        when mod in @enum do
-    rhs = Style.set_line({{:., dm, [enum, :map_join]}, em, [joiner, mapper]}, dm[:line])
+    rhs = Style.set_line({{:., dm, [enum, :map_join]}, em, join_args ++ map_args}, dm[:line])
     {:|>, [line: dm[:line]], [lhs, rhs]}
   end
 

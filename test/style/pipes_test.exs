@@ -613,7 +613,8 @@ defmodule Styler.Style.PipesTest do
 
     test "map/join" do
       for enum <- ~w(Enum Stream) do
-        assert_style("a|> #{enum}.map(b) |> Enum.join(x)", "Enum.map_join(a, x, b)")
+        assert_style("a |> #{enum}.map(mapper) |> Enum.join()", "Enum.map_join(a, mapper)")
+        assert_style("a |> #{enum}.map(mapper) |> Enum.join(joiner)", "Enum.map_join(a, joiner, mapper)")
       end
     end
 
