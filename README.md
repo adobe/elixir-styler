@@ -9,7 +9,7 @@ You can learn more about the history, purpose and implementation of Styler from 
 
 Styler's documentation is under work as part of releasing 1.0.
 
-You can find the [0.11.9 documentation and readme here.](https://hexdocs.pm/styler/readme.html)
+You can find the much more complete and usable [0.11.9 documentation and readme here.](https://hexdocs.pm/styler/readme.html)
 
 ## Installation
 
