@@ -5,6 +5,12 @@ you what's wrong, it just rewrites the code for you to fit its style rules.
 
 You can learn more about the history, purpose and implementation of Styler from our talk: [Styler: Elixir Style-Guide Enforcer @ GigCity Elixir 2023](https://www.youtube.com/watch?v=6pF8Hl5EuD4)
 
+-----------------------
+
+Styler's documentation is under work as part of releasing 1.0.
+
+You can find the [0.11.9 documentation and readme here.](https://hexdocs.pm/styler/readme.html)
+
 ## Installation
 
 Add `:styler` as a dependency to your project's `mix.exs`:
@@ -12,10 +18,14 @@ Add `:styler` as a dependency to your project's `mix.exs`:
 ```elixir
 def deps do
   [
-    {:styler, "~> 0.11", only: [:dev, :test], runtime: false},
+    {:styler, "~> 1.0.0-rc.0", only: [:dev, :test], runtime: false},
   ]
 end
 ```
+
+Please excuse the mess below as I find spare to to update our documentation =)
+
+
 @TODO put this somewhere more reasonable
 **Note** Styler's only public API is its usage as a formatter plugin. While you're welcome to play with its internals,
 they can and will change without that change being reflected in Styler's semantic version.
@@ -41,6 +51,8 @@ Styler is @adobe's internal Style Guide Enforcer - allowing exceptions to the st
 ## Features (or as we call them, "Styles")
 
 @TODO link examples
+
+https://hexdocs.pm/styler/1.0.0-rc.0/styles.html
 
 ## Styler & Credo
 
