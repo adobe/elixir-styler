@@ -23,7 +23,6 @@ defmodule Styler.Style.Deprecations do
     do: {{:., dm, [{:__aliases__, am, [:Logger]}, :warning]}, funm, args}
 
   # Path.safe_relative_to/2 => Path.safe_relative/2
-  # Path.safe_relative/2 is available since v1.14
   # TODO: Remove after Elixir v1.19
   defp style({{:., dm, [{_, _, [:Path]} = mod, :safe_relative_to]}, funm, args}),
     do: {{:., dm, [mod, :safe_relative]}, funm, args}

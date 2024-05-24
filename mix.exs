@@ -60,7 +60,8 @@ defmodule Styler.MixProject do
       source_url: @url,
       extras: [
         "CHANGELOG.md": [title: "Changelog"],
-        "README.md": [title: "Styler"]
+        "README.md": [title: "Styler"],
+        "docs/styles.cheatmd": [title: "Examples"]
       ]
     ]
   end
