@@ -23,10 +23,10 @@ def deps do
 end
 ```
 
-Please excuse the mess below as I find spare to to update our documentation =)
+Please excuse the mess below as I find spare time to update our documentation =) Anything with TODOs are, well, notes to myself on documentation that needs rewriting. Happy to accept PRs if one seems doable to others.
 
+_@TODO put this somewhere more reasonable_
 
-@TODO put this somewhere more reasonable
 **Note** Styler's only public API is its usage as a formatter plugin. While you're welcome to play with its internals,
 they can and will change without that change being reflected in Styler's semantic version.
 
