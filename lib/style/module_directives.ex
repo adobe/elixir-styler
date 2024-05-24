@@ -88,7 +88,7 @@ defmodule Styler.Style.ModuleDirectives do
   """
   @behaviour Styler.Style
 
-  alias Styler.Dealias
+  alias Styler.AliasEnv
   alias Styler.Style
   alias Styler.Zipper
 
@@ -235,7 +235,7 @@ defmodule Styler.Style.ModuleDirectives do
       |> Enum.reduce(@acc, fn
         {:@, _, [{attr_directive, _, _}]} = ast, acc when attr_directive in @attr_directives ->
           # attr_directives are moved above aliases, so we need to dealias them
-          {ast, acc} = acc.dealiases |> Dealias.apply(ast) |> lift_module_attrs(acc)
+          {ast, acc} = acc.dealiases |> AliasEnv.expand(ast) |> lift_module_attrs(acc)
           %{acc | attr_directive => [ast | acc[attr_directive]]}
 
         {:@, _, [{attr, _, _}]} = ast, acc ->
@@ -245,8 +245,8 @@ defmodule Styler.Style.ModuleDirectives do
           {ast, acc} = lift_module_attrs(ast, acc)
           ast = expand(ast)
           # import and used get hoisted above aliases, so need to dealias
-          ast = if directive in ~w(import use)a, do: Dealias.apply(acc.dealiases, ast), else: ast
-          dealiases = if directive == :alias, do: Dealias.put(acc.dealiases, ast), else: acc.dealiases
+          ast = if directive in ~w(import use)a, do: AliasEnv.expand(acc.dealiases, ast), else: ast
+          dealiases = if directive == :alias, do: AliasEnv.define(acc.dealiases, ast), else: acc.dealiases
 
           # the reverse accounts for `expand` putting things in reading order, whereas we're accumulating in reverse
           %{acc | directive => Enum.reverse(ast, acc[directive]), dealiases: dealiases}
@@ -327,7 +327,7 @@ defmodule Styler.Style.ModuleDirectives do
   defp lift_aliases(%{alias: aliases, require: requires, nondirectives: nondirectives} = acc) do
     # we can't use the dealias map built into state as that's what things look like before sorting
     # now that we've sorted, it could be different!
-    dealiases = Dealias.new(aliases)
+    dealiases = AliasEnv.define(aliases)
     excluded = dealiases |> Map.keys() |> Enum.into(Styler.Config.get(:lifting_excludes))
     liftable = find_liftable_aliases(requires ++ nondirectives, excluded)
 
@@ -339,7 +339,7 @@ defmodule Styler.Style.ModuleDirectives do
 
       aliases =
         liftable
-        |> Enum.map(&Dealias.apply(dealiases, {:alias, m, [{:__aliases__, [{:last, m} | m], &1}]}))
+        |> Enum.map(&AliasEnv.expand(dealiases, {:alias, m, [{:__aliases__, [{:last, m} | m], &1}]}))
         |> Enum.concat(aliases)
         |> sort()
 
