@@ -5,7 +5,7 @@ Mix Config files have their config stanzas sorted. Similar to the sorting of ali
 A file is considered a config file if
 
 1. its path matches `config/.*\.exs` or `rel/overlays/.*\.exs`
-2. the file imports Mix.Config (`import Mix.Config`)
+2. the file has `import Config`
 
 Once a file is detected as a mix config, its `config/2,3` stanzas are grouped and ordered like so:
 

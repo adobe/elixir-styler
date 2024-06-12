@@ -3,11 +3,11 @@
 Elixir's Kernel documentation refers to these structures as "macros for control-flow".
 We often refer to them as "blocks" in our changelog, which is a much worse name, to be sure.
 
-You're likely here just to see what Styler does, in which case, please [click here to skip](skip) following manifesto on our philosophy regarding the usage of these macros.
+You're likely here just to see what Styler does, in which case, please [click here to skip](skip) the following manifesto on our philosophy regarding the usage of these macros.
 
 ## Which Control Flow Macro Should I Use?
 
-The number of "blocks" in Elixir means there are a large number of ways to write semantically equivalent code, often leaving developers [in the dark as to which structure they should use.](https://www.reddit.com/r/elixir/comments/1ctbtcl/i_am_completely_lost_when_it_comes_to_which/)
+The number of "blocks" in Elixir means there are many ways to write semantically equivalent code, often leaving developers [in the dark as to which structure they should use.](https://www.reddit.com/r/elixir/comments/1ctbtcl/i_am_completely_lost_when_it_comes_to_which/)
 
 We believe readability is enhanced by using the simplest api possible, whether we're talking about internal module function calls or standard-library macros.
 
