@@ -11,7 +11,7 @@ The number of "blocks" in Elixir means there are a large number of ways to write
 
 We believe readability is enhanced by using the simplest api possible, whether we're talking about internal module function calls or standard-library macros.
 
-### `case`, `if`, & `unless`
+### `case`, `if`, and `unless`
 
 We advocate for `case` and `if` as the first tools to be considered for any control flow as they are the two simplest blocks. If a branch _can_ be expressed with an `if` statement, it _should_ be. Otherwise, `case` is the next best choice. In situations where developers might reach for an `if/elseif/else` block in other languages, `cond do` should be used.
 
