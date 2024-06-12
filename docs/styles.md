@@ -50,12 +50,13 @@ Note that all of the examples below also apply to pipes (`enum |> Enum.into(...)
 ## Map/Keyword.merge w/ single key literal -> X.put
 
 `Keyword.merge` and `Map.merge` called with a literal map or keyword argument with a single key are rewritten to the equivalent `put`, a cognitively simpler function.
+
 | Before | After |
 |--------|-------|
 | `Keyword.merge(kw, [key: :value])` | `Keyword.put(kw, :key, :value)` |
 | `Map.merge(map, %{key: :value})` | `Map.put(map, :key, :value)` |
 | `Map.merge(map, %{key => value})` | `Map.put(map, key, value)` |
-| `map |> Map.merge(%{key: value}) |> foo()` | `map |> Map.put(:key, value) |> foo()` |
+| `map \|> Map.merge(%{key: value}) \|> foo()` | `map \|> Map.put(:key, value) \|> foo()` |
 
 ## Map/Keyword.drop w/ single key -> X.delete
 
@@ -166,7 +167,6 @@ The author of the library disagrees with this style convention :) BUT, the wonde
 |--------|-------|
 |`File.stream!(file, options, line_or_bytes)` | `File.stream!(file, line_or_bytes, options)`|
 
-
 ## Code Readability
 
 - put matches on right
@@ -176,39 +176,3 @@ The author of the library disagrees with this style convention :) BUT, the wonde
 
 - Shrink multi-line function defs
 - Put assignments on the right
-
-## `cond`
-- Credo.Check.Refactor.CondStatements
-
-# Pipe Chains
-
-## Pipe Start
-
-- raw value
-- blocks are extracted to variables
-- ecto's `from` is allowed
-
-## Piped function rewrites
-
-- add parens to function calls `|> fun |>` => `|> fun() |>`
-- remove unnecessary `then/2`: `|> then(&f(&1, ...))` -> `|> f(...)`
-- add `then` when defining anon funs in pipe `|> (& &1).() |>` => `|> |> then(& &1) |>`
-
-## Piped function optimizations
-
-Two function calls into one! Tries to fit everything on one line when shrinking.
-
-| Before | After |
-|--------|-------|
-| `lhs |> Enum.reverse() |> Enum.concat(enum)` | `lhs |> Enum.reverse(enum)` (also Kernel.++) |
-| `lhs |> Enum.filter(filterer) |> Enum.count()` | `lhs |> Enum.count(count)` |
-| `lhs |> Enum.map(mapper) |> Enum.join(joiner)` | `lhs |> Enum.map_join(joiner, mapper)` |
-| `lhs |> Enum.map(mapper) |> Enum.into(empty_map)` | `lhs |> Map.new(mapper)` |
-| `lhs |> Enum.map(mapper) |> Enum.into(collectable)` | `lhs |> Enum.into(collectable, mapper)` |
-| `lhs |> Enum.map(mapper) |> Map.new()` | `lhs |> Map.new(mapper)` mapset & keyword also |
-
-## Unpiping Single Pipes
-
-- notably, optimizations might turn a 2 pipe into a single pipe
-- doesn't unpipe when we're starting w/ quote
-- pretty straight forward i daresay

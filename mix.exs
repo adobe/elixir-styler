@@ -64,9 +64,10 @@ defmodule Styler.MixProject do
       extra_section: "Docs",
       extras: [
         "CHANGELOG.md": [title: "Changelog"],
-        "docs/styles.md": [title: "Simple Styles"],
+        "docs/styles.md": [title: "Basic Styles"],
+        "docs/pipes.md": [title: "Pipe Chains"],
         "docs/control_flow_macros.md": [title: "Control Flow Macros (if, case, ...)"],
-        "docs/mix_configs.md": [title: "Mix Config Files (config/config.exs, ...)"],
+        "docs/mix_configs.md": [title: "Mix Configs (config/config.exs, ...)"],
         "docs/module_directives.md": [title: "Module Directives (use, alias, ...)"],
         "docs/credo.md": [title: "Styler & Credo"],
         "README.md": [title: "Styler"]
