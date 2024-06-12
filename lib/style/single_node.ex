@@ -112,20 +112,13 @@ defmodule Styler.Style.SingleNode do
   # to the pipes rewriting rules, where it will appear as `/n-1`
 
   # Enum.into(enum, empty_map[, ...]) => Map.new(enum[, ...])
-  defp style({{:., dm, [{:__aliases__, _, [:Enum]}, :into]}, funm, [enum, collectable | rest]} = node) do
-    new_collectable =
-      case collectable do
-        {{:., _, [{_, _, [mod]}, :new]}, _, []} when mod in ~w(Map Keyword MapSet)a ->
-          {:., dm, [{:__aliases__, dm, [mod]}, :new]}
+  defp style({{:., _, [{:__aliases__, _, [:Enum]}, :into]} = into, m, [enum, collectable | rest]} = node) do
+    if replacement = replace_into(into, collectable, rest), do: {replacement, m, [enum | rest]}, else: node
+  end
 
-        {:%{}, _, []} ->
-          {:., dm, [{:__aliases__, dm, [:Map]}, :new]}
-
-        _ ->
-          nil
-      end
-
-    if new_collectable, do: {new_collectable, funm, [enum | rest]}, else: node
+  # lhs |> Enum.into(%{}, ...) => lhs |> Map.new(...)
+  defp style({:|>, meta, [lhs, {{:., _, [{_, _, [:Enum]}, :into]} = into, m, [collectable | rest]}]} = node) do
+    if replacement = replace_into(into, collectable, rest), do: {:|>, meta, [lhs, {replacement, m, rest}]}, else: node
   end
 
   for m <- [:Map, :Keyword] do
@@ -192,6 +185,22 @@ defmodule Styler.Style.SingleNode do
   defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
 
   defp style(node), do: node
+
+  defp replace_into({:., dm, [{_, am, _} = enum, _]}, collectable, rest) do
+    case collectable do
+      {{:., _, [{_, _, [mod]}, :new]}, _, []} when mod in ~w(Map Keyword MapSet)a ->
+        {:., dm, [{:__aliases__, am, [mod]}, :new]}
+
+      {:%{}, _, []} ->
+        {:., dm, [{:__aliases__, am, [:Map]}, :new]}
+
+      {:__block__, _, [[]]} ->
+        if Enum.empty?(rest), do: {:., dm, [enum, :to_list]}, else: {:., dm, [enum, :map]}
+
+      _ ->
+        nil
+    end
+  end
 
   defp rewrite_arrows(arrows) when is_list(arrows),
     do: Enum.map(arrows, fn {:->, m, [lhs, rhs]} -> {:->, m, [put_matches_on_right(lhs), rhs]} end)

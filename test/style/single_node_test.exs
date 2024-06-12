@@ -322,6 +322,13 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style("Enum.into(a, %{}, mapper)", "Map.new(a, mapper)")
     end
 
+    test "into a list" do
+      assert_style("Enum.into(a, [])", "Enum.to_list(a)")
+      assert_style("Enum.into(a, [], mapper)", "Enum.map(a, mapper)")
+      assert_style("a |> Enum.into([]) |> bar()", "a |> Enum.to_list() |> bar()")
+      assert_style("a |> Enum.into([], mapper) |> bar()", "a |> Enum.map(mapper) |> bar()")
+    end
+
     test "into a collectable" do
       assert_style("Enum.into(a, foo)")
       assert_style("Enum.into(a, foo, mapper)")

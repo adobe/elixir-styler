@@ -98,6 +98,8 @@ See the moduledoc for `Styler.Style.Configs` for more.
 * `Map.drop(foo, [single_key])` => `Map.delete(foo, single_key)` #161 (also in pipes)
 * `Keyword.drop(foo, [single_key])` => `Keyword.delete(foo, single_key)` #161 (also in pipes)
 * `lhs |> Enum.reverse() |> Kernel.++(enum)` => `lhs |> Enum.reverse(enum)`
+* `Enum.into(x, [])` => `Enum.to_list(x)`
+* `Enum.into(x, [], mapper)` => `Enum.map(x, mapper)`
 
 ### Fixes
 
