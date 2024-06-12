@@ -29,7 +29,9 @@ consider using a library made for denoting currencies rather than raw elixir int
 * `55333.22 ` => `55_333.22`
 * `-123456728.0001 ` => `-123_456_728.0001`
 
-### `Enum.into(%{}/Map/Keyword/MapSet.new)` -> `X.new`
+### `Enum.into` -> `X.new`
+
+This rewrite is applied when the collectable is a new map, keyword list, or mapset via `Enum.into/2,3`.
 
 This is an improvement for the reader, who gets a more natural language expression: "make a new map from enum" vs "enumerate enum and collect its elements into a new map"
 
