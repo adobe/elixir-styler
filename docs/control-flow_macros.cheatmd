@@ -1,1 +1,47 @@
-## Module Directives (`use`, `import`, `alias`, `require`, ...)
+# Control Flow Macros (aka "Blocks": `case`, `if`, `unless`, `cond`, `with`)
+
+Elixir's Kernel documentation refers to these structures as "macros for control-flow".
+We often refer to them as "blocks" in our changelog, which is a much worse name, to be sure.
+
+You're likely here just to see what Styler does, in which case, please [click here to skip](skip) following manifesto on our philosophy regarding the usage of these macros.
+
+## Which Control Flow Macro Should I Use?
+
+The number of "blocks" in Elixir means there are a large number of ways to write semantically equivalent code, often leaving developers [in the dark as to which structure they should use.](https://www.reddit.com/r/elixir/comments/1ctbtcl/i_am_completely_lost_when_it_comes_to_which/)
+
+We believe readability is enhanced by using the simplest api possible, whether we're talking about internal module function calls or standard-library macros.
+
+### `case`, `if`, and `unless`
+
+We advocate for `case` and `if` as the first tools to be considered for any control flow as they are the two simplest blocks. If a branch _can_ be expressed with an `if` statement, it _should_ be. Otherwise, `case` is the next best choice. In situations where developers might reach for an `if/elseif/else` block in other languages, `cond do` should be used.
+
+(`cond do` seems to see a paucity of use in the language, but many complex nested expressions or with statements can be improved by replacing them with a `cond do`).
+
+`unless` is a special case of `if` meant to make code read as natural-language (citation needed). While it sometimes succeeds in this goal, its absence in most programming languages often makes it feel cumbersome to programmers with non-Ruby backgrounds. Thankfully, with Styler's help developers don't need to ever reach for `unless` - expressions that are "simpler" with its use are automatically rewritten to use it.
+
+### `with`
+
+> `with` great power comes great responsibility
+>
+> - Uncle Ben
+
+As the most powerful of the Kernel control-flow expressions, `with` requires the most cognitive overhead from readers to be understood. Its power means that any expression that can be expressed as a `case`/`if`/`cond` can _also_ be expressed as a `with` statement (especially with the liberal application of small private helper functions).
+
+Unfortunately, this has lead to a proliferation of `with` in codebases where simpler expressions would have sufficed, meaning a lot of Elixir code ends up being harder for readers to understand than it needs to be.
+
+Thus, `with` is the control-flow structure of last resort. We advocate that `with` **should only be used when more basic expressions do not suffice or become overly verbose**. To qualify "overly verbose", we subscribe to the [Chris Keathley school of thought](https://www.youtube.com/watch?v=l-8ghbdRB1w) that judicious nesting of control flow blocks within a function isn't evil and more-often-than-not is superior to spreading implementation over many small single-use functions. We'd even go so far as to suggest that cyclomatic complexity is an inexact measure of code quality, with more than a few false negatives and many false positives.
+
+`with` is a great way to unnest multiple `case` statements when every failure branch of those statements results in the same error. This is easily and succinctly expressed with `with`'s `else` block: `else (_ -> :error)`. As Keathley says though, [Avoid Else In With Blocks](https://keathley.io/blog/good-and-bad-elixir.html#avoid-else-in-with-blocks). Having multiple else clauses "means that the error conditions matter. Which means that you don’t want `with` at all. You want `case`."
+
+It's acceptable to use one-line `with` statements (eg `with {:ok, _} <- Repo.update(changeset), do: :ok`) to signify that other branches are uninteresting or unmodified by your code, but ultimately that can hide the possible returns of a function from the reader, making it more onerous to debug all possible branches of the code in their mental model of the function. In other words, ideally all function calls in a `with` statement head have obvious error types for the reader, leaving their omission in the code acceptable as the reader feels no need to investigate further. The example at the start of this paragraph with an `Ecto.Repo` call is a good example, as most developers in a codebase using Ecto are expected to be familiar with its basic API.
+
+Using `case` rather than `with` for branches with unusual failure types can help document code as well as save the reader time in tracking down types. For example, replacing the following with a `with` statement that only matched against the `{:ok, _}` tuple would hide from readers that an atypically-shaped 3-tuple is returned when things go wrong.
+
+```elixir
+case some_http_call() do
+  {:ok, _response} -> :ok
+  {:error, http_error, response} -> {:error, http_error, response}
+end
+```
+
+### Styler's Here To Help
