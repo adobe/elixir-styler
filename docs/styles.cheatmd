@@ -158,10 +158,6 @@ The author of the library disagrees with this style convention :) BUT, the wonde
 - Shrink multi-line function defs
 - Put assignments on the right
 
-
-
-
-
 ### `case`
 
 - rewrite to `if` for `true/false`, `true/_`, `false/true`
@@ -180,15 +176,6 @@ The author of the library disagrees with this style convention :) BUT, the wonde
 ### `cond`
 - Credo.Check.Refactor.CondStatements
 
-### `if`/`unless`
-
-if/unless often looks to see if the root of the statement is a "negator", defined as one of the following operators: `:!, :not, :!=, :!==`. We always try to rewrite if/unless statements to not be negated, using the inverse construct when appropriate (but we'll never write an unless with an `else`)
-
-- repeated negators (`!!`) are removed
-- negated if/unless without an `else` are inverted to unless/if (this is done recursively until 0 or 1 negations remain)
-- `unless` with `else` are inverted to negated `if` statements
-- negated `if` with `else` have their clauses inverted to remove the negation
-- if/unless with `else: nil` is dropped as redundant
 
 ## Pipe Chains
 
