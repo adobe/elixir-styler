@@ -5,9 +5,15 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
-### Fixes
+## 1.0.0-rc.1
 
-* rewrite `a |> Enum.map(m) |> Enum.join()` to `map_join(a, m)`. we already did this for `join/2`, but missed the case for `join/1`
+
+### Improvements
+
+* Lots of documentation added. Nearly done and ready for 1.0.0.
+* `Enum.into(x, [])` => `Enum.to_list(x)`
+* `Enum.into(x, [], mapper)` => `Enum.map(x, mapper)`
+* `a |> Enum.map(m) |> Enum.join()` to `map_join(a, m)`. we already did this for `join/2`, but missed the case for `join/1`
 
 ## 1.0.0-rc.0
 
@@ -101,8 +107,6 @@ See the moduledoc for `Styler.Style.Configs` for more.
 * `Map.drop(foo, [single_key])` => `Map.delete(foo, single_key)` #161 (also in pipes)
 * `Keyword.drop(foo, [single_key])` => `Keyword.delete(foo, single_key)` #161 (also in pipes)
 * `lhs |> Enum.reverse() |> Kernel.++(enum)` => `lhs |> Enum.reverse(enum)`
-* `Enum.into(x, [])` => `Enum.to_list(x)`
-* `Enum.into(x, [], mapper)` => `Enum.map(x, mapper)`
 
 ### Fixes
 

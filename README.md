@@ -8,13 +8,13 @@ You can learn more about the history, purpose and implementation of Styler from 
 ## Features
 
 - auto-fixes [many credo rules](docs/credo.md), meaning you can turn them off to speed credo up
-- [keeping a strict module layout](docs/module_directives.md#directive-organization)
-- alphabetizing module directives
-- [extracting repeated aliases](docs/moduledirectives.md#alias-lifting)
-- piping and unpiping function calls based on the number of functons
-- optimizing standard library calls (`a |> Enum.map(m) |> Enum.into(Map.new)` => `Map.new(a, m)`)
-- using sigils for strings with many escaped quotes `\"`
-- ... and so many other things.
+- [keeps a strict module layout](docs/module_directives.md#directive-organization)
+- alphabetizes module directives
+- [extracts repeated aliases](docs/module_directives.md#alias-lifting)
+- pipes and unpipes function calls based on the number of calls
+- optimizes standard library calls (`a |> Enum.map(m) |> Enum.into(Map.new)` => `Map.new(a, m)`)
+- replaces strings with sigils when the string has many escaped quotes
+- ... and so much more
 
 [See our Rewrites documentation on hexdocs for all the nitty-gritty on what all Styler does](https://hexdocs.pm/styler/)
 
@@ -37,7 +37,7 @@ Add `:styler` as a dependency to your project's `mix.exs`:
 ```elixir
 def deps do
   [
-    {:styler, "~> 1.0.0-rc.0", only: [:dev, :test], runtime: false},
+    {:styler, "~> 1.0.0-rc.1", only: [:dev, :test], runtime: false},
   ]
 end
 ```

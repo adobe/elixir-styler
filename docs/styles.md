@@ -35,13 +35,17 @@ This rewrite is applied when the collectable is a new map, keyword list, or maps
 
 This is an improvement for the reader, who gets a more natural language expression: "make a new map from enum" vs "enumerate enum and collect its elements into a new map"
 
+Note that all of the examples below also apply to pipes (`enum |> Enum.into(...)`)
+
 | Before | After |
 |--------|-------|
-| `Enum.into(a, %{})` | `Map.new(enum)`|
+| `Enum.into(enum, %{})` | `Map.new(enum)`|
 | `Enum.into(enum, Map.new())` | `Map.new(enum)`|
 | `Enum.into(enum, Keyword.new())` | `Keyword.new(enum)`|
 | `Enum.into(enum, MapSet.new())` | `Keyword.new(enum)`|
 | `Enum.into(enum, %{}, fn x -> {x, x} end)` | `Map.new(enum, fn x -> {x, x} end)`|
+| `Enum.into(enum, [])` | `Enum.to_list(enum)` |
+| `Enum.into(enum, [], mapper)` | `Enum.map(enum, mapper)`|
 
 ## Map/Keyword.merge w/ single key literal -> X.put
 
