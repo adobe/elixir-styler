@@ -1,6 +1,7 @@
 ### Credo Rules Styler Replaces
 
 If you're using Credo and Styler, **we recommend disabling these rules in `.credo.exs`** to save on unnecessary checks in CI.
+As long as you're running `mix format --check-formatted` in CI, Styler will be enforcing the rules for you, so checking them with Credo is redundant.
 
 Disabling the rules means updating your `.credo.exs` depending on your configuration:
 
