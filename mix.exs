@@ -69,8 +69,7 @@ defmodule Styler.MixProject do
         "docs/mix_configs.md": [title: "Mix Config Files (config/config.exs, ...)"],
         "docs/module_directives.md": [title: "Module Directives (use, alias, ...)"],
         "docs/credo.md": [title: "Styler & Credo"],
-        "README.md": [title: "Styler"],
-        "docs/troubleshooting.md": [title: "Troubleshooting"],
+        "README.md": [title: "Styler"]
       ]
     ]
   end

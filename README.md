@@ -5,11 +5,7 @@ you what's wrong, it just rewrites the code for you to fit its style rules.
 
 You can learn more about the history, purpose and implementation of Styler from our talk: [Styler: Elixir Style-Guide Enforcer @ GigCity Elixir 2023](https://www.youtube.com/watch?v=6pF8Hl5EuD4)
 
------------------------
-
-Styler's documentation is under work as part of releasing 1.0.
-
-You can find the much more complete and usable [0.11.9 documentation and readme here.](https://hexdocs.pm/styler/readme.html)
+[See our Rewrites documentation on hexdocs for details on what all Styler does](https://hexdocs.pm/styler/)
 
 ## Installation
 
@@ -23,51 +19,70 @@ def deps do
 end
 ```
 
-Please excuse the mess below as I find spare time to update our documentation =) Anything with TODOs are, well, notes to myself on documentation that needs rewriting. Happy to accept PRs if one seems doable to others.
-
-_@TODO put this somewhere more reasonable_
-
-**Note** Styler's only public API is its usage as a formatter plugin. While you're welcome to play with its internals,
-they can and will change without that change being reflected in Styler's semantic version.
-
 Then add `Styler` as a plugin to your `.formatter.exs` file
 
 ```elixir
 [
   plugins: [Styler]
-  # optionally: include styler configuration
-  # , styler: [alias_lifting_excludes: []]
 ]
 ```
 
 And that's it! Now when you run `mix format` you'll also get the benefits of Styler's Stylish Stylings.
 
+**Speed**: Expect the first run to take some time as `Styler` rewrites violations of styles and bottlenecks on disk I/O. Subsequent formats formats won't take noticeably more time.
+
 ### Configuration
 
-@TODO document: config for lifting, and why we won't add options other configs
+Styler can be configured in your `.formatter.exs` file
 
-Styler is @adobe's internal Style Guide Enforcer - allowing exceptions to the styles goes against that ethos. Happily, it's open source and thus yours to do with as you will =)
+```elixir
+[
+  plugins: [Styler],
+  styler: [
+    alias_lifting_exclude: [...]
+  ]
+]
+```
 
-## Features (or as we call them, "Styles")
+Styler's only current configuration option is `:alias_lifting_exclude`, which accepts a list of atoms to _not_ lift. See the [Module Directive documentation](docs/module_directives.md#alias-lifting) for more.
 
-@TODO link examples
+#### No Credo-Style Enable/Disable
 
-https://hexdocs.pm/styler/1.0.0-rc.0/styles.html
+Styler [will not add configuration](https://github.com/adobe/elixir-styler/pull/127#issuecomment-1912242143) for ad-hoc enabling/disabling of rewrites. Sorry! Its implementation simply does not support that approach. There are however many forks out there that have attempted this; please explore the [Github forks tab](https://github.com/adobe/elixir-styler/forks) to see if there's a project that suits your needs or that you can draw inspiration from.
 
-## Styler & Credo
+Ultimately Styler is @adobe's internal tool that we're happy to share with the world. We're delighted if you like it as is, and just as excited if it's a starting point for you to make something even better for yourself.
 
-@TODO link credo doc
+## !Styler can change the behaviour of your program!
 
-## Your first Styling
+The best example of the way in which Styler changes the meaning of your code is the following rewrite:
+```elixir
+# Before: this case statement...
+case foo do
+  true -> :ok
+  false -> :error
+end
 
-**Speed**: Expect the first run to take some time as `Styler` rewrites violations of styles.
+# After: ... is rewritten by Styler to be an if statement!.
+if foo do
+  :ok
+else
+  :error
+end
+```
 
-Once styled the first time, future styling formats shouldn't take noticeably more time.
+These programs are not semantically equivalent. The former would raise if `foo` returned any value other than `true` or `false`, while the latter blissfully completes.
 
-## Styler can break your code
+However, Styler is about _style_, and the `if` statement is (in our opinion) of much better style. If the exception behaviour was intentional on the code author's part, they should have written the program like this:
 
-@TODO link troubleshooting
-mention our rewrite of case true false to if and how we're OK with this being _Styler_, not _SemanticallyEquivalentRewriter_.
+```elixir
+case foo do
+  true -> :ok
+  false -> :error
+  other -> raise "expected `true` or `false`, got: #{inspect other}"
+end
+```
+
+Also good style! But Styler assumes that most of the time people just meant the `if` equivalent of the code, and so makes that change. If issues like this bother you, Styler probably isn't the tool you're looking for.
 
 ## Thanks & Inspiration
 

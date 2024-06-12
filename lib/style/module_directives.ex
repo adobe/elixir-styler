@@ -27,10 +27,6 @@ defmodule Styler.Style.ModuleDirectives do
     * `Credo.Check.Readability.UnnecessaryAliasExpansion`
     * `Credo.Check.Design.AliasUsage`
 
-  ## Breakages
-
-  **This can break your code.**
-
   ### Strict Layout
 
   Modules directives are sorted into the following order:
@@ -43,48 +39,6 @@ defmodule Styler.Style.ModuleDirectives do
     * `alias`
     * `require`
     * everything else (unchanged)
-
-  If any of the sorted directives had a dependency on code that is now below it, your code will fail to compile after being styled.
-
-  For instance, the following will be broken because the module attribute definition will
-  be moved below the `use` clause, meaning `@pi` is undefined when invoked.
-
-    ```elixir
-    # before
-    defmodule Approximation do
-      @pi 3.14
-      use Math, pi: @pi
-    end
-
-    # after
-    defmodule Approximation do
-      @moduledoc false
-      use Math, pi: @pi
-      @pi 3.14
-    end
-    ```
-
-  For now, it's up to you to come up with a fix for this issue. Sorry!
-
-  ### Strict Layout: interwoven conflicting aliases
-
-  Ideally no one writes code like this as it's hard for our human brains to notice the context switching!
-  Still, it's a possible source of breakages in Styler.
-
-
-    alias Foo.Bar
-    Bar.Baz.bop()
-
-    alias Baz.Bar
-    Bar.Baz.bop()
-
-    # becomes
-
-    alias Baz.Bar
-    alias Baz.Bar.Baz
-    alias Foo.Bar
-    Baz.bop() # was Foo.Bar.Baz, is now Baz.Bar.Baz
-    Baz.bop()
   """
   @behaviour Styler.Style
 
