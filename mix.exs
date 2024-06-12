@@ -55,13 +55,22 @@ defmodule Styler.MixProject do
 
   defp docs do
     [
-      main: "readme",
+      main: "README",
       source_ref: "v#{@version}",
       source_url: @url,
+      groups_for_extras: [
+        Rewrites: ~r/docs/
+      ],
+      extra_section: "Docs",
       extras: [
         "CHANGELOG.md": [title: "Changelog"],
+        "docs/styles.md": [title: "Simple Styles"],
+        "docs/control_flow_macros.md": [title: "Control Flow Macros (if, case, ...)"],
+        "docs/mix_configs.md": [title: "Mix Config Files (config/config.exs, ...)"],
+        "docs/module_directives.md": [title: "Module Directives (use, alias, ...)"],
+        "docs/credo.md": [title: "Styler & Credo"],
         "README.md": [title: "Styler"],
-        "docs/styles.cheatmd": [title: "Examples"]
+        "docs/troubleshooting.md": [title: "Troubleshooting"],
       ]
     ]
   end

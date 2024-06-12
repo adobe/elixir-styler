@@ -1,9 +1,9 @@
-# Control Flow Macros (aka "Blocks": `case`, `if`, `unless`, `cond`, `with`)
+# Control Flow Macros (`case`, `if`, `unless`, `cond`, `with`)
 
 Elixir's Kernel documentation refers to these structures as "macros for control-flow".
 We often refer to them as "blocks" in our changelog, which is a much worse name, to be sure.
 
-You're likely here just to see what Styler does, in which case, please [click here to skip](skip) the following manifesto on our philosophy regarding the usage of these macros.
+You're likely here just to see what Styler does, in which case, please [click here to skip](#if-and-unless) the following manifesto on our philosophy regarding the usage of these macros.
 
 ## Which Control Flow Macro Should I Use?
 
@@ -11,7 +11,7 @@ The number of "blocks" in Elixir means there are many ways to write semantically
 
 We believe readability is enhanced by using the simplest api possible, whether we're talking about internal module function calls or standard-library macros.
 
-### `case`, `if`, and `unless`
+### use `case`, `if`, or `unless` when...
 
 We advocate for `case` and `if` as the first tools to be considered for any control flow as they are the two simplest blocks. If a branch _can_ be expressed with an `if` statement, it _should_ be. Otherwise, `case` is the next best choice. In situations where developers might reach for an `if/elseif/else` block in other languages, `cond do` should be used.
 
@@ -19,7 +19,7 @@ We advocate for `case` and `if` as the first tools to be considered for any cont
 
 `unless` is a special case of `if` meant to make code read as natural-language (citation needed). While it sometimes succeeds in this goal, its absence in most programming languages often makes it feel cumbersome to programmers with non-Ruby backgrounds. Thankfully, with Styler's help developers don't need to ever reach for `unless` - expressions that are "simpler" with its use are automatically rewritten to use it.
 
-### `with`
+### use `with` when...
 
 > `with` great power comes great responsibility
 >
@@ -44,9 +44,7 @@ case some_http_call() do
 end
 ```
 
-## Styler Control-Flow Macro Rewrites
-
-### `if` and `unless`
+## `if` and `unless`
 
 Styler removes `else: nil` clauses:
 
@@ -56,7 +54,7 @@ if a, do: b, else: nil
 if a, do: b
 ```
 
-#### Negation Inversion
+### Negation Inversion
 
 Styler removes negators in the head of `if` and `unless` statements by "inverting" the statement.
 The following operators are considered "negators": `!`, `not`, `!=`, `!==`
@@ -74,7 +72,6 @@ unless x, do: y
 if !x, do: y, else: z
 # Styled:
 if x, do: z, else: y
-
 
 # negated `unless` statements are rewritten to `if`
 unless x != y, do: z
@@ -95,9 +92,9 @@ if !!x, do: y
 if x, do: y
 ```
 
-### `case`
+## `case`
 
-#### "Erlang heritage" `case` true/false -> `if`
+### "Erlang heritage" `case` true/false -> `if`
 
 Trivial true/false `case` statements are rewritten to `if` statements. While this results in a [semantically different program](https://github.com/rrrene/credo/issues/564#issue-338349517), we argue that it results in a better program for maintainability. If the developer wants a their case statement to raise when receiving a non-boolean value as a feature of the program, they would better serve their callers by raising something more descriptive.
 
@@ -117,7 +114,8 @@ else
   :error
 end
 
-# OR this. readers now know that the exception is an intentional design, rather than an accidental "feature"
+# OR this. readers now know that the exception is an intentional design,
+# rather than an accidental "feature"
 case foo do
   true -> :ok
   false -> :error
@@ -125,11 +123,29 @@ case foo do
 end
 ```
 
-### `with`
+## `cond`
+
+Styler has only one `cond` statement rewrite: replace 2-clause statements with `if` statements.
+
+```elixir
+# Given
+cond do
+  a -> b
+  true -> c
+end
+# Styled
+if a do
+  b
+else
+  c
+end
+```
+
+## `with`
 
 `with` statements are extremely expressive. Styler tries to remove any unnecessary complexity from them in the following ways.
 
-#### Remove Identity Else Clause
+### Remove Identity Else Clause
 
 Like if statements with `nil` as their else clause, the identity `else` clause is the default for `with` statements and so is removed.
 
@@ -146,7 +162,7 @@ with :ok <- b(), :ok <- b() do
 end
 ```
 
-#### Remove The Statement Entirely
+### Remove The Statement Entirely
 
 While you might think "surely this kind of code never appears in the wild", it absolutely does. Typically it's the result of someone refactoring a pattern away and not looking at the larger picture and realizing that the with statement now serves no purpose.
 
@@ -173,7 +189,7 @@ end
 arg
 ```
 
-#### Replace `_ <- rhs` with `rhs`
+### Replace `_ <- rhs` with `rhs`
 
 This is another case of "less is more" for the reader.
 
@@ -192,7 +208,7 @@ with :ok <- x,
 end
 ```
 
-#### Replace non-branching `bar <-` with `bar =`
+### Replace non-branching `bar <-` with `bar =`
 
 `<-` is for branching. If the lefthand side is the trivial match (a bare variable), Styler rewrites it to use the `=` operator instead.
 
@@ -209,7 +225,7 @@ with :ok <- foo(),
       do: {:ok, bar}
 ```
 
-#### Move assignments from `with` statement head
+### Move assignments from `with` statement head
 
 Just because any program _could_ be written entirely within the head of a `with` statement doesn't mean it should be!
 
@@ -239,7 +255,7 @@ with :ok <- baz,
 end
 ```
 
-#### Remove redundant final clause
+### Remove redundant final clause
 
 If the pattern of the final clause of the head is also the `with` statements `do` body, styler nixes the final match and makes the right hand side of the clause into the do body.
 
@@ -257,7 +273,7 @@ with {:ok, a} <- foo() do
 end
 ```
 
-#### Replace with `case`
+### Replace with `case`
 
 A `with` statement with a single clause in the head and `else` is a really just a `case` clause putting on airs.
 
@@ -277,7 +293,7 @@ case foo do
 end
 ```
 
-#### Replace with `if`
+### Replace with `if`
 
 Given Styler rewrites trivial `case` to `if`, it shouldn't be a surprise that that same rule means that `with` can be rewritten to `if` in some cases.
 
