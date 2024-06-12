@@ -25,11 +25,12 @@ We advocate for `case` and `if` as the first tools to be considered for any cont
 >
 > - Uncle Ben
 
-As the most powerful of the Kernel control-flow expressions, `with` requires the most cognitive overhead from readers to be understood. Its power means that any expression that can be expressed as a `case`/`if`/`cond` can _also_ be expressed as a `with` statement (especially with the liberal application of small private helper functions).
+
+As the most powerful of the Kernel control-flow expressions, `with` requires the most cognitive overhead to understand. Its power means that we can use it as a replacement for anything we might express using a `case`, `if`, or `cond` (especially with the liberal application of small private helper functions).
 
 Unfortunately, this has lead to a proliferation of `with` in codebases where simpler expressions would have sufficed, meaning a lot of Elixir code ends up being harder for readers to understand than it needs to be.
 
-Thus, `with` is the control-flow structure of last resort. We advocate that `with` **should only be used when more basic expressions do not suffice or become overly verbose**. To qualify "overly verbose", we subscribe to the [Chris Keathley school of thought](https://www.youtube.com/watch?v=l-8ghbdRB1w) that judicious nesting of control flow blocks within a function isn't evil and more-often-than-not is superior to spreading implementation over many small single-use functions. We'd even go so far as to suggest that cyclomatic complexity is an inexact measure of code quality, with more than a few false negatives and many false positives.
+Thus, `with` is the control-flow structure of last resort. We advocate that `with` **should only be used when more basic expressions do not suffice or become overly verbose**. As for verbosity, we subscribe to the [Chris Keathley school of thought](https://www.youtube.com/watch?v=l-8ghbdRB1w) that judicious nesting of control flow blocks within a function isn't evil and more-often-than-not is superior to spreading implementation over many small single-use functions. We'd even go so far as to suggest that cyclomatic complexity is an inexact measure of code quality, with more than a few false negatives and many false positives.
 
 `with` is a great way to unnest multiple `case` statements when every failure branch of those statements results in the same error. This is easily and succinctly expressed with `with`'s `else` block: `else (_ -> :error)`. As Keathley says though, [Avoid Else In With Blocks](https://keathley.io/blog/good-and-bad-elixir.html#avoid-else-in-with-blocks). Having multiple else clauses "means that the error conditions matter. Which means that you don’t want `with` at all. You want `case`."
 
