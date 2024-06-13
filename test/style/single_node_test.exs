@@ -54,6 +54,7 @@ defmodule Styler.Style.SingleNodeTest do
         assert_style("foo |> #{module}.drop([]) |> bar()")
         assert_style("foo |> #{module}.drop([a, b]) |> bar()")
         assert_style("foo |> #{module}.drop(keys) |> bar()")
+        assert_style("foo |> #{module}.drop([:key | others]) |> bar()")
       end
     end
 
@@ -64,6 +65,7 @@ defmodule Styler.Style.SingleNodeTest do
         assert_style("#{module}.drop(foo, [])")
         assert_style("#{module}.drop(foo, [a, b])")
         assert_style("#{module}.drop(foo, keys)")
+        assert_style("#{module}.drop([:key | others])")
       end
     end
   end
