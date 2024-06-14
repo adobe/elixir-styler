@@ -501,7 +501,7 @@ defmodule Styler.Style.PipesTest do
       assert_style "a |> then(&fun(&1, d)) |> c", "a |> fun(d) |> c()"
       assert_style "a |> then(&M.f(&1)) |> c", "a |> M.f() |> c()"
 
-      # Doens't rewrite multiple refs / non-starting argument
+      # Doesn't rewrite multiple refs / non-starting argument
       assert_style "a |> then(&fun(d, &1)) |> c()"
       assert_style "a |> then(&fun(&1, d, %{foo: &1})) |> c()"
 

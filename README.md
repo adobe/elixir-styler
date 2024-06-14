@@ -1,3 +1,7 @@
+[![Hex.pm](https://img.shields.io/hexpm/v/styler)](https://hex.pm/packages/styler)
+[![Hexdocs.pm](https://img.shields.io/badge/docs-hexdocs.pm-purple)](https://hexdocs.pm/styler)
+[![Github.com](https://github.com/adobe/elixir-styler/actions/workflows/ci.yml/badge.svg)](https://github.com/adobe/elixir-styler/actions)
+
 # Styler
 
 Styler is an Elixir formatter plugin that's combination of `mix format` and `mix credo`, except instead of telling
