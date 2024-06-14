@@ -46,26 +46,19 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
-  describe "{Map/Keyword}.drop with a single key" do
-    test "in a pipe" do
-      for module <- ~w(Map Keyword) do
-        assert_style("foo |> #{module}.drop([key]) |> bar()", "foo |> #{module}.delete(key) |> bar()")
-        assert_style("foo |> #{module}.drop([:key]) |> bar()", "foo |> #{module}.delete(:key) |> bar()")
-        assert_style("foo |> #{module}.drop([]) |> bar()")
-        assert_style("foo |> #{module}.drop([a, b]) |> bar()")
-        assert_style("foo |> #{module}.drop(keys) |> bar()")
-        assert_style("foo |> #{module}.drop([:key | others]) |> bar()")
+  test "{Map/Keyword}.drop with a single key" do
+    for module <- ~w(Map Keyword) do
+      for singular <- ~w(:key key %{} [] 1 "key") do
+        assert_style("#{module}.drop(foo, [#{singular}])", "#{module}.delete(foo, #{singular})")
+        assert_style("foo |> #{module}.drop([#{singular}]) |> bar()", "foo |> #{module}.delete(#{singular}) |> bar()")
       end
-    end
 
-    test "normal call" do
-      for module <- ~w(Map Keyword) do
-        assert_style("#{module}.drop(foo, [key])", "#{module}.delete(foo, key)")
-        assert_style("#{module}.drop(foo, [:key])", "#{module}.delete(foo, :key)")
-        assert_style("#{module}.drop(foo, [])")
-        assert_style("#{module}.drop(foo, [a, b])")
-        assert_style("#{module}.drop(foo, keys)")
-        assert_style("#{module}.drop([:key | others])")
+      assert "#{module}.drop(foo, [])"
+      assert "foo |> #{module}.drop([]) |> bar()"
+
+      for plurality <- ["[]", "[a, b]", "[a | b]", "some_list"] do
+        assert_style("#{module}.drop(foo, #{plurality})")
+        assert_style("foo |> #{module}.drop(#{plurality}) |> bar()")
       end
     end
   end
