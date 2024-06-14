@@ -166,7 +166,7 @@ C.bar()
 
 Styler won't lift aliases that will collide with existing aliases, and likewise won't lift any module whose name would collide with a standard library name.
 
-You can specify additional modules to exlude from lifting via the `:alias_lifting_exclude` configuration option. For the example above, the following configuration would keep Styler from creating the `alias A.B.C` node:
+You can specify additional modules to exclude from lifting via the `:alias_lifting_exclude` configuration option. For the example above, the following configuration would keep Styler from creating the `alias A.B.C` node:
 
 ```elixir
 # .formatter.exs
