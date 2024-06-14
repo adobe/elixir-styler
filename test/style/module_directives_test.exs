@@ -10,6 +10,7 @@
 
 defmodule Styler.Style.ModuleDirectivesTest do
   @moduledoc false
+
   use Styler.StyleCase, async: true
 
   describe "defmodule features" do
@@ -33,125 +34,14 @@ defmodule Styler.Style.ModuleDirectivesTest do
     test "module with single child" do
       assert_style(
         """
-        defmodule ATest do
+        defmodule A do
           alias Foo.{A, B}
         end
         """,
         """
-        defmodule ATest do
+        defmodule A do
           alias Foo.A
           alias Foo.B
-        end
-        """
-      )
-    end
-
-    test "adds moduledoc" do
-      assert_style(
-        """
-        defmodule A do
-        end
-        """,
-        """
-        defmodule A do
-          @moduledoc false
-        end
-        """
-      )
-
-      assert_style(
-        """
-        defmodule B do
-          defmodule C do
-          end
-        end
-        """,
-        """
-        defmodule B do
-          @moduledoc false
-          defmodule C do
-            @moduledoc false
-          end
-        end
-        """
-      )
-
-      assert_style(
-        """
-        defmodule Bar do
-          alias Bop.Bop
-
-          :ok
-        end
-        """,
-        """
-        defmodule Bar do
-          @moduledoc false
-          alias Bop.Bop
-
-          :ok
-        end
-        """
-      )
-
-      assert_style(
-        """
-        defmodule DocsOnly do
-          @moduledoc "woohoo"
-        end
-        """,
-        """
-        defmodule DocsOnly do
-          @moduledoc "woohoo"
-        end
-        """
-      )
-
-      assert_style(
-        """
-        defmodule Foo do
-          use Bar
-        end
-        """,
-        """
-        defmodule Foo do
-          @moduledoc false
-          use Bar
-        end
-        """
-      )
-
-      assert_style(
-        """
-        defmodule Foo do
-          alias Foo.{Bar, Baz}
-        end
-        """,
-        """
-        defmodule Foo do
-          @moduledoc false
-          alias Foo.Bar
-          alias Foo.Baz
-        end
-        """
-      )
-
-      assert_style(
-        """
-        defmodule A do
-          defmodule B do
-            :literal
-          end
-
-        end
-        """,
-        """
-        defmodule A do
-          @moduledoc false
-          defmodule B do
-            @moduledoc false
-            :literal
-          end
         end
         """
       )
@@ -220,6 +110,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
                      |> File.read!()
                      |> String.split("<!-- MDOC !-->")
                      |> Enum.fetch!(1)
+
           @behaviour Chaotic
           @behaviour Lawful
 
@@ -229,13 +120,13 @@ defmodule Styler.Style.ModuleDirectivesTest do
           import A.A
           import C
 
-          alias A.A
-          alias C.C
-          alias D.D
-
           require A
           require B
           require C
+
+          alias A.A
+          alias C.C
+          alias D.D
 
           def c(x), do: y
 
@@ -262,6 +153,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
       assert_style("""
       defmodule Foo do
         @moduledoc false
+
         @spec import(any(), any(), any()) :: any()
         def import(a, b, c), do: nil
       end
@@ -402,13 +294,13 @@ defmodule Styler.Style.ModuleDirectivesTest do
         alias A.A
         """,
         """
+        require A.A
+        require A.C
+
         alias A.A
         alias A.B
         alias B.B
         alias D.D
-
-        require A.A
-        require A.C
 
         @type foo :: :ok
         """
@@ -432,6 +324,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         defmodule Foo do
           # mdf
           @moduledoc false
+
           # B
           alias B.B
 
@@ -450,7 +343,9 @@ defmodule Styler.Style.ModuleDirectivesTest do
         defmodule Foo do
           # mdf
           @moduledoc false
+
           alias A.A
+
           # B
           alias B.B
           alias C.C
@@ -504,38 +399,12 @@ defmodule Styler.Style.ModuleDirectivesTest do
       require D
       """,
       """
+      require D
+
       alias A.A
       alias B.B
-
-      require D
       """
     )
-  end
-
-  test "@derive movements" do
-    assert_style(
-      """
-      defmodule F do
-        defstruct [:a]
-        # comment for foo
-        def foo, do: :ok
-        @derive Inspect
-        @derive {Foo, bar: :baz}
-      end
-      """,
-      """
-      defmodule F do
-        @moduledoc false
-        @derive Inspect
-        @derive {Foo, bar: :baz}
-        defstruct [:a]
-        # comment for foo
-        def foo, do: :ok
-      end
-      """
-    )
-
-    assert_style "@derive Inspect"
   end
 
   test "de-aliases use/behaviour/import/moduledoc" do
@@ -557,6 +426,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
       """
       defmodule MyModule do
         @moduledoc "Implements \#{A.B.C.foo()}!"
+
         @behaviour G.H.C
 
         use SomeMacro, with: Z.X.C
@@ -589,7 +459,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
 
         defmodule MyGreatLibrary do
           @moduledoc make_pretty_docs(library_options)
-          use OptionsMagic, my_opts: unquote(library_options)
+
+          use OptionsMagic, my_opts: library_options
 
           @library_options library_options
         end
@@ -611,6 +482,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
 
         quote do
           @moduledoc make_pretty_docs(library_options)
+
           use OptionsMagic, my_opts: unquote(library_options)
 
           @library_options library_options
@@ -618,5 +490,65 @@ defmodule Styler.Style.ModuleDirectivesTest do
         """
       )
     end
+  end
+
+  test "always adds a newline after moduledocs" do
+    assert_style(
+      """
+      defmodule A do
+        @moduledoc \"""
+        Hi there, I'm a module!
+        \"""
+        use Oban.Pro.Worker
+
+        alias BTest.Nested
+        def stuff do
+          Nested.call()
+        end
+      end
+      """,
+      """
+      defmodule A do
+        @moduledoc \"""
+        Hi there, I'm a module!
+        \"""
+
+        use Oban.Pro.Worker
+
+        alias BTest.Nested
+
+        def stuff do
+          Nested.call()
+        end
+      end
+      """
+    )
+
+    assert_style(
+      """
+      defmodule A do
+        @moduledoc false
+        use Oban.Pro.Worker
+
+        alias BTest.Nested
+        def stuff do
+          Nested.call()
+        end
+      end
+      """,
+      """
+      defmodule A do
+        @moduledoc false
+
+        use Oban.Pro.Worker
+
+        alias BTest.Nested
+
+        def stuff do
+          Nested.call()
+        end
+      end
+      """
+    )
   end
 end

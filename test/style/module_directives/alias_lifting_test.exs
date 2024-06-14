@@ -10,6 +10,7 @@
 
 defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
   @moduledoc false
+
   use Styler.StyleCase, async: true
 
   test "lifts aliases repeated >=2 times from 3 deep" do
@@ -83,10 +84,12 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       """
       defmodule A do
         @moduledoc false
+
         alias A.B.C
 
         defmodule B do
           @moduledoc false
+
           C.f()
           C.f()
         end
@@ -110,13 +113,14 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       """
       defmodule Timely do
         @moduledoc false
+
         use A.B.C
 
         import A.B.C
 
-        alias A.B.C
-
         require C
+
+        alias A.B.C
 
         def foo do
           C.bop()
@@ -167,6 +171,7 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       """
       defmodule A do
         @moduledoc false
+
         alias A.B.C
 
         def lift_me do
@@ -191,10 +196,11 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       """
       defmodule A do
         @moduledoc false
-        alias A.B.C
 
         require B
         require C
+
+        alias A.B.C
 
         C.foo()
       end
@@ -234,9 +240,10 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
         A.B.C.f()
         """,
         """
-        alias A.B.C
         # Foo is my fave
         require Foo
+
+        alias A.B.C
 
         C.f()
         C.f()
@@ -319,6 +326,7 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
 
         defmodule C do
           @moduledoc false
+
           A.B.C.f()
         end
 
@@ -375,6 +383,7 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
 
         defmodule A.B.C do
           @moduledoc false
+
           :body
         end
 
@@ -399,6 +408,7 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       assert_style """
       defmodule A do
         @moduledoc false
+
         defmacro __using__(_) do
           quote do
             A.B.C.f()

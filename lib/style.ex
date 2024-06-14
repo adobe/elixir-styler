@@ -31,7 +31,7 @@ defmodule Styler.Style do
   """
   @callback run(Zipper.t(), context()) :: {Zipper.command(), Zipper.t(), context()}
 
-  @doc "Recursively sets `:line` meta to `line`. Deletes `:newlines` unless `delete_lines: false` is passed"
+  @doc "Recursively sets `:line` meta to `line`. Deletes `:newlines` unless `delete_newlines: false` is passed"
   def set_line(ast_node, line, opts \\ []) do
     set_line = fn _ -> line end
 
@@ -162,7 +162,7 @@ defmodule Styler.Style do
   def reset_newlines([node], acc), do: Enum.reverse([set_newlines(node, 2) | acc])
   def reset_newlines([node | nodes], acc), do: reset_newlines(nodes, [set_newlines(node, 1) | acc])
 
-  defp set_newlines({directive, meta, children}, newline) do
+  def set_newlines({directive, meta, children}, newline) do
     updated_meta = Keyword.update(meta, :end_of_expression, [newlines: newline], &Keyword.put(&1, :newlines, newline))
     {directive, updated_meta, children}
   end
