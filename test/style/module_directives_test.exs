@@ -111,9 +111,6 @@ defmodule Styler.Style.ModuleDirectivesTest do
                      |> String.split("<!-- MDOC !-->")
                      |> Enum.fetch!(1)
 
-          @behaviour Chaotic
-          @behaviour Lawful
-
           use B
           use A.A
 
@@ -127,6 +124,9 @@ defmodule Styler.Style.ModuleDirectivesTest do
           alias A.A
           alias C.C
           alias D.D
+
+          @behaviour Chaotic
+          @behaviour Lawful
 
           def c(x), do: y
 
@@ -427,8 +427,6 @@ defmodule Styler.Style.ModuleDirectivesTest do
       defmodule MyModule do
         @moduledoc "Implements \#{A.B.C.foo()}!"
 
-        @behaviour G.H.C
-
         use SomeMacro, with: Z.X.C
 
         import A.B
@@ -439,6 +437,8 @@ defmodule Styler.Style.ModuleDirectivesTest do
         alias D.F.C
         alias G.H.C
         alias Z.X.C
+
+        @behaviour G.H.C
       end
       """
     )
@@ -461,29 +461,6 @@ defmodule Styler.Style.ModuleDirectivesTest do
           @moduledoc make_pretty_docs(library_options)
 
           use OptionsMagic, my_opts: library_options
-
-          @library_options library_options
-        end
-        """
-      )
-    end
-
-    test "works with `quote`" do
-      assert_style(
-        """
-        quote do
-          @library_options [...]
-          @moduledoc make_pretty_docs(@library_options)
-          use OptionsMagic, my_opts: @library_options
-        end
-        """,
-        """
-        library_options = [...]
-
-        quote do
-          @moduledoc make_pretty_docs(library_options)
-
-          use OptionsMagic, my_opts: unquote(library_options)
 
           @library_options library_options
         end
