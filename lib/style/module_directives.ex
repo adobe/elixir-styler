@@ -33,11 +33,11 @@ defmodule Styler.Style.ModuleDirectives do
 
     * `@shortdoc`
     * `@moduledoc`
-    * `@behaviour`
     * `use`
     * `import`
     * `alias`
     * `require`
+    * `@behaviour`
     * everything else (unchanged)
   """
 
@@ -216,11 +216,11 @@ defmodule Styler.Style.ModuleDirectives do
       [
         acc.shortdoc,
         acc.moduledoc,
-        acc.behaviour,
         acc.use,
         acc.import,
         acc.require,
-        acc.alias
+        acc.alias,
+        acc.behaviour
       ]
       |> Stream.concat()
       |> Style.fix_line_numbers(List.first(nondirectives))
