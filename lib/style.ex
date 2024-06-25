@@ -162,7 +162,7 @@ defmodule Styler.Style do
   def reset_newlines([node], acc), do: Enum.reverse([set_newlines(node, 2) | acc])
   def reset_newlines([node | nodes], acc), do: reset_newlines(nodes, [set_newlines(node, 1) | acc])
 
-  def set_newlines({directive, meta, children}, newline) do
+  defp set_newlines({directive, meta, children}, newline) do
     updated_meta = Keyword.update(meta, :end_of_expression, [newlines: newline], &Keyword.put(&1, :newlines, newline))
     {directive, updated_meta, children}
   end
