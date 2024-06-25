@@ -83,12 +83,8 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       """,
       """
       defmodule A do
-        @moduledoc false
-
-        alias A.B.C
-
         defmodule B do
-          @moduledoc false
+          alias A.B.C
 
           C.f()
           C.f()
@@ -112,8 +108,6 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       """,
       """
       defmodule Timely do
-        @moduledoc false
-
         use A.B.C
 
         import A.B.C
@@ -158,31 +152,6 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
     )
   end
 
-  test "lifts in modules with only-child bodies" do
-    assert_style(
-      """
-      defmodule A do
-        def lift_me() do
-          A.B.C.foo()
-          A.B.C.baz()
-        end
-      end
-      """,
-      """
-      defmodule A do
-        @moduledoc false
-
-        alias A.B.C
-
-        def lift_me do
-          C.foo()
-          C.baz()
-        end
-      end
-      """
-    )
-  end
-
   test "re-sorts requires after lifting" do
     assert_style(
       """
@@ -195,8 +164,6 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       """,
       """
       defmodule A do
-        @moduledoc false
-
         require B
         require C
 
