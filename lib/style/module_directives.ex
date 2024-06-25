@@ -35,8 +35,8 @@ defmodule Styler.Style.ModuleDirectives do
     * `@moduledoc`
     * `use`
     * `import`
-    * `alias`
     * `require`
+    * `alias`
     * `@behaviour`
     * everything else (unchanged)
   """

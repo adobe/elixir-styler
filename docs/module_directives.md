@@ -39,12 +39,15 @@ Modules directives are sorted into the following order:
 
 * `@shortdoc`
 * `@moduledoc` (adds `@moduledoc false`)
-* `@behaviour`
 * `use`
 * `import` (sorted alphabetically)
 * `alias` (sorted alphabetically)
 * `require` (sorted alphabetically)
+* `@behaviour`
 * everything else (order unchanged)
+
+The heuristic here is that docs generally go first, followed by directives in order from most impactful on the module to
+least impactful on the module.
 
 ### Before
 
@@ -98,8 +101,6 @@ defmodule Foo do
              |> File.read!()
              |> String.split("<!-- MDOC !-->")
              |> Enum.fetch!(1)
-  @behaviour Chaotic
-  @behaviour Lawful
 
   use B
   use A.A
@@ -107,13 +108,16 @@ defmodule Foo do
   import A.A
   import C
 
+  require A
+  require B
+  require C
+
   alias A.A
   alias C.C
   alias D.D
 
-  require A
-  require B
-  require C
+  @behaviour Chaotic
+  @behaviour Lawful
 
   def c(x), do: y
 
@@ -136,6 +140,7 @@ If any line previously relied on an alias, the alias is fully expanded when it i
 # Given
 alias Foo.Bar
 import Bar
+
 # Styled
 import Foo.Bar
 
