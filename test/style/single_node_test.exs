@@ -301,11 +301,11 @@ defmodule Styler.Style.SingleNodeTest do
     end
 
     test "if the last two numbers separated by an underscore, leave those" do
-      assert_style("10_00", "10_00")
-      assert_style("10000_00", "10_000_00")
-      assert_style("97_8", "97_8")
       assert_style("1_00", "1_00")
-      assert_style("1000_99", "1_000_99")
+      assert_style("10_00", "10_00")
+      assert_style("97_8", "97_8")
+      assert_style("18000_76", "18_000_76")
+      assert_style("1020000_99", "1_020_000_99")
     end
 
     test "stays away from small numbers, strings and science" do
