@@ -221,12 +221,33 @@ defmodule Styler.Style.SingleNode do
     end)
   end
 
-  defp delimit(token), do: token |> String.to_charlist() |> remove_underscores([]) |> add_underscores([])
+  defp delimit(token) do
+    chars = String.to_charlist(token)
+
+    result =
+      case Enum.reverse(chars) do
+        [hundredth, tenth, ?_ | rest] when is_integer(tenth) and is_integer(hundredth) ->
+          delimited = rest |> Enum.reverse() |> fix_underscores()
+
+          delimited ++ [?_, tenth, hundredth]
+
+        _other_num ->
+          fix_underscores(chars)
+      end
+
+    to_string(result)
+  end
+
+  defp fix_underscores(num_tokens) do
+    num_tokens
+    |> remove_underscores([])
+    |> add_underscores([])
+  end
 
   defp remove_underscores([?_ | rest], acc), do: remove_underscores(rest, acc)
   defp remove_underscores([digit | rest], acc), do: remove_underscores(rest, [digit | acc])
   defp remove_underscores([], reversed_list), do: reversed_list
 
   defp add_underscores([a, b, c, d | rest], acc), do: add_underscores([d | rest], [?_, c, b, a | acc])
-  defp add_underscores(reversed_list, acc), do: reversed_list |> Enum.reverse(acc) |> to_string()
+  defp add_underscores(reversed_list, acc), do: Enum.reverse(reversed_list, acc)
 end
