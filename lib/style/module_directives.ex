@@ -40,6 +40,7 @@ defmodule Styler.Style.ModuleDirectives do
     * `require`
     * everything else (unchanged)
   """
+
   @behaviour Styler.Style
 
   alias Styler.AliasEnv

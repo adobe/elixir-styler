@@ -12,6 +12,7 @@ defmodule Styler.StyleError do
   @moduledoc """
   Wraps errors raised by Styles during tree traversal.
   """
+
   defexception [:exception, :style, :file]
 
   def message(%{exception: exception, style: style, file: file}) do

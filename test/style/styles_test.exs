@@ -12,6 +12,7 @@ defmodule Styler.Style.StylesTest do
   @moduledoc """
   A place for tests that make sure our styles play nicely with each other
   """
+
   use Styler.StyleCase, async: true
 
   describe "pipes + defs" do

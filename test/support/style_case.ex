@@ -12,6 +12,7 @@ defmodule Styler.StyleCase do
   @moduledoc """
   Helpers around testing Style rules.
   """
+
   use ExUnit.CaseTemplate
 
   using options do

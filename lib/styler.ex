@@ -12,6 +12,7 @@ defmodule Styler do
   @moduledoc """
   Styler is a formatter plugin with stronger opinions on code organization, multi-line defs and other code-style matters.
   """
+
   @behaviour Mix.Tasks.Format
 
   alias Mix.Tasks.Format

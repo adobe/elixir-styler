@@ -10,6 +10,7 @@
 
 defmodule Styler.Style.ModuleDirectivesTest do
   @moduledoc false
+
   use Styler.StyleCase, async: true
 
   describe "defmodule features" do

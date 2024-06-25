@@ -10,6 +10,7 @@
 
 defmodule Styler.Config do
   @moduledoc false
+
   @key __MODULE__
 
   @stdlib MapSet.new(~w(

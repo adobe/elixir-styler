@@ -14,6 +14,7 @@ defmodule Styler.AliasEnv do
 
       %{:Bar => [:Foo, :Bar]}
   """
+
   def define(env \\ %{}, ast)
 
   def define(env, asts) when is_list(asts), do: Enum.reduce(asts, env, &define(&2, &1))
