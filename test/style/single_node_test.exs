@@ -300,6 +300,14 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style("-123456728.0001", "-123_456_728.0001")
     end
 
+    test "if the last two numbers are separated by an underscore (cents style), leave the cents style in place" do
+      assert_style("1_00", "1_00")
+      assert_style("10_00", "10_00")
+      assert_style("97_8", "97_8")
+      assert_style("18000_76", "18_000_76")
+      assert_style("1020000_99", "1_020_000_99")
+    end
+
     test "stays away from small numbers, strings and science" do
       assert_style("1234")
       assert_style("9999")
