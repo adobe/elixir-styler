@@ -125,8 +125,6 @@ defmodule Styler.Style.ModuleDirectives do
     if Enum.empty?(attrs) do
       {ast, acc}
     else
-      # TODO: Instead of use, check that we're in a quote
-
       Macro.prewalk(ast, acc, fn
         {:@, _m, [{attr, _, _} = var]} = ast, acc ->
           if attr in attrs do
