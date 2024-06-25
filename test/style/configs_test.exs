@@ -10,6 +10,7 @@
 
 defmodule Styler.Style.ConfigsTest do
   @moduledoc false
+
   use Styler.StyleCase, async: true, filename: "config/config.exs"
 
   alias Styler.Style.Configs

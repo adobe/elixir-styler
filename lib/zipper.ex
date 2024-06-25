@@ -23,6 +23,7 @@ defmodule Styler.Zipper do
   2-tuple where the first element is the focus and the second element is the
   metadata/context. The metadata is `nil` when the focus is the topmost node
   """
+
   import Kernel, except: [node: 1]
 
   @type tree :: Macro.t()
