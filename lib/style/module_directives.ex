@@ -33,11 +33,11 @@ defmodule Styler.Style.ModuleDirectives do
 
     * `@shortdoc`
     * `@moduledoc`
-    * `@behaviour`
     * `use`
     * `import`
-    * `alias`
     * `require`
+    * `alias`
+    * `@behaviour`
     * everything else (unchanged)
   """
 
@@ -49,9 +49,6 @@ defmodule Styler.Style.ModuleDirectives do
 
   @directives ~w(alias import require use)a
   @attr_directives ~w(moduledoc shortdoc behaviour)a
-  @defstruct ~w(schema embedded_schema defstruct)a
-
-  @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
 
   def run({{:defmodule, _, children}, _} = zipper, ctx) do
     [name, [{{:__block__, do_meta, [:do]}, _body}]] = children
@@ -105,41 +102,7 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  # puts `@derive` before `defstruct` etc, fixing compiler warnings
-  def run({{:@, _, [{:derive, _, _}]}, _} = zipper, ctx) do
-    case Style.ensure_block_parent(zipper) do
-      {:ok, {derive, %{l: left_siblings} = z_meta}} ->
-        previous_defstruct =
-          left_siblings
-          |> Stream.with_index()
-          |> Enum.find_value(fn
-            {{struct_def, meta, _}, index} when struct_def in @defstruct -> {meta[:line], index}
-            _ -> nil
-          end)
-
-        if previous_defstruct do
-          {defstruct_line, defstruct_index} = previous_defstruct
-          derive = Style.set_line(derive, defstruct_line - 1)
-          left_siblings = List.insert_at(left_siblings, defstruct_index + 1, derive)
-          {:skip, Zipper.remove({derive, %{z_meta | l: left_siblings}}), ctx}
-        else
-          {:cont, zipper, ctx}
-        end
-
-      :error ->
-        {:cont, zipper, ctx}
-    end
-  end
-
   def run(zipper, ctx), do: {:cont, zipper, ctx}
-
-  defp moduledoc({:__aliases__, m, aliases}) do
-    name = aliases |> List.last() |> to_string()
-    # module names ending with these suffixes will not have a default moduledoc appended
-    unless String.ends_with?(name, ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)) do
-      Style.set_line(@moduledoc_false, m[:line] + 1)
-    end
-  end
 
   # a dynamic module name, like `defmodule my_variable do ... end`
   defp moduledoc(_), do: nil
@@ -158,21 +121,14 @@ defmodule Styler.Style.ModuleDirectives do
     attr_lifts: []
   }
 
-  defp lift_module_attrs({node, _, _} = ast, %{attrs: attrs} = acc) do
+  defp lift_module_attrs({_node, _, _} = ast, %{attrs: attrs} = acc) do
     if Enum.empty?(attrs) do
       {ast, acc}
     else
-      use? = node == :use
-
       Macro.prewalk(ast, acc, fn
-        {:@, m, [{attr, _, _} = var]} = ast, acc ->
+        {:@, _m, [{attr, _, _} = var]} = ast, acc ->
           if attr in attrs do
-            replacement =
-              if use?,
-                do: {:unquote, [closing: [line: m[:line]], line: m[:line]], [var]},
-                else: var
-
-            {replacement, %{acc | attr_lifts: [attr | acc.attr_lifts]}}
+            {var, %{acc | attr_lifts: [attr | acc.attr_lifts]}}
           else
             {ast, acc}
           end
@@ -218,6 +174,7 @@ defmodule Styler.Style.ModuleDirectives do
         {k, v} -> {k, Enum.reverse(v)}
       end)
       |> lift_aliases()
+      |> Map.update!(:moduledoc, &Style.reset_newlines(&1))
 
     # Not happy with it, but this does the work to move module attribute assignments above the module or quote or whatever
     # Given that it'll only be run once and not again, i'm okay with it being inefficient
@@ -257,11 +214,11 @@ defmodule Styler.Style.ModuleDirectives do
       [
         acc.shortdoc,
         acc.moduledoc,
-        acc.behaviour,
         acc.use,
         acc.import,
+        acc.require,
         acc.alias,
-        acc.require
+        acc.behaviour
       ]
       |> Stream.concat()
       |> Style.fix_line_numbers(List.first(nondirectives))

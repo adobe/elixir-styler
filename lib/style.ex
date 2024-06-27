@@ -31,7 +31,7 @@ defmodule Styler.Style do
   """
   @callback run(Zipper.t(), context()) :: {Zipper.command(), Zipper.t(), context()}
 
-  @doc "Recursively sets `:line` meta to `line`. Deletes `:newlines` unless `delete_lines: false` is passed"
+  @doc "Recursively sets `:line` meta to `line`. Deletes `:newlines` unless `delete_newlines: false` is passed"
   def set_line(ast_node, line, opts \\ []) do
     set_line = fn _ -> line end
 
