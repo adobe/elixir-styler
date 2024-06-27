@@ -141,6 +141,19 @@ defmodule Styler.Style.SingleNodeTest do
         assert_style(
           """
           #{def_style} foo() do
+            :ok
+          rescue
+            exception -> :excepted
+          catch
+            :a_throw -> :thrown
+          else
+            i_forgot -> i_forgot.this_could_happen
+          after
+            :done
+          end
+          """,
+          """
+          #{def_style} foo do
             try do
               :ok
             rescue
@@ -152,19 +165,6 @@ defmodule Styler.Style.SingleNodeTest do
             after
               :done
             end
-          end
-          """,
-          """
-          #{def_style} foo do
-            :ok
-          rescue
-            exception -> :excepted
-          catch
-            :a_throw -> :thrown
-          else
-            i_forgot -> i_forgot.this_could_happen
-          after
-            :done
           end
           """
         )
