@@ -227,22 +227,24 @@ defmodule Styler.Style.Blocks do
   defp replace_with_statement(zipper, preroll) do
     [[{_do, do_body} | _elses] | preroll] = Enum.reverse(preroll)
 
-    # RedundantWithClauseResult except we rewrote the `<-` to an `=`
-    # with a, b, x <- y(), do: x
-    # =>
-    # a; b; y
     block =
-      case preroll do
-        [{:=, _, [lhs, rhs]} | rest] ->
-          if nodes_equivalent?(lhs, do_body),
-            do: [rhs | rest],
-            else: [do_body | preroll]
+      case do_body do
+        {:__block__, _, [{_, _, _} | _] = children} ->
+          Enum.reverse(preroll, children)
 
         _ ->
-          [do_body | preroll]
-      end
+          # RedundantWithClauseResult except we rewrote the `<-` to an `=`
+          # `with a, b, x <- y(), do: x` => `a; b; y`
+          case preroll do
+            [{:=, _, [lhs, rhs]} | rest] ->
+              if nodes_equivalent?(lhs, do_body),
+                do: Enum.reverse(rest, [rhs]),
+                else: Enum.reverse(preroll, [do_body])
 
-    block = Enum.reverse(block)
+            _ ->
+              Enum.reverse(preroll, [do_body])
+          end
+      end
 
     case Style.ensure_block_parent(zipper) do
       {:ok, zipper} ->

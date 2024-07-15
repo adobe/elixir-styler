@@ -371,6 +371,7 @@ defmodule Styler.Style.BlocksTest do
       assert_style(
         """
         with x = y, a = b do
+          w
           z
         else
          _ -> whatever
@@ -379,6 +380,7 @@ defmodule Styler.Style.BlocksTest do
         """
         x = y
         a = b
+        w
         z
         """
       )
@@ -554,9 +556,7 @@ defmodule Styler.Style.BlocksTest do
         end
         """
       )
-    end
 
-    test "with to if" do
       assert_style(
         """
         with true <- foo do
