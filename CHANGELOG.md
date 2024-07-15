@@ -3,6 +3,12 @@
 **Note** Styler's only public API is its usage as a formatter plugin. While you're welcome to play with its internals,
 they can and will change without that change being reflected in Styler's semantic version.
 
+## main
+
+### Fixes
+
+* fix `with` arrow replacement + redundant body removal creating invalid statements (#184, h/t @JesseHerrick)
+
 ## 1.0.0-rc.2
 
 ### Fixes

@@ -357,6 +357,16 @@ defmodule Styler.Style.BlocksTest do
         )
         """
       )
+
+      assert_style(
+        """
+        with a <- b(c), {:ok, result} <- x(y, z), do: {:ok, result}
+        """,
+        """
+        a = b(c)
+        x(y, z)
+        """
+      )
     end
 
     test "doesn't false positive with vars" do

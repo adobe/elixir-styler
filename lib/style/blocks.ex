@@ -128,8 +128,12 @@ defmodule Styler.Style.Blocks do
         with_children = Enum.reverse(reversed_clauses, [[{do_block, do_body} | elses]])
         zipper = Zipper.replace(zipper, {:with, with_meta, with_children})
 
-        # recurse if the # of `<-` have changed (this `with` could now be eligible for a `case` rewrite)
         cond do
+          # oops! RedundantWithClauseResult removed the final arrow in this. no more need for a with statement!
+          Enum.empty?(reversed_clauses) ->
+            {:cont, replace_with_statement(zipper, preroll ++ with_children), ctx}
+
+          # recurse if the # of `<-` have changed (this `with` could now be eligible for a `case` rewrite)
           Enum.any?(preroll) ->
             # put the preroll before the with statement in either a block we create or the existing parent block
             zipper
@@ -137,13 +141,9 @@ defmodule Styler.Style.Blocks do
             |> Zipper.prepend_siblings(preroll)
             |> run(ctx)
 
+          # the # of `<-` canged, so we should have another look at this with statement
           Enum.any?(postroll) ->
-            # both of these changed the # of `<-`, so we should have another look at this with statement
             run(zipper, ctx)
-
-          Enum.empty?(reversed_clauses) ->
-            # oops! RedundantWithClauseResult removed the final arrow in this. no more need for a with statement!
-            {:cont, replace_with_statement(zipper, with_children), ctx}
 
           true ->
             # of clauess didn't change, so don't reecurse or we'll loop FOREEEVEERR
