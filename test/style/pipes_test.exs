@@ -435,6 +435,13 @@ defmodule Styler.Style.PipesTest do
   end
 
   describe "valid pipe starts & unpiping" do
+    test "kernel unary starts" do
+      assert_style("!b |> c() |> d()", "!b |> c() |> d()")
+      assert_style("!x(b) |> c() |> d()")
+      assert_style("not(b) |> c() |> d()", "not b |> c() |> d()")
+      assert_style("not x(b) |> c() |> d()")
+    end
+
     test "writes brackets for unpiped kwl" do
       assert_style("foo(kwl: :arg) |> bar()", "[kwl: :arg] |> foo() |> bar()")
       assert_style("%{a: foo(a: :b, c: :d) |> bar()}", "%{a: [a: :b, c: :d] |> foo() |> bar()}")

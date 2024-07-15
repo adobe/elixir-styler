@@ -35,7 +35,7 @@ defmodule Styler.Style.Pipes do
   # most of these values were lifted directly from credo's pipe_chain_start.ex
   @literal ~w(__block__ __aliases__ unquote)a
   @value_constructors ~w(% %{} .. ..// <<>> @ {} ^ & fn from)a
-  @kernel_ops ~w(++ -- && || in - * + / > < <= >= == and or != !== === <>)a
+  @kernel_ops ~w(++ -- && || in - * + / > < <= >= == and or != !== === <> ! not)a
   @special_ops ~w(||| &&& <<< >>> <<~ ~>> <~ ~> <~>)a
   @special_ops @literal ++ @value_constructors ++ @kernel_ops ++ @special_ops
 
