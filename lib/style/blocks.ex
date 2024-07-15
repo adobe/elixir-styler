@@ -59,6 +59,22 @@ defmodule Styler.Style.Blocks do
     run({{:case, m, [single_statement, clauses]}, zm}, ctx)
   end
 
+  # `with true <- x, do: bar` =>`if x, do: bar`
+  def run({{:with, m, [{:<-, _, [{_, _, [true]}, rhs]}, [do_kwl]]}, _} = zipper, ctx) do
+    children =
+      case rhs do
+        # `true <- foo || {:error, :shouldve_used_an_if_statement}``
+        # turn the rhs of an `||` into an else body
+        {:||, _, [head, else_body]} ->
+          [head, [do_kwl, {{:__block__, [line: m[:line] + 2], [:else]}, Style.shift_line(else_body, 3)}]]
+
+        _ ->
+          [rhs, [do_kwl]]
+      end
+
+    {:cont, Zipper.replace(zipper, {:if, m, children}), ctx}
+  end
+
   # Credo.Check.Refactor.WithClauses
   def run({{:with, with_meta, children}, _} = zipper, ctx) when is_list(children) do
     # a std lib `with` block will have at least one left arrow and a `do` body. anything else we skip ¯\_(ツ)_/¯

@@ -556,6 +556,40 @@ defmodule Styler.Style.BlocksTest do
       )
     end
 
+    test "with to if" do
+      assert_style(
+        """
+        with true <- foo do
+          boop
+          bar
+        end
+        """,
+        """
+        if foo do
+          boop
+          bar
+        end
+        """
+      )
+
+      assert_style "with true <- x, do: bar", "if x, do: bar"
+
+      assert_style(
+        """
+        with true <- foo || {:error, :shouldve_used_an_if_statement} do
+          bar
+        end
+        """,
+        """
+        if foo do
+          bar
+        else
+          {:error, :shouldve_used_an_if_statement}
+        end
+        """
+      )
+    end
+
     test "switches keyword do to block do when adding postroll" do
       assert_style(
         """

@@ -5,9 +5,15 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Improvements
+
+#### `with`
+
+* remove `with` structure with no left arrows in its head to be normal code (#174)
+* `with true <- x(), do: y` => `if x(), do: y` (#173)
+
 ### Fixes
 
-* rewrite `with` with no left arrows to be normal code (#174)
 * fix `with` arrow replacement + redundant body removal creating invalid statements (#184, h/t @JesseHerrick)
 * allow Kernel unary `!` and `not` as valid pipe starts (#183, h/t @nherzing)
 
