@@ -367,6 +367,21 @@ defmodule Styler.Style.BlocksTest do
         x(y, z)
         """
       )
+
+      assert_style(
+        """
+        with x = y, a = b do
+          z
+        else
+         _ -> whatever
+        end
+        """,
+        """
+        x = y
+        a = b
+        z
+        """
+      )
     end
 
     test "doesn't false positive with vars" do
@@ -413,7 +428,7 @@ defmodule Styler.Style.BlocksTest do
         """
       )
 
-      for nontrivial_head <- ["foo", ":ok = foo", ":ok <- foo, :ok <- bar"] do
+      for nontrivial_head <- ["foo", ":ok <- foo, :ok <- bar"] do
         assert_style("""
         with #{nontrivial_head} do
           :success
@@ -423,13 +438,7 @@ defmodule Styler.Style.BlocksTest do
         """)
       end
 
-      assert_style(
-        """
-        with :ok <- foo(),
-          do: :ok
-        """,
-        "foo()"
-      )
+      assert_style("with :ok <- foo(), do: :ok", "foo()")
     end
 
     test "rewrites non-pattern-matching lhs" do
