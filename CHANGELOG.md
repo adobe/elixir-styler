@@ -14,6 +14,7 @@ they can and will change without that change being reflected in Styler's semanti
 
 ### Fixes
 
+* don't blow up on `def function_head_with_no_body_nor_parens` (#185, h/t @ypconstante)
 * fix `with` arrow replacement + redundant body removal creating invalid statements (#184, h/t @JesseHerrick)
 * allow Kernel unary `!` and `not` as valid pipe starts (#183, h/t @nherzing)
 

@@ -98,6 +98,8 @@ defmodule Styler.Style.DefsTest do
     end
 
     test "no body" do
+      assert_style "def no_body_nor_parens_yikes!"
+
       assert_style(
         """
         # Top comment
