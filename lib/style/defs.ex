@@ -52,20 +52,13 @@ defmodule Styler.Style.Defs do
     first_line = meta[:line]
     last_line = head_meta[:closing][:line]
 
-    cond do
-      # weird `def fun`, nothing else
-      is_nil(last_line) ->
-        {:skip, zipper, ctx}
-
-      # Already collapsed
-      first_line == last_line ->
-        {:skip, zipper, ctx}
-
-      # I just felt like this clause deserved a comment too. It's my favorite one
-      true ->
-        comments = Style.displace_comments(ctx.comments, first_line..last_line)
-        node = {def, meta, [Style.set_line(head, first_line)]}
-        {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
+    # Already collapsed or it's a bodyless/paramless `def fun`
+    if first_line == last_line || is_nil(last_line) do
+      {:skip, zipper, ctx}
+    else
+      comments = Style.displace_comments(ctx.comments, first_line..last_line)
+      node = {def, meta, [Style.set_line(head, first_line)]}
+      {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
     end
   end
 
