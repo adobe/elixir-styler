@@ -21,7 +21,7 @@ You can learn more about the history, purpose and implementation of Styler from 
 - replaces strings with sigils when the string has many escaped quotes
 - ... and so much more
 
-[See our Rewrites documentation on hexdocs for all the nitty-gritty on what all Styler does](https://hexdocs.pm/styler/)
+[See our Rewrites documentation on hexdocs](https://hexdocs.pm/styler/styles.html)
 
 ## Who is Styler for?
 
