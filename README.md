@@ -82,7 +82,6 @@ Ultimately Styler is @adobe's internal tool that we're happy to share with the w
 ## WARNING: Styler can change the behaviour of your program!
 
 In some cases, this can introduce bugs. It goes without saying, but look over your changes before committing to main :)
-(Here's an [example issue](https://github.com/adobe/elixir-styler/issues/186) where Styler unexpectedly changed the behaviour of a user's program.)
 
 A simple example of a way Styler changes the behaviour of code is the following rewrite:
 
@@ -114,6 +113,12 @@ end
 ```
 
 Also good style! But Styler assumes that most of the time people just meant the `if` equivalent of the code, and so makes that change. If issues like this bother you, Styler probably isn't the tool you're looking for.
+
+Other ways Styler can change your program:
+
+- [`with` statement rewrites](https://github.com/adobe/elixir-styler/issues/186)
+- [config file sorting](https://hexdocs.pm/styler/mix_configs.html#this-can-break-your-program)
+- and likely other ways. stay safe out there!
 
 ## Thanks & Inspiration
 
