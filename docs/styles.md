@@ -10,7 +10,12 @@ These apply to the piped versions as well
 Rewrites strings with 4 or more escaped quotes to string sigils with an alternative delimiter.
 The delimiter will be one of `" ( { | [ ' < /`, chosen by which would require the fewest escapes, and otherwise preferred in the order listed.
 
-* `"{\"errors\":[\"Not Authorized\"]}"` => `~s({"errors":["Not Authorized"]})`
+```elixir
+# Before
+"{\"errors\":[\"Not Authorized\"]}"
+# Styled
+~s({"errors":["Not Authorized"]})
+```
 
 ## Large Base 10 Numbers
 
@@ -51,29 +56,58 @@ Note that all of the examples below also apply to pipes (`enum |> Enum.into(...)
 
 `Keyword.merge` and `Map.merge` called with a literal map or keyword argument with a single key are rewritten to the equivalent `put`, a cognitively simpler function.
 
-| Before | After |
-|--------|-------|
-| `Keyword.merge(kw, [key: :value])` | `Keyword.put(kw, :key, :value)` |
-| `Map.merge(map, %{key: :value})` | `Map.put(map, :key, :value)` |
-| `Map.merge(map, %{key => value})` | `Map.put(map, key, value)` |
-| `map \|> Map.merge(%{key: value}) \|> foo()` | `map \|> Map.put(:key, value) \|> foo()` |
+```elixir
+# Before
+Keyword.merge(kw, [key: :value])
+# Styled
+Keyword.put(kw, :key, :value)
+
+# Before
+Map.merge(map, %{key: :value})
+# Styled
+Map.put(map, :key, :value)
+
+# Before
+Map.merge(map, %{key => value})
+# Styled
+Map.put(map, key, value)
+
+# Before
+map |> Map.merge(%{key: value}) |> foo()
+# Styled
+map |> Map.put(:key, value) |> foo()
+```
 
 ## Map/Keyword.drop w/ single key -> X.delete
 
 In the same vein as the `merge` style above, `[Map|Keyword].drop/2` with a single key to drop are rewritten to use `delete/2`
-| Before | After |
-|--------|-------|
-| `Map.drop(map, [key])` | `Map.delete(map, key)`|
-| `Keyword.drop(kw, [key])` | `Keyword.delete(kw, key)`|
+```elixir
+# Before
+Map.drop(map, [key])
+# Styled
+Map.delete(map, key)
+
+# Before
+Keyword.drop(kw, [key])
+# Styled
+Keyword.delete(kw, key)
+```
 
 ## `Enum.reverse/1` and concatenation -> `Enum.reverse/2`
 
 `Enum.reverse/2` optimizes a two-step reverse and concatenation into a single step.
 
-| Before | After |
-|--------|-------|
-| `Enum.reverse(foo) ++ bar` | `Enum.reverse(foo, bar)`|
-| `baz \|> Enum.reverse() \|> Enum.concat(bop)` | `Enum.reverse(baz, bop)`|
+```elixir
+# Before
+Enum.reverse(foo) ++ bar
+# Styled
+Enum.reverse(foo, bar)
+
+# Before
+baz |> Enum.reverse() |> Enum.concat(bop)
+# Styled
+Enum.reverse(baz, bop)
+```
 
 ## `Timex.now/0` ->` DateTime.utc_now/0`
 
@@ -91,10 +125,17 @@ That's where Styler comes in!
 
 The examples below use `DateTime.compare/2`, but the same is also done for `NaiveDateTime|Time|Date.compare/2`
 
-| Before | After |
-|--------|-------|
-| `DateTime.compare(start, end_date) == :gt` | `DateTime.after?(start, end_date)` |
-| `DateTime.compare(start, end_date) == :lt` | `DateTime.before?(start, end_date)` |
+```elixir
+# Before
+DateTime.compare(start, end_date) == :gt
+# Styled
+DateTime.after?(start, end_date)
+
+# Before
+DateTime.compare(start, end_date) == :lt
+# Styled
+DateTime.before?(start, end_date)
+```
 
 ## Implicit Try
 
@@ -140,12 +181,19 @@ end
 
 The author of the library disagrees with this style convention :) BUT, the wonderful thing about Styler is it lets you write code how _you_ want to, while normalizing it for reading for your entire team. The most important thing is not having to think about the style, and instead focus on what you're trying to achieve.
 
-| Before | After |
-|--------|-------|
-| `def foo()` | `def foo`|
-| `defp foo()` | `defp foo`|
-| `defmacro foo()` | `defmacro foo`|
-| `defmacrop foo()` | `defmacrop foo`|
+```elixir
+# Before
+def foo()
+defp foo()
+defmacro foo()
+defmacrop foo()
+
+# Styled
+def foo
+defp foo
+defmacro foo
+defmacrop foo
+```
 
 ## Elixir Deprecation Rewrites
 
@@ -163,16 +211,94 @@ The author of the library disagrees with this style convention :) BUT, the wonde
 \* For both of the "decreasing range" changes, the rewrite can only be applied if the range is being passed as an argument to the function.
 
 ### 1.16+
-| Before | After |
-|--------|-------|
-|`File.stream!(file, options, line_or_bytes)` | `File.stream!(file, line_or_bytes, options)`|
+File.stream! `:line` and `:bytes` deprecation
 
-## Code Readability
+```elixir
+# Before
+File.stream!(path, [encoding: :utf8, trim_bom: true], :line)
+# Styled
+File.stream!(path, :line, encoding: :utf8, trim_bom: true)
+```
 
-- put matches on right
-- `Credo.Check.Readability.PreferImplicitTry`
+## Putting variable matching on the right
 
-## Function Definitions
+```elixir
+# Before
+case foo do
+  bar = %{baz: baz? = true} -> :baz?
+  opts = [[a = %{}] | _] -> a
+end
+# Styled:
+case foo do
+  %{baz: true = baz?} = bar -> :baz?
+  [[%{} = a] | _] = opts -> a
+end
 
-- Shrink multi-line function defs
-- Put assignments on the right
+# Before
+with {:ok, result = %{}} <- foo, do: result
+# Styled
+with {:ok, %{} = result} <- foo, do: result
+
+# Before
+def foo(bar = %{baz: baz? = true}, opts = [[a = %{}] | _]), do: :ok
+# Styled
+def foo(%{baz: true = baz?} = bar, [[%{} = a] | _] = opts), do: :ok
+```
+
+## Drops superfluous `= _` in pattern matching
+
+```elixir
+# Before
+def foo(_ = bar), do: bar
+# Styled
+def foo(bar), do: bar
+
+# Before
+case foo do
+  _ = bar -> :ok
+end
+# Styled
+case foo do
+  _ = bar -> :ok
+end
+```
+
+## Use Implicit Try
+
+```elixir
+# before
+def foo d
+  try do
+    throw_ball()
+  catch
+    :ball -> :caught
+  end
+end
+
+# Styled:
+def foo d
+  throw_ball()
+catch
+  :ball -> :caught
+end
+```
+
+## Shrink Function Definitions to One Line When Possible
+
+```elixir
+# Before
+
+def save(
+       # Socket comment
+       %Socket{assigns: %{user: user, live_action: :new}} = initial_socket,
+       # Params comment
+       params
+     ),
+     do: :ok
+
+# Styled
+
+# Socket comment
+# Params comment
+def save(%Socket{assigns: %{user: user, live_action: :new}} = initial_socket, params), do: :ok
+```

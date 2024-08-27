@@ -53,7 +53,7 @@ When the piped argument is being passed as the first argument to the inner funct
 ```elixir
 a |> then(&f(&1, ...)) |> b()
 # Styled:
-a |> f(...)) |> b()
+a |> f(...) |> b()
 ```
 
 - add parens to function calls `|> fun |>` => `|> fun() |>`
