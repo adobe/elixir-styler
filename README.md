@@ -79,9 +79,13 @@ Styler [will not add configuration](https://github.com/adobe/elixir-styler/pull/
 
 Ultimately Styler is @adobe's internal tool that we're happy to share with the world. We're delighted if you like it as is, and just as excited if it's a starting point for you to make something even better for yourself.
 
-## !Styler can change the behaviour of your program!
+## WARNING: Styler can change the behaviour of your program!
 
-The best example of the way in which Styler changes the meaning of your code is the following rewrite:
+In some cases, this can introduce bugs. It goes without saying, but look over your changes before committing to main :)
+(Here's an [example issue](https://github.com/adobe/elixir-styler/issues/186) where Styler unexpectedly changed the behaviour of a user's program.)
+
+A simple example of a way Styler changes the behaviour of code is the following rewrite:
+
 ```elixir
 # Before: this case statement...
 case foo do
