@@ -259,7 +259,7 @@ case foo do
 end
 # Styled
 case foo do
-  _ = bar -> :ok
+  bar -> :ok
 end
 ```
 
