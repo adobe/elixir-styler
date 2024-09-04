@@ -438,6 +438,22 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
         |> boop()
       end
       """
+
+      assert_style """
+      defmodule SomeModule do
+        @moduledoc false
+
+        def do_something(token) do
+          # Guardian.Token.Jwt is a library module in the guardian library
+          # MyApp.Guardian is a module defined inside my application
+          Guardian.Token.Jwt.decode_token(MyApp.Guardian, token)
+        end
+
+        def do_something_else do
+          Application.get_env(:my_app, MyApp.Guardian)
+        end
+      end
+      """
     end
   end
 end
