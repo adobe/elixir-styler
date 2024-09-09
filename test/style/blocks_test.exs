@@ -834,12 +834,49 @@ defmodule Styler.Style.BlocksTest do
     end
 
     test "double negator rewrites" do
-      assert_style("if !!x, do: y", "if x, do: y")
-      assert_style("if not not x, do: y", "if x, do: y")
-      assert_style("if ! not x, do: y", "if x, do: y")
-      assert_style("if not ! x, do: y", "if x, do: y")
+      for a <- ~w(not !), block <- ["do: z", "do: z, else: zz"] do
+        assert_style "if #{a} (x != y), #{block}", "if x == y, #{block}"
+        assert_style "if #{a} (x !== y), #{block}", "if x === y, #{block}"
+        assert_style "if #{a} ! x, #{block}", "if x, #{block}"
+        assert_style "if #{a} not x, #{block}", "if x, #{block}"
+      end
+
       assert_style("if not x, do: y", "if not x, do: y")
       assert_style("if !x, do: y", "if !x, do: y")
+
+      assert_style(
+        """
+        if !!val do
+          a
+        else
+          b
+        end
+        """,
+        """
+        if val do
+          a
+        else
+          b
+        end
+        """
+      )
+
+      assert_style(
+        """
+        unless !! not true do
+          a
+        else
+          b
+        end
+        """,
+        """
+        if true do
+          a
+        else
+          b
+        end
+        """
+      )
     end
 
     test "Credo.Check.Refactor.UnlessWithElse" do
@@ -977,44 +1014,6 @@ defmodule Styler.Style.BlocksTest do
           """
         )
       end
-    end
-
-    test "recurses" do
-      assert_style(
-        """
-        if !!val do
-          a
-        else
-          b
-        end
-        """,
-        """
-        if val do
-          a
-        else
-          b
-        end
-        """
-      )
-
-      assert_style(
-        """
-        unless !! not true do
-          a
-        else
-          b
-        end
-        """,
-        """
-        if true do
-          a
-        else
-          b
-        end
-        """
-      )
-
-      assert_style("if not (a != b), do: c", "if a == b, do: c")
     end
 
     test "comments and flips" do

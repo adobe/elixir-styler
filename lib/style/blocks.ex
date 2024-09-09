@@ -184,9 +184,10 @@ defmodule Styler.Style.Blocks do
 
   def run({{:if, m, children}, _} = zipper, ctx) do
     case children do
+      # double negator
       # if !!x, do: y[, else: ...] => if x, do: y[, else: ...]
-      [{_, _, [nb]} = na, children] when is_negator(na) and is_negator(nb) ->
-        zipper |> Zipper.replace({:if, m, [invert(nb), children]}) |> run(ctx)
+      [{_, _, [nb]} = na, do_else] when is_negator(na) and is_negator(nb) ->
+        zipper |> Zipper.replace({:if, m, [invert(nb), do_else]}) |> run(ctx)
 
       # Credo.Check.Refactor.NegatedConditionsWithElse
       # if !x, do: y, else: z => if x, do: z, else: y
