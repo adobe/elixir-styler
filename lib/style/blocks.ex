@@ -176,6 +176,7 @@ defmodule Styler.Style.Blocks do
     end
   end
 
+  #@TODO do i want to be smart and recognize stdlib functions that return bools and use :not instead of :!?
   def run({{:unless, m, [head, do_else]}, _} = zipper, ctx) do
     zipper
     |> Zipper.replace({:if, m, [invert(head), do_else]})
