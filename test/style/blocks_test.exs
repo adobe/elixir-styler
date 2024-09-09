@@ -833,10 +833,13 @@ defmodule Styler.Style.BlocksTest do
       """)
     end
 
-    test "if not => unless" do
-      assert_style("if not x, do: y", "unless x, do: y")
-      assert_style("if !x, do: y", "unless x, do: y")
+    test "double negator rewrites" do
       assert_style("if !!x, do: y", "if x, do: y")
+      assert_style("if not not x, do: y", "if x, do: y")
+      assert_style("if ! not x, do: y", "if x, do: y")
+      assert_style("if not ! x, do: y", "if x, do: y")
+      assert_style("if not x, do: y", "if not x, do: y")
+      assert_style("if !x, do: y", "if !x, do: y")
     end
 
     test "Credo.Check.Refactor.UnlessWithElse" do

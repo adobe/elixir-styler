@@ -70,7 +70,7 @@ defmodule Styler.StyleCase do
           # body blocks - for example, the block node for an anonymous function - don't have line meta
           # yes, i just did `&& case`. sometimes it's funny to write ugly things in my project that's all about style.
           # i believe they calls that one "irony"
-          is_body_block? =
+          body_block? =
             node == :__block__ &&
               case up && Zipper.node(up) do
                 # top of a snippet
@@ -99,7 +99,7 @@ defmodule Styler.StyleCase do
             end
           end
 
-          unless line || is_body_block? do
+          if is_nil(line) and not body_block? do
             IO.puts("missing `:line` meta in node:")
             dbg(ast)
 

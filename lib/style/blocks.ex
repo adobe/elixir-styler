@@ -176,30 +176,22 @@ defmodule Styler.Style.Blocks do
     end
   end
 
-  def run({{:unless, m, children}, _} = zipper, ctx) do
-    case children do
-      # Credo.Check.Refactor.UnlessWithElse
-      [{_, hm, _} = head, [_, _] = do_else] ->
-        zipper |> Zipper.replace({:if, m, [{:!, hm, [head]}, do_else]}) |> run(ctx)
-
-      # Credo.Check.Refactor.NegatedConditionsInUnless
-      [negator, [{do_, do_body}]] when is_negator(negator) ->
-        zipper |> Zipper.replace({:if, m, [invert(negator), [{do_, do_body}]]}) |> run(ctx)
-
-      _ ->
-        {:cont, zipper, ctx}
-    end
+  def run({{:unless, m, [head, do_else]}, _} = zipper, ctx) do
+    zipper
+    |> Zipper.replace({:if, m, [invert(head), do_else]})
+    |> run(ctx)
   end
 
   def run({{:if, m, children}, _} = zipper, ctx) do
     case children do
+      # if !!x, do: y[, else: ...] => if x, do: y[, else: ...]
+      [{_, _, [nb]} = na, children] when is_negator(na) and is_negator(nb) ->
+        zipper |> Zipper.replace({:if, m, [invert(nb), children]}) |> run(ctx)
+
       # Credo.Check.Refactor.NegatedConditionsWithElse
+      # if !x, do: y, else: z => if x, do: z, else: y
       [negator, [{do_, do_body}, {else_, else_body}]] when is_negator(negator) ->
         zipper |> Zipper.replace({:if, m, [invert(negator), [{do_, else_body}, {else_, do_body}]]}) |> run(ctx)
-
-      # if not x, do: y => unless x, do: y
-      [negator, [do_block]] when is_negator(negator) ->
-        zipper |> Zipper.replace({:unless, m, [invert(negator), [do_block]]}) |> run(ctx)
 
       # drop `else: nil`
       [head, [do_block, {_, {:__block__, _, [nil]}}]] ->
@@ -325,7 +317,17 @@ defmodule Styler.Style.Blocks do
     |> run(%{ctx | comments: comments})
   end
 
+  @guards ~w(is_atom is_number is_integer is_float is_binary is_map is_struct)a
+
   defp invert({:!=, m, [a, b]}), do: {:==, m, [a, b]}
   defp invert({:!==, m, [a, b]}), do: {:===, m, [a, b]}
-  defp invert({_, _, [expr]}), do: expr
+  defp invert({:==, m, [a, b]}), do: {:!=, m, [a, b]}
+  defp invert({:===, m, [a, b]}), do: {:!==, m, [a, b]}
+  defp invert({:!, _, [condition]}), do: condition
+  defp invert({:not, _, [condition]}), do: condition
+  # @TODO get some tests on this one's meta etc
+  defp invert({:|>, m, _} = pipe), do: {:|>, [], [pipe, {{:., [line: m[:line]], [Kernel, :!]}, [closing: []], []}]}
+  defp invert({op, m, [_, _]} = ast) when op in ~w(> >= < <= in)a, do: {:not, [line: m[:line]], [ast]}
+  defp invert({guard, m, [_ | _]} = ast) when guard in @guards, do: {:not, [line: m[:line]], [ast]}
+  defp invert({_, m, _} = other), do: {:!, [line: m[:line]], [other]}
 end

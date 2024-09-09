@@ -128,6 +128,8 @@ defmodule Styler.Style.Pipes do
       # |> ...
       var_name =
         case fun do
+          # unless will be rewritten to `if` statements in the Blocks Style
+          :unless -> :if
           fun when is_atom(fun) -> fun
           {:., _, [{:__aliases__, _, _}, fun]} when is_atom(fun) -> fun
           _ -> "block"
