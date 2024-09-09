@@ -318,7 +318,28 @@ defmodule Styler.Style.Blocks do
     |> run(%{ctx | comments: comments})
   end
 
-  @guards ~w(is_atom is_number is_integer is_float is_binary is_map is_struct)a
+  # obtained via
+  # :functions |> Kernel.__info__() |> Keyword.keys() |> Enum.filter(& &1 |> to_string() |> String.starts_with?("is_"))
+  @guards [
+    :is_atom,
+    :is_binary,
+    :is_bitstring,
+    :is_boolean,
+    :is_float,
+    :is_function,
+    :is_function,
+    :is_integer,
+    :is_list,
+    :is_map,
+    :is_map_key,
+    :is_number,
+    :is_pid,
+    :is_port,
+    :is_reference,
+    :is_tuple
+  ]
+
+  @bools ~w(> >= < <= in)a ++ @guards
 
   defp invert({:!=, m, [a, b]}), do: {:==, m, [a, b]}
   defp invert({:!==, m, [a, b]}), do: {:===, m, [a, b]}
@@ -327,8 +348,7 @@ defmodule Styler.Style.Blocks do
   defp invert({:!, _, [condition]}), do: condition
   defp invert({:not, _, [condition]}), do: condition
   # @TODO get some tests on this one's meta etc
-  defp invert({:|>, m, _} = pipe), do: {:|>, [], [pipe, {{:., [line: m[:line]], [Kernel, :!]}, [closing: []], []}]}
-  defp invert({op, m, [_, _]} = ast) when op in ~w(> >= < <= in)a, do: {:not, [line: m[:line]], [ast]}
-  defp invert({guard, m, [_ | _]} = ast) when guard in @guards, do: {:not, [line: m[:line]], [ast]}
+  defp invert({:|>, m, _} = pipe), do: {:|>, [line: m[:line]], [pipe, {{:., [line: m[:line]], [Kernel, :!]}, [], []}]}
+  defp invert({op, m, [_ | _]} = ast) when op in @bools, do: {:not, [line: m[:line]], [ast]}
   defp invert({_, m, _} = other), do: {:!, [line: m[:line]], [other]}
 end
