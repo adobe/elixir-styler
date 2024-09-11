@@ -589,11 +589,14 @@ defmodule Styler.Style.PipesTest do
         assert_style(
           """
           a
+          |> b()
           |> #{enum}.filter(fun)
           |> Enum.count()
           """,
           """
-          Enum.count(a, fun)
+          a
+          |> b()
+          |> Enum.count(fun)
           """
         )
 
@@ -621,9 +624,43 @@ defmodule Styler.Style.PipesTest do
       end
     end
 
+    test "Stream.{each/map}/Stream.run" do
+      assert_style("a |> Stream.each(fun) |> Stream.run()", "Enum.each(a, fun)")
+      assert_style("a |> Stream.map(fun) |> Stream.run()", "Enum.each(a, fun)")
+
+      assert_style(
+        """
+        a
+        |> foo
+        |> Stream.map(fun)
+        |> Stream.run()
+        """,
+        """
+        a
+        |> foo()
+        |> Enum.each(fun)
+        """
+      )
+    end
+
     test "map/join" do
       for enum <- ~w(Enum Stream) do
         assert_style("a |> #{enum}.map(mapper) |> Enum.join()", "Enum.map_join(a, mapper)")
+
+        assert_style(
+          """
+          a
+          |> b()
+          |> #{enum}.map(mapper)
+          |> Enum.join()
+          """,
+          """
+          a
+          |> b()
+          |> Enum.map_join(mapper)
+          """
+        )
+
         assert_style("a |> #{enum}.map(mapper) |> Enum.join(joiner)", "Enum.map_join(a, joiner, mapper)")
       end
     end

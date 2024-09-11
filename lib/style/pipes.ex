@@ -159,8 +159,8 @@ defmodule Styler.Style.Pipes do
 
   # `pipe_chain(a, b, c)` generates the ast for `a |> b |> c`
   # the intention is to make it a little easier to see what the fix_pipe functions are matching on =)
-  defmacrop pipe_chain(a, b, c) do
-    quote do: {:|>, _, [{:|>, _, [unquote(a), unquote(b)]}, unquote(c)]}
+  defmacrop pipe_chain(pm, a, b, c) do
+    quote do: {:|>, unquote(pm), [{:|>, _, [unquote(a), unquote(b)]}, unquote(c)]}
   end
 
   # a |> fun => a |> fun()
@@ -201,40 +201,58 @@ defmodule Styler.Style.Pipes do
   # `lhs |> Enum.reverse() |> Enum.concat(enum)` => `lhs |> Enum.reverse(enum)`
   defp fix_pipe(
          pipe_chain(
+           pm,
            lhs,
            {{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, meta, []},
            {{:., _, [{_, _, [:Enum]}, :concat]}, _, [enum]}
          )
        ) do
-    {:|>, [line: meta[:line]], [lhs, {reverse, [line: meta[:line]], [enum]}]}
+    {:|>, pm, [lhs, {reverse, [line: meta[:line]], [enum]}]}
   end
 
   # `lhs |> Enum.reverse() |> Kernel.++(enum)` => `lhs |> Enum.reverse(enum)`
   defp fix_pipe(
          pipe_chain(
+           pm,
            lhs,
            {{:., _, [{_, _, [:Enum]}, :reverse]} = reverse, meta, []},
            {{:., _, [{_, _, [:Kernel]}, :++]}, _, [enum]}
          )
        ) do
-    {:|>, [line: meta[:line]], [lhs, {reverse, [line: meta[:line]], [enum]}]}
+    {:|>, pm, [lhs, {reverse, [line: meta[:line]], [enum]}]}
   end
 
   # `lhs |> Enum.filter(filterer) |> Enum.count()` => `lhs |> Enum.count(count)`
   defp fix_pipe(
          pipe_chain(
+           pm,
            lhs,
            {{:., _, [{_, _, [mod]}, :filter]}, meta, [filterer]},
            {{:., _, [{_, _, [:Enum]}, :count]} = count, _, []}
          )
        )
        when mod in @enum do
-    {:|>, [line: meta[:line]], [lhs, {count, [line: meta[:line]], [filterer]}]}
+    {:|>, pm, [lhs, {count, [line: meta[:line]], [filterer]}]}
+  end
+
+  # `lhs |> Stream.map(fun) |> Stream.run()` => `lhs |> Enum.each(fun)`
+  # `lhs |> Stream.each(fun) |> Stream.run()` => `lhs |> Enum.each(fun)`
+  defp fix_pipe(
+         pipe_chain(
+           pm,
+           lhs,
+           {{:., dm, [{a, am, [:Stream]}, map_or_each]}, fm, fa},
+           {{:., _, [{_, _, [:Stream]}, :run]}, _, []}
+         )
+       )
+       when map_or_each in [:map, :each] do
+    {:|>, pm, [lhs, {{:., dm, [{a, am, [:Enum]}, :each]}, fm, fa}]}
   end
 
   # `lhs |> Enum.map(mapper) |> Enum.join(joiner)` => `lhs |> Enum.map_join(joiner, mapper)`
   defp fix_pipe(
          pipe_chain(
+           pm,
            lhs,
            {{:., dm, [{_, _, [mod]}, :map]}, em, map_args},
            {{:., _, [{_, _, [:Enum]} = enum, :join]}, _, join_args}
@@ -242,7 +260,7 @@ defmodule Styler.Style.Pipes do
        )
        when mod in @enum do
     rhs = Style.set_line({{:., dm, [enum, :map_join]}, em, join_args ++ map_args}, dm[:line])
-    {:|>, [line: dm[:line]], [lhs, rhs]}
+    {:|>, pm, [lhs, rhs]}
   end
 
   # `lhs |> Enum.map(mapper) |> Enum.into(empty_map)` => `lhs |> Map.new(mapper)`
@@ -250,6 +268,7 @@ defmodule Styler.Style.Pipes do
   # `lhs |> Enum.map(mapper) |> Enum.into(collectable)` => `lhs |> Enum.into(collectable, mapper)
   defp fix_pipe(
          pipe_chain(
+           pm,
            lhs,
            {{:., dm, [{_, _, [mod]}, :map]}, _, [mapper]},
            {{:., _, [{_, _, [:Enum]}, :into]} = into, _, [collectable]}
@@ -268,15 +287,20 @@ defmodule Styler.Style.Pipes do
           {into, dm, [collectable, mapper]}
       end
 
-    Style.set_line({:|>, [], [lhs, rhs]}, dm[:line])
+    Style.set_line({:|>, pm, [lhs, rhs]}, dm[:line])
   end
 
   # `lhs |> Enum.map(mapper) |> Map.new()` => `lhs |> Map.new(mapper)`
   defp fix_pipe(
-         pipe_chain(lhs, {{:., _, [{_, _, [enum]}, :map]}, _, [mapper]}, {{:., _, [{_, _, [mod]}, :new]} = new, nm, []})
+         pipe_chain(
+           pm,
+           lhs,
+           {{:., _, [{_, _, [enum]}, :map]}, _, [mapper]},
+           {{:., _, [{_, _, [mod]}, :new]} = new, nm, []}
+         )
        )
        when mod in @collectable and enum in @enum do
-    Style.set_line({:|>, [], [lhs, {new, nm, [mapper]}]}, nm[:line])
+    Style.set_line({:|>, pm, [lhs, {new, nm, [mapper]}]}, nm[:line])
   end
 
   defp fix_pipe(node), do: node

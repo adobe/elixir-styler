@@ -3,6 +3,16 @@
 **Note** Styler's only public API is its usage as a formatter plugin. While you're welcome to play with its internals,
 they can and will change without that change being reflected in Styler's semantic version.
 
+## main
+
+### Improvements
+
+* `pipes`: optimize `|> Stream.{each|map}(fun) |> Stream.run()` to `|> Enum.each(fun)`
+
+### Fixes
+
+* `pipes`: optimizations reducing 2 pipes to 1 no longer squeeze all pipes onto one line (#180)
+
 ## 1.0.0
 
 Styler's two biggest outstanding bugs have been fixed, both related to compilation breaking during module directive organization. One was references to aliases being moved above where the aliases were declared, and the other was similarly module directives being moved after their uses in module directives.
