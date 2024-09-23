@@ -12,6 +12,7 @@ they can and will change without that change being reflected in Styler's semanti
 ### Fixes
 
 * `pipes`: optimizations reducing 2 pipes to 1 no longer squeeze all pipes onto one line (#180)
+* `if`: fix infinite loop rewriting negated if with empty do body `if x != y, do: (), else: :ok` (#196, h/t @itamm15)
 
 ## 1.0.0
 
