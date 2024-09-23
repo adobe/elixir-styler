@@ -934,6 +934,14 @@ defmodule Styler.Style.BlocksTest do
     test "unless with pipes" do
       assert_style "unless a |> b() |> c(), do: x", "if a |> b() |> c() |> Kernel.!(), do: x"
     end
+
+    test "kernel boolean operators" do
+      assert_style "unless a in b, do: x", "if a not in b, do: x"
+
+      for bool <- ~w(> >= < <=)a do
+        assert_style "unless a #{bool} b, do: x", "if not (a #{bool} b), do: x"
+      end
+    end
   end
 
   describe "if" do

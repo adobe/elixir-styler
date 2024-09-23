@@ -328,12 +328,7 @@ defmodule Styler.Style.Blocks do
   defp invert({:===, m, [a, b]}), do: {:!==, m, [a, b]}
   defp invert({:!, _, [condition]}), do: condition
   defp invert({:not, _, [condition]}), do: condition
-
-  defp invert({fun, m, _} = ast) do
-    meta = [line: m[:line]]
-
-    if fun == :|>,
-      do: {:|>, meta, [ast, {{:., meta, [Kernel, :!]}, meta, []}]},
-      else: {:!, meta, [ast]}
-  end
+  defp invert({:|>, m, _} = ast), do: {:|>, m, [ast, {{:., m, [Kernel, :!]}, m, []}]}
+  defp invert({bool, m, [_, _]} = ast) when bool in ~w(> >= < <= in)a, do: {:not, m, [ast]}
+  defp invert({_, m, _} = ast), do: {:!, [line: m[:line]], [ast]}
 end
