@@ -879,6 +879,24 @@ defmodule Styler.Style.BlocksTest do
       )
     end
 
+    test "regression: negation with empty do body" do
+      assert_style(
+        """
+        if a != b do
+          # comment
+        else
+          :ok
+        end
+        """,
+        """
+        if a == b do
+          # comment
+          :ok
+        end
+        """
+      )
+    end
+
     test "Credo.Check.Refactor.UnlessWithElse" do
       for negator <- ["!", "not "] do
         assert_style(
