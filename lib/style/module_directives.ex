@@ -135,7 +135,7 @@ defmodule Styler.Style.ModuleDirectives do
   defp moduledoc({:__aliases__, m, aliases}) do
     name = aliases |> List.last() |> to_string()
     # module names ending with these suffixes will not have a default moduledoc appended
-    unless String.ends_with?(name, ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)) do
+    if !String.ends_with?(name, ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)) do
       Style.set_line(@moduledoc_false, m[:line] + 1)
     end
   end

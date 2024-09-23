@@ -7,6 +7,9 @@ they can and will change without that change being reflected in Styler's semanti
 
 ### Improvements
 
+The big change here is the rewrite/removal of `unless` due to [unless "eventually" being deprecated](https://github.com/elixir-lang/elixir/pull/13769#issuecomment-2334878315). Thanks to @janpieper and @ypconstante for bringing this up in #190.
+
+* `unless`: rewrite all `unless` to `if` (#190)
 * `pipes`: optimize `|> Stream.{each|map}(fun) |> Stream.run()` to `|> Enum.each(fun)`
 
 ### Fixes

@@ -822,42 +822,25 @@ defmodule Styler.Style.BlocksTest do
     end
   end
 
-  describe "if/unless" do
-    test "drops if else nil" do
-      assert_style("if a, do: b, else: nil", "if a, do: b")
-
-      assert_style("if a do b else nil end", """
-      if a do
-        b
-      end
-      """)
-    end
-
-    test "if not => unless" do
-      assert_style("if not x, do: y", "unless x, do: y")
-      assert_style("if !x, do: y", "unless x, do: y")
-      assert_style("if !!x, do: y", "if x, do: y")
-    end
-
-    test "regression: negation with empty do body" do
+  describe "unless to if" do
+    test "inverts all the things" do
       assert_style(
         """
-        if a != b do
-          # comment
+        unless !! not true do
+          a
         else
-          :ok
+          b
         end
         """,
         """
-        if a == b do
-          # comment
-          :ok
+        if true do
+          a
+        else
+          b
         end
         """
       )
-    end
 
-    test "Credo.Check.Refactor.UnlessWithElse" do
       for negator <- ["!", "not "] do
         assert_style(
           """
@@ -912,9 +895,7 @@ defmodule Styler.Style.BlocksTest do
         end
         """
       )
-    end
 
-    test "Credo.Check.Refactor.NegatedConditionsInUnless" do
       for negator <- ["!", "not "] do
         assert_style("unless #{negator} foo, do: :bar", "if foo, do: :bar")
 
@@ -950,7 +931,69 @@ defmodule Styler.Style.BlocksTest do
       end
     end
 
-    test "Credo.Check.Refactor.NegatedConditionsWithElse" do
+    test "unless with pipes" do
+      assert_style "unless a |> b() |> c(), do: x", "if a |> b() |> c() |> Kernel.!(), do: x"
+    end
+  end
+
+  describe "if" do
+    test "drops else nil" do
+      assert_style("if a, do: b, else: nil", "if a, do: b")
+
+      assert_style("if a do b else nil end", """
+      if a do
+        b
+      end
+      """)
+
+      assert_style(
+        """
+        if a != b do
+          # comment
+        else
+          :ok
+        end
+        """,
+        """
+        if a == b do
+          # comment
+          :ok
+        end
+        """
+      )
+    end
+
+    test "double negator rewrites" do
+      for a <- ~w(not !), block <- ["do: z", "do: z, else: zz"] do
+        assert_style "if #{a} (x != y), #{block}", "if x == y, #{block}"
+        assert_style "if #{a} (x !== y), #{block}", "if x === y, #{block}"
+        assert_style "if #{a} ! x, #{block}", "if x, #{block}"
+        assert_style "if #{a} not x, #{block}", "if x, #{block}"
+      end
+
+      assert_style("if not x, do: y", "if not x, do: y")
+      assert_style("if !x, do: y", "if !x, do: y")
+
+      assert_style(
+        """
+        if !!val do
+          a
+        else
+          b
+        end
+        """,
+        """
+        if val do
+          a
+        else
+          b
+        end
+        """
+      )
+    end
+
+    test "single negator do/else swaps" do
+      # covers Credo.Check.Refactor.NegatedConditionsWithElse
       for negator <- ["!", "not "] do
         assert_style("if #{negator}foo, do: :bar, else: :baz", "if foo, do: :baz, else: :bar")
 
@@ -992,44 +1035,6 @@ defmodule Styler.Style.BlocksTest do
           """
         )
       end
-    end
-
-    test "recurses" do
-      assert_style(
-        """
-        if !!val do
-          a
-        else
-          b
-        end
-        """,
-        """
-        if val do
-          a
-        else
-          b
-        end
-        """
-      )
-
-      assert_style(
-        """
-        unless !! not true do
-          a
-        else
-          b
-        end
-        """,
-        """
-        if true do
-          a
-        else
-          b
-        end
-        """
-      )
-
-      assert_style("if not (a != b), do: c", "if a == b, do: c")
     end
 
     test "comments and flips" do

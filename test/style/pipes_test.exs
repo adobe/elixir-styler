@@ -228,12 +228,12 @@ defmodule Styler.Style.PipesTest do
         |> wee()
         """,
         """
-        unless_result =
-          unless foo do
+        if_result =
+          if !foo do
             bar
           end
 
-        wee(unless_result)
+        wee(if_result)
         """
       )
     end
