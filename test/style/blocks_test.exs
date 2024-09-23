@@ -932,7 +932,7 @@ defmodule Styler.Style.BlocksTest do
     end
 
     test "unless with pipes" do
-      assert_style "unless a |> b() |> c(), do: x", "if a |> b() |> c() |> Kernel.!(), do: x"
+      assert_style "unless a |> b() |> c(), do: x", "if !(a |> b() |> c()), do: x"
     end
 
     test "in" do

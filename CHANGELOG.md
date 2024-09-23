@@ -4,6 +4,12 @@
 they can and will change without that change being reflected in Styler's semantic version.
 ## main
 
+## 1.1.1
+
+### Improvements
+
+* `unless`: rewrite `unless a |> b |> c` as `unless !(a |> b() |> c())` rather than `unless a |> b() |> c() |> Kernel.!()` (h/t @gregmefford)
+
 ## 1.1.0
 
 ### Improvements

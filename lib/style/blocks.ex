@@ -328,7 +328,6 @@ defmodule Styler.Style.Blocks do
   defp invert({:===, m, [a, b]}), do: {:!==, m, [a, b]}
   defp invert({:!, _, [condition]}), do: condition
   defp invert({:not, _, [condition]}), do: condition
-  defp invert({:|>, m, _} = ast), do: {:|>, m, [ast, {{:., m, [Kernel, :!]}, m, []}]}
   defp invert({:in, m, [_, _]} = ast), do: {:not, m, [ast]}
   defp invert({_, m, _} = ast), do: {:!, [line: m[:line]], [ast]}
 end
