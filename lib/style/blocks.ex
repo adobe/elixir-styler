@@ -176,7 +176,6 @@ defmodule Styler.Style.Blocks do
     end
   end
 
-  # @TODO do i want to be smart and recognize stdlib functions that return bools and use :not instead of :!?
   def run({{:unless, m, [head, do_else]}, _} = zipper, ctx) do
     zipper
     |> Zipper.replace({:if, m, [invert(head), do_else]})
@@ -262,7 +261,7 @@ defmodule Styler.Style.Blocks do
         #     c
         #     d
         #   )
-        # @TODO would be nice to changeto
+        # @TODO would be nice to change to
         # a
         # b
         # c
@@ -323,25 +322,18 @@ defmodule Styler.Style.Blocks do
     |> run(%{ctx | comments: comments})
   end
 
-  # %{1 => unary_guards, 2 => binary_guards} =
-  #   :functions
-  #   |> Kernel.__info__()
-  #   |> Enum.filter(fn {k, _} ->
-  #     k
-  #     |> to_string()
-  #     |> String.starts_with?("is_")
-  #   end)
-  #   |> Enum.group_by(fn {_, v} -> v end, fn {k, _} -> k end)
-  #
-  # @bools ~w(< <= > >= in)
-
   defp invert({:!=, m, [a, b]}), do: {:==, m, [a, b]}
   defp invert({:!==, m, [a, b]}), do: {:===, m, [a, b]}
   defp invert({:==, m, [a, b]}), do: {:!=, m, [a, b]}
   defp invert({:===, m, [a, b]}), do: {:!==, m, [a, b]}
   defp invert({:!, _, [condition]}), do: condition
   defp invert({:not, _, [condition]}), do: condition
-  # @TODO get some tests on this one's meta etc
-  defp invert({:|>, m, _} = pipe), do: {:|>, [line: m[:line]], [pipe, {{:., [line: m[:line]], [Kernel, :!]}, [], []}]}
-  defp invert({_, m, _} = other), do: {:!, [line: m[:line]], [other]}
+
+  defp invert({fun, m, _} = ast) do
+    meta = [line: m[:line]]
+
+    if fun == :|>,
+      do: {:|>, meta, [ast, {{:., meta, [Kernel, :!]}, meta, []}]},
+      else: {:!, meta, [ast]}
+  end
 end
