@@ -4,6 +4,8 @@
 they can and will change without that change being reflected in Styler's semantic version.
 ## main
 
+## 1.1.2
+
 ### Improvements
 
 * Config Sorting: improve comment handling when only sorting a few nodes (Closes #187)
