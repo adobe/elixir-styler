@@ -85,21 +85,16 @@ defmodule Styler.Style.Configs do
     # so i'm trying to guess which change will be less damaging.
     # moving >=3 nodes hints that this is an initial run, where `set_lines` definitely outperforms.
     {nodes, comments} =
-      case change_count(nodes) do
-        0 ->
-          {nodes, comments}
-
-        n when n < 3 ->
-          {Style.fix_line_numbers(nodes, List.last(rest)), comments}
-
-        _ ->
-          # after running, this block should take up the same # of lines that it did before
-          # the first node of `rest` is greater than the highest line in configs, assignments
-          # config line is the first line to be used as part of this block
-          # that will change when we consider preceding comments
-          {node_comments, _} = comments_for_node(config, comments)
-          first_line = min(List.last(node_comments)[:line] || cfm[:line], cfm[:line])
-          set_lines(nodes, comments, first_line)
+      if changed?(nodes) do
+        # after running, this block should take up the same # of lines that it did before
+        # the first node of `rest` is greater than the highest line in configs, assignments
+        # config line is the first line to be used as part of this block
+        # that will change when we consider preceding comments
+        {node_comments, _} = comments_for_node(config, comments)
+        first_line = min(List.last(node_comments)[:line] || cfm[:line], cfm[:line])
+        set_lines(nodes, comments, first_line)
+      else
+        {nodes, comments}
       end
 
     [config | left_siblings] = Enum.reverse(nodes, zm.l)
@@ -120,14 +115,11 @@ defmodule Styler.Style.Configs do
     end
   end
 
-  defp change_count(nodes, n \\ 0)
-
-  defp change_count([{_, am, _}, {_, bm, _} = b | tail], n) do
-    n = if am[:line] > bm[:line], do: n + 1, else: n
-    change_count([b | tail], n)
+  defp changed?([{_, am, _}, {_, bm, _} = b | tail]) do
+    if am[:line] > bm[:line], do: true, else: changed?([b | tail])
   end
 
-  defp change_count(_, n), do: n
+  defp changed?(_), do: false
 
   defp set_lines(nodes, comments, first_line) do
     {nodes, comments, node_comments} = set_lines(nodes, comments, first_line, [], [])
