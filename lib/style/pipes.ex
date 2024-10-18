@@ -261,7 +261,7 @@ defmodule Styler.Style.Pipes do
          )
        )
        when mod in @enum do
-    rhs = Style.set_line({{:., dm, [enum, :map_join]}, em, join_args ++ map_args}, dm[:line])
+    rhs = {{:., dm, [enum, :map_join]}, em, Style.set_line(join_args, dm[:line]) ++ map_args}
     {:|>, pm, [lhs, rhs]}
   end
 
@@ -272,7 +272,7 @@ defmodule Styler.Style.Pipes do
          pipe_chain(
            pm,
            lhs,
-           {{:., dm, [{_, _, [mod]}, :map]}, _, [mapper]},
+           {{:., dm, [{_, _, [mod]}, :map]}, em, [mapper]},
            {{:., _, [{_, _, [:Enum]}, :into]} = into, _, [collectable]}
          )
        )
@@ -280,16 +280,16 @@ defmodule Styler.Style.Pipes do
     rhs =
       case collectable do
         {{:., _, [{_, _, [mod]}, :new]}, _, []} when mod in @collectable ->
-          {{:., dm, [{:__aliases__, dm, [mod]}, :new]}, dm, [mapper]}
+          {{:., dm, [{:__aliases__, dm, [mod]}, :new]}, em, [mapper]}
 
         {:%{}, _, []} ->
-          {{:., dm, [{:__aliases__, dm, [:Map]}, :new]}, dm, [mapper]}
+          {{:., dm, [{:__aliases__, dm, [:Map]}, :new]}, em, [mapper]}
 
         _ ->
-          {into, dm, [collectable, mapper]}
+          {into, em, [Style.set_line(collectable, dm[:line]), mapper]}
       end
 
-    Style.set_line({:|>, pm, [lhs, rhs]}, dm[:line])
+    {:|>, pm, [lhs, rhs]}
   end
 
   # `lhs |> Enum.map(mapper) |> Map.new()` => `lhs |> Map.new(mapper)`
@@ -297,12 +297,12 @@ defmodule Styler.Style.Pipes do
          pipe_chain(
            pm,
            lhs,
-           {{:., _, [{_, _, [enum]}, :map]}, _, [mapper]},
-           {{:., _, [{_, _, [mod]}, :new]} = new, nm, []}
+           {{:., _, [{_, _, [enum]}, :map]}, em, [mapper]},
+           {{:., _, [{_, _, [mod]}, :new]} = new, _, []}
          )
        )
        when mod in @collectable and enum in @enum do
-    Style.set_line({:|>, pm, [lhs, {new, nm, [mapper]}]}, nm[:line])
+    {:|>, pm, [lhs, {Style.set_line(new, em[:line]), em, [mapper]}]}
   end
 
   defp fix_pipe(node), do: node
