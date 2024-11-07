@@ -90,7 +90,7 @@ defmodule Styler.Style.PipesTest do
             y
           end
 
-        a(foo(if_result), b)
+        if_result |> foo() |> a(b)
         """
       )
     end
@@ -853,69 +853,69 @@ defmodule Styler.Style.PipesTest do
 
     test "optimizing" do
       assert_style(
-      """
-      a
-      |> Enum.map(fn b ->
-        c
-        # a comment
-        d
-      end)
-      |> Enum.join(x)
-      |> Enum.each(...)
-      """,
-      """
-      a
-      |> Enum.map_join(x, fn b ->
-        c
-        # a comment
-        d
-      end)
-      |> Enum.each(...)
-      """
+        """
+        a
+        |> Enum.map(fn b ->
+          c
+          # a comment
+          d
+        end)
+        |> Enum.join(x)
+        |> Enum.each(...)
+        """,
+        """
+        a
+        |> Enum.map_join(x, fn b ->
+          c
+          # a comment
+          d
+        end)
+        |> Enum.each(...)
+        """
       )
 
       assert_style(
-      """
-      a
-      |> Enum.map(fn b ->
-        c
-        # a comment
-        d
-      end)
-      |> Enum.into(x)
-      |> Enum.each(...)
-      """,
-      """
-      a
-      |> Enum.into(x, fn b ->
-        c
-        # a comment
-        d
-      end)
-      |> Enum.each(...)
-      """
+        """
+        a
+        |> Enum.map(fn b ->
+          c
+          # a comment
+          d
+        end)
+        |> Enum.into(x)
+        |> Enum.each(...)
+        """,
+        """
+        a
+        |> Enum.into(x, fn b ->
+          c
+          # a comment
+          d
+        end)
+        |> Enum.each(...)
+        """
       )
 
       assert_style(
-      """
-      a
-      |> Enum.map(fn b ->
-        c
-        # a comment
-        d
-      end)
-      |> Keyword.new()
-      |> Enum.each(...)
-      """,
-      """
-      a
-      |> Keyword.new(fn b ->
-        c
-        # a comment
-        d
-      end)
-      |> Enum.each(...)
-      """
+        """
+        a
+        |> Enum.map(fn b ->
+          c
+          # a comment
+          d
+        end)
+        |> Keyword.new()
+        |> Enum.each(...)
+        """,
+        """
+        a
+        |> Keyword.new(fn b ->
+          c
+          # a comment
+          d
+        end)
+        |> Enum.each(...)
+        """
       )
     end
   end
@@ -923,9 +923,15 @@ defmodule Styler.Style.PipesTest do
   describe "pipifying" do
     test "no false positives" do
       pipe = "a() |> b() |> c()"
+      assert_style pipe
+      assert_style String.replace(pipe, " |>", "\n|>")
       assert_style "fn -> #{pipe} end"
       assert_style "if #{pipe}, do: ..."
       assert_style "x\n\n#{pipe}"
+      assert_style "@moduledoc #{pipe}"
+      assert_style "!(#{pipe})"
+      assert_style "not foo(#{pipe})"
+      assert_style ~s<"\#{#{pipe}}">
     end
 
     test "pipifying" do

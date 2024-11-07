@@ -131,12 +131,44 @@ defmodule Styler.Style.Pipes do
   end
 
   # a(b |> c[, ...args])
-  # maybe pipeify it
+  # The first argument to a function-looking node is a pipe.
+  # Maybe pipe the whole thing?
   def run({{f, m, [{:|>, _, _} = pipe | args]}, _} = zipper, ctx) do
-    if Enum.any?(args, &Style.do_block?/1) do
-      {:cont, zipper, ctx}
-    else
-      {:cont, Zipper.replace(zipper, {:|>, m, [pipe, {f, m, args}]}), ctx}
+    parent =
+      case Zipper.up(zipper) do
+        {{parent, _, _}, _} -> parent
+        _ -> nil
+      end
+
+    stringified = is_atom(f) && to_string(f)
+
+    cond do
+      # this is likely a macro
+      # assert a |> b() |> c()
+      !m[:closing] ->
+        {:cont, zipper, ctx}
+
+      # leave bools alone as they often read better coming first, like when prepended with `not`
+      # [not ]is_nil(a |> b() |> c())
+      stringified && (String.starts_with?(stringified, "is_") or String.ends_with?(stringified, "?")) ->
+        {:cont, zipper, ctx}
+
+      # string interpolation, module attribute assignment, or prettier bools with not
+      parent in [:"::", :@, :not] ->
+        {:cont, zipper, ctx}
+
+      # double down on being good to exunit macros, and any other special ops
+      # ..., do: assert(a |> b |> c)
+      # not (a |> b() |> c())
+      f in [:assert, :refute | @special_ops] ->
+        {:cont, zipper, ctx}
+
+      # if a |> b() |> c(), do: ...
+      Enum.any?(args, &Style.do_block?/1) ->
+        {:cont, zipper, ctx}
+
+      true ->
+        {:cont, Zipper.replace(zipper, {:|>, m, [pipe, {f, m, args}]}), ctx}
     end
   end
 
