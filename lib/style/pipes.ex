@@ -340,7 +340,7 @@ defmodule Styler.Style.Pipes do
           {{:., dm, [{:__aliases__, dm, [:Map]}, :new]}, em, [mapper]}
 
         _ ->
-          {into, m, collectable} = Style.set_line({into, em, [collectable]}, dm[:line])
+          {into, m, [collectable]} = Style.set_line({into, em, [collectable]}, dm[:line])
           {into, m, [collectable, mapper]}
       end
 
