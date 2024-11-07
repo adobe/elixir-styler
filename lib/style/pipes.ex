@@ -130,6 +130,16 @@ defmodule Styler.Style.Pipes do
     end
   end
 
+  # a(b |> c[, ...args])
+  # maybe pipeify it
+  def run({{f, m, [{:|>, _, _} = pipe | args]}, _} = zipper, ctx) do
+    if Enum.any?(args, &Style.do_block?/1) do
+      {:cont, zipper, ctx}
+    else
+      {:cont, Zipper.replace(zipper, {:|>, m, [pipe, {f, m, args}]}), ctx}
+    end
+  end
+
   def run(zipper, ctx), do: {:cont, zipper, ctx}
 
   defp fix_pipe_start({pipe, zmeta} = zipper) do

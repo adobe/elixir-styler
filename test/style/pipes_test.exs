@@ -767,8 +767,8 @@ defmodule Styler.Style.PipesTest do
     end
   end
 
-  describe "comments" do
-    test "unpiping doesn't move comment in anonymous function" do
+  describe "comments and..." do
+    test "unpiping" do
       assert_style(
         """
         aliased =
@@ -850,10 +850,9 @@ defmodule Styler.Style.PipesTest do
         """
       )
     end
-  end
 
-  test "optimizing with comments" do
-    assert_style(
+    test "optimizing" do
+      assert_style(
       """
       a
       |> Enum.map(fn b ->
@@ -873,9 +872,9 @@ defmodule Styler.Style.PipesTest do
       end)
       |> Enum.each(...)
       """
-    )
+      )
 
-    assert_style(
+      assert_style(
       """
       a
       |> Enum.map(fn b ->
@@ -895,9 +894,9 @@ defmodule Styler.Style.PipesTest do
       end)
       |> Enum.each(...)
       """
-    )
+      )
 
-    assert_style(
+      assert_style(
       """
       a
       |> Enum.map(fn b ->
@@ -917,6 +916,20 @@ defmodule Styler.Style.PipesTest do
       end)
       |> Enum.each(...)
       """
-    )
+      )
+    end
+  end
+
+  describe "pipifying" do
+    test "no false positives" do
+      pipe = "a() |> b() |> c()"
+      assert_style "fn -> #{pipe} end"
+      assert_style "if #{pipe}, do: ..."
+      assert_style "x\n\n#{pipe}"
+    end
+
+    test "pipifying" do
+      assert_style "d(a |> b |> c)", "a |> b() |> c() |> d()"
+    end
   end
 end

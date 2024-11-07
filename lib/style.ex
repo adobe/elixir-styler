@@ -83,6 +83,9 @@ defmodule Styler.Style do
     end
   end
 
+  def do_block?([{{:__block__, _, [:do]}, _body} | _]), do: true
+  def do_block?(_), do: false
+
   @doc """
   Returns a zipper focused on the nearest node where additional nodes can be inserted (a "block").
 
