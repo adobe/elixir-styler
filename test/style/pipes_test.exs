@@ -90,7 +90,7 @@ defmodule Styler.Style.PipesTest do
             y
           end
 
-        a(foo(if_result), b)
+        if_result |> foo() |> a(b)
         """
       )
     end
@@ -767,8 +767,8 @@ defmodule Styler.Style.PipesTest do
     end
   end
 
-  describe "comments" do
-    test "unpiping doesn't move comment in anonymous function" do
+  describe "comments and..." do
+    test "unpiping" do
       assert_style(
         """
         aliased =
@@ -850,73 +850,116 @@ defmodule Styler.Style.PipesTest do
         """
       )
     end
+
+    test "optimizing" do
+      assert_style(
+        """
+        a
+        |> Enum.map(fn b ->
+          c
+          # a comment
+          d
+        end)
+        |> Enum.join(x)
+        |> Enum.each(...)
+        """,
+        """
+        a
+        |> Enum.map_join(x, fn b ->
+          c
+          # a comment
+          d
+        end)
+        |> Enum.each(...)
+        """
+      )
+
+      assert_style(
+        """
+        a
+        |> Enum.map(fn b ->
+          c
+          # a comment
+          d
+        end)
+        |> Enum.into(x)
+        |> Enum.each(...)
+        """,
+        """
+        a
+        |> Enum.into(x, fn b ->
+          c
+          # a comment
+          d
+        end)
+        |> Enum.each(...)
+        """
+      )
+
+      assert_style(
+        """
+        a
+        |> Enum.map(fn b ->
+          c
+          # a comment
+          d
+        end)
+        |> Keyword.new()
+        |> Enum.each(...)
+        """,
+        """
+        a
+        |> Keyword.new(fn b ->
+          c
+          # a comment
+          d
+        end)
+        |> Enum.each(...)
+        """
+      )
+    end
   end
 
-  test "optimizing with comments" do
-    assert_style(
-      """
-      a
-      |> Enum.map(fn b ->
-        c
-        # a comment
-        d
-      end)
-      |> Enum.join(x)
-      |> Enum.each(...)
-      """,
-      """
-      a
-      |> Enum.map_join(x, fn b ->
-        c
-        # a comment
-        d
-      end)
-      |> Enum.each(...)
-      """
-    )
+  describe "pipifying" do
+    test "no false positives" do
+      pipe = "a() |> b() |> c()"
+      assert_style pipe
+      assert_style String.replace(pipe, " |>", "\n|>")
+      assert_style "fn -> #{pipe} end"
+      assert_style "if #{pipe}, do: ..."
+      assert_style "x\n\n#{pipe}"
+      assert_style "@moduledoc #{pipe}"
+      assert_style "!(#{pipe})"
+      assert_style "not foo(#{pipe})"
+      assert_style ~s<"\#{#{pipe}}">
+    end
 
-    assert_style(
-      """
-      a
-      |> Enum.map(fn b ->
-        c
-        # a comment
-        d
-      end)
-      |> Enum.into(x)
-      |> Enum.each(...)
-      """,
-      """
-      a
-      |> Enum.into(x, fn b ->
-        c
-        # a comment
-        d
-      end)
-      |> Enum.each(...)
-      """
-    )
+    test "pipifying" do
+      assert_style "d(a |> b |> c)", "a |> b() |> c() |> d()"
 
-    assert_style(
-      """
-      a
-      |> Enum.map(fn b ->
-        c
-        # a comment
-        d
-      end)
-      |> Keyword.new()
-      |> Enum.each(...)
-      """,
-      """
-      a
-      |> Keyword.new(fn b ->
-        c
-        # a comment
-        d
-      end)
-      |> Enum.each(...)
-      """
-    )
+      assert_style(
+        """
+        # d
+        d(
+        # a
+          a
+          # b
+          |> b
+          # c
+          |> c
+        )
+        """,
+        """
+        # d
+        # a
+        a
+        # b
+        |> b()
+        # c
+        |> c()
+        |> d()
+        """
+      )
+    end
   end
 end

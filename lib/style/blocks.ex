@@ -79,9 +79,8 @@ defmodule Styler.Style.Blocks do
   def run({{:with, with_meta, children}, _} = zipper, ctx) when is_list(children) do
     # a std lib `with` block will have at least one left arrow and a `do` body. anything else we skip ¯\_(ツ)_/¯
     arrow_or_match? = &(left_arrow?(&1) || match?({:=, _, _}, &1))
-    do_block? = &match?([{{:__block__, _, [:do]}, _body} | _], &1)
 
-    if Enum.any?(children, arrow_or_match?) and Enum.any?(children, do_block?) do
+    if Enum.any?(children, arrow_or_match?) and Enum.any?(children, &Style.do_block?/1) do
       {preroll, children} =
         children
         |> Enum.map(fn
