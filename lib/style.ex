@@ -144,7 +144,7 @@ defmodule Styler.Style do
     comments
     |> Enum.map(fn comment ->
       if delta = Enum.find_value(shifts, fn {range, delta} -> comment.line in range && delta end) do
-        %{comment | line: comment.line + delta}
+        %{comment | line: max(comment.line + delta, 1)}
       else
         comment
       end
@@ -230,14 +230,28 @@ defmodule Styler.Style do
       else: do_fix_lines(nodes, line, [node | acc])
   end
 
-  # @TODO can i shortcut and just return end_of_expression[:line] when it's available?
-  def max_line(ast) do
-    {_, max_line} =
-      Macro.prewalk(ast, 0, fn
-        {_, meta, _} = ast, max -> {ast, max(meta[:line] || max, max)}
-        ast, max -> {ast, max}
-      end)
+  def max_line([_ | _] = list), do: list |> List.last() |> max_line()
 
-    max_line
+  def max_line(ast) do
+    meta =
+      case ast do
+        {_, meta, _} ->
+          meta
+
+        _ ->
+          []
+      end
+
+    if max_line = meta[:closing][:line] do
+      max_line
+    else
+      {_, max_line} =
+        Macro.prewalk(ast, 0, fn
+          {_, meta, _} = ast, max -> {ast, max(meta[:line] || max, max)}
+          ast, max -> {ast, max}
+        end)
+
+      max_line
+    end
   end
 end

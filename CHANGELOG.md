@@ -4,6 +4,10 @@
 they can and will change without that change being reflected in Styler's semantic version.
 ## main
 
+### Improvements
+
+* `pipes`: unpiping assignments will make the assignment one-line when possible (Closes #181)
+
 ### Fixes
 
 * `pipes`: optimizations are less likely to move comments (Closes #176)
