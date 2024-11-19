@@ -61,6 +61,12 @@ defmodule Styler.Style.DeprecationsTest do
     )
   end
 
+  test "List.zip/1" do
+    assert_style "List.zip(foo)", "Enum.zip(foo)"
+    assert_style "foo |> List.zip |> bar", "foo |> Enum.zip() |> bar()"
+    assert_style "foo |> List.zip", "Enum.zip(foo)"
+  end
+
   describe "1.16 deprecations" do
     @describetag skip: Version.match?(System.version(), "< 1.16.0-dev")
 
