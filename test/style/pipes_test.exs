@@ -402,13 +402,13 @@ defmodule Styler.Style.PipesTest do
       assert_style(
         """
         def halt(exec, halt_message) do
-          %__MODULE__{exec | halted: true}
+          %{exec | halted: true}
           |> put_halt_message(halt_message)
         end
         """,
         """
         def halt(exec, halt_message) do
-          put_halt_message(%__MODULE__{exec | halted: true}, halt_message)
+          put_halt_message(%{exec | halted: true}, halt_message)
         end
         """
       )

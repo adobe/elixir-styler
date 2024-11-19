@@ -97,4 +97,59 @@ defmodule Styler.Style.DeprecationsTest do
       assert_style("foo |> bar() |> #{mod}.slice(x..y)")
     end
   end
+
+  describe "struct update syntax" do
+    test "canonical example" do
+      assert_style """
+      for entry <- conf.entries do
+        %UploadEntry{entry | preflighted?: entry.preflighted? || entry.ref in refs}
+      end
+      """,
+      """
+      for %UploadEntry{} = entry <- conf.entries do
+        %{entry | preflighted?: entry.preflighted? || entry.ref in refs}
+      end
+      """
+    end
+
+    @for_ast {:for, [do: [line: 1], end: [line: 3], line: 1],
+       [
+         _arrow,
+         [
+           {{:__block__, [line: 1], [:do]},
+            {:%{}, [closing: [line: 2], line: 2],
+             [
+               {:|, [line: 2],
+                [
+                  {:entry, [line: 2], nil},
+                  [
+                    {{:__block__, [format: :keyword, line: 2], [:preflighted?]},
+                     {:||, [line: 2],
+                      [
+                        {{:., [line: 2], [{:entry, [line: 2], nil}, :preflighted?]},
+                         [no_parens: true, line: 2], []},
+                        {:in, [line: 2],
+                         [
+                           {{:., [line: 2], [{:entry, [line: 2], nil}, :ref]},
+                            [no_parens: true, line: 2], []},
+                           {:refs, [line: 2], nil}
+                         ]}
+                      ]}}
+                  ]
+                ]}
+             ]}}
+         ]
+       ]}
+    test "find_assignment" do
+      zipper = Zipper.zip(@for_ast)
+      var = :entry
+      assert find_assignment(zipper, :entry)
+    end
+
+    test "defs assignment"
+    test "with assignment"
+    test "fn assignment"
+    test "normal var"
+    test "doesn't false positive something in a context above it"
+  end
 end

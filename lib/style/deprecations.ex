@@ -15,7 +15,45 @@ defmodule Styler.Style.Deprecations do
 
   @behaviour Styler.Style
 
+  alias Styler.Zipper
+
+
+  def run({{:%, _, [_struct, {:%{}, _, [{:|, _, [_var | _]}]} = update]}, _} = zipper, ctx) do
+    # zipper
+    # |> Zipper.replace(update)
+    # |> Zipper.find(:prev, &is_assignment(&1, var))
+    {:cont, Zipper.replace(zipper, update), ctx}
+  end
+
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
+
+  def find_assignment(zipper, var) do
+    case Zipper.left(zipper) || Zipper.up(zipper) do
+      nil ->
+        zipper
+        # only makes sense to check this if we went UP.
+        # so left checks for `=` only,
+        # while up checks for any context-setting constructs
+      {{:for, _, children}, _} = prev ->
+        children = children |> Enum.reverse()
+
+        index = Enum.find_index(children, &match?({:<-, _, [{^var, _, nil}, _]}, &1))
+
+        if index do
+          IO.puts("hit")
+          children =
+            children
+            |> List.update_at(index, ...)
+            |> Enum.reverse()
+          Zipper.replace_children(prev, children)
+        else
+          find_assignment(prev, var)
+        end
+
+      prev ->
+        find_assignment(prev, var)
+    end
+  end
 
   # Logger.warn => Logger.warning
   # Started to emit warning after Elixir 1.15.0
