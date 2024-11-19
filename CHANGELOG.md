@@ -8,6 +8,9 @@ they can and will change without that change being reflected in Styler's semanti
 
 * `pipes`: pipe-ifies when first arg to a function is a pipe. reach out if this happens in unstylish places in your code (Closes #133)
 * `pipes`: unpiping assignments will make the assignment one-line when possible (Closes #181)
+* `deprecations`: 1.18 deprecations
+    * `List.zip` => `Enum.zip`
+    * `first..last = range` => `first..last//_ = range`
 
 ### Fixes
 
