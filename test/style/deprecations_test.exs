@@ -33,6 +33,40 @@ defmodule Styler.Style.DeprecationsTest do
     )
   end
 
+  test "matching ranges" do
+    assert_style "first..last = range", "first..last//_ = range"
+    assert_style "^first..^last = range", "^first..^last//_ = range"
+    assert_style "first..last = x = y", "first..last//_ = x = y"
+    assert_style "y = first..last = x", "y = first..last//_ = x"
+
+    assert_style "def foo(x..y), do: :ok", "def foo(x..y//_), do: :ok"
+    assert_style "def foo(a, x..y = z), do: :ok", "def foo(a, x..y//_ = z), do: :ok"
+    assert_style "def foo(%{a: x..y = z}), do: :ok", "def foo(%{a: x..y//_ = z}), do: :ok"
+
+    assert_style "with a..b = c <- :ok, d..e <- :better, do: :ok", "with a..b//_ = c <- :ok, d..e//_ <- :better, do: :ok"
+
+    assert_style(
+      """
+      case x do
+        a..b = c -> :ok
+        d..e -> :better
+      end
+      """,
+      """
+      case x do
+        a..b//_ = c -> :ok
+        d..e//_ -> :better
+      end
+      """
+    )
+  end
+
+  test "List.zip/1" do
+    assert_style "List.zip(foo)", "Enum.zip(foo)"
+    assert_style "foo |> List.zip |> bar", "foo |> Enum.zip() |> bar()"
+    assert_style "foo |> List.zip", "Enum.zip(foo)"
+  end
+
   describe "1.16 deprecations" do
     @describetag skip: Version.match?(System.version(), "< 1.16.0-dev")
 

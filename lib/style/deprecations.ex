@@ -17,6 +17,20 @@ defmodule Styler.Style.Deprecations do
 
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 
+  # Deprecated in 1.18
+  # rewrite patterns of `first..last = ...` to `first..last//_ = ...`
+  defp style({:=, m, [{:.., _, [_first, _last]} = range, rhs]}), do: {:=, m, [rewrite_range_match(range), rhs]}
+  defp style({:->, m, [[{:.., _, [_first, _last]} = range], rhs]}), do: {:->, m, [[rewrite_range_match(range)], rhs]}
+  defp style({:<-, m, [{:.., _, [_first, _last]} = range, rhs]}), do: {:<-, m, [rewrite_range_match(range), rhs]}
+
+  defp style({def, dm, [{x, xm, params} | rest]}) when def in ~w(def defp)a and is_list(params),
+    do: {def, dm, [{x, xm, Enum.map(params, &rewrite_range_match/1)} | rest]}
+
+  # Deprecated in 1.18
+  # List.zip => Enum.zip
+  defp style({{:., dm_, [{:__aliases__, am, [:List]}, :zip]}, fm, arg}),
+    do: {{:., dm_, [{:__aliases__, am, [:Enum]}, :zip]}, fm, arg}
+
   # Logger.warn => Logger.warning
   # Started to emit warning after Elixir 1.15.0
   defp style({{:., dm, [{:__aliases__, am, [:Logger]}, :warn]}, funm, args}),
@@ -83,6 +97,9 @@ defmodule Styler.Style.Deprecations do
        do: {fm, dm, [device, {:__block__, am, [:eof]}]}
 
   defp style(node), do: node
+
+  defp rewrite_range_match({:.., dm, [first, {_, m, _} = last]}), do: {:"..//", dm, [first, last, {:_, m, nil}]}
+  defp rewrite_range_match(x), do: x
 
   defp add_step_to_date_range?(first, last) do
     with {:ok, f} <- extract_date_value(first),
