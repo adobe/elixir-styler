@@ -47,7 +47,7 @@ Note that all of the examples below also apply to pipes (`enum |> Enum.into(...)
 | `Enum.into(enum, %{})` | `Map.new(enum)`|
 | `Enum.into(enum, Map.new())` | `Map.new(enum)`|
 | `Enum.into(enum, Keyword.new())` | `Keyword.new(enum)`|
-| `Enum.into(enum, MapSet.new())` | `Keyword.new(enum)`|
+| `Enum.into(enum, MapSet.new())` | `MapSet.new(enum)`|
 | `Enum.into(enum, %{}, fn x -> {x, x} end)` | `Map.new(enum, fn x -> {x, x} end)`|
 | `Enum.into(enum, [])` | `Enum.to_list(enum)` |
 | `Enum.into(enum, [], mapper)` | `Enum.map(enum, mapper)`|
