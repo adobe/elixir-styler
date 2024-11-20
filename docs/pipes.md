@@ -1,6 +1,6 @@
-# Pipe Chains
+## Pipe Chains
 
-## Pipe Start
+### Pipe Start
 
 Styler will ensure that the start of a pipechain is a 0-arity function, a raw value, or a variable.
 
@@ -119,4 +119,14 @@ foo = baz(bar)
 map = a |> Enum.map(mapper) |> Map.new()
 # Styled:
 map = Map.new(a, mapper)
+```
+
+### Pipe-ify
+
+If the first argument to a function call is a pipe, Styler makes the function call the final pipe of the chain.
+
+```elixir
+d(a |> b |> c)
+# Styled
+a |> b() |> c() |> d()
 ```

@@ -4,6 +4,8 @@
 they can and will change without that change being reflected in Styler's semantic version.
 ## main
 
+## 1.2.0
+
 ### Improvements
 
 * `pipes`: pipe-ifies when first arg to a function is a pipe. reach out if this happens in unstylish places in your code (Closes #133)
