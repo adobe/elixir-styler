@@ -934,6 +934,14 @@ defmodule Styler.Style.PipesTest do
       assert_style ~s<"\#{#{pipe}}">
     end
 
+    test "when it's not actually the first argument!" do
+      assert_style """
+      a
+      |> M.f0(b |> M.f1() |> M.f2())
+      |> M.f3()
+      """
+    end
+
     test "pipifying" do
       assert_style "d(a |> b |> c)", "a |> b() |> c() |> d()"
 

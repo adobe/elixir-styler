@@ -154,7 +154,7 @@ defmodule Styler.Style.Pipes do
         {:cont, zipper, ctx}
 
       # string interpolation, module attribute assignment, or prettier bools with not
-      parent in [:"::", :@, :not] ->
+      parent in [:"::", :@, :not, :|>] ->
         {:cont, zipper, ctx}
 
       # double down on being good to exunit macros, and any other special ops

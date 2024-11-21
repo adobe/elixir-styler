@@ -4,6 +4,12 @@
 they can and will change without that change being reflected in Styler's semantic version.
 ## main
 
+## 1.2.1
+
+### Fixes
+
+* `|>` don't pipify when the call is itself in a pipe (aka don't touch `a |> b(c |> d() |>e()) |> f()`) (Closes #204, h/t @paulswartz)
+
 ## 1.2.0
 
 ### Improvements
