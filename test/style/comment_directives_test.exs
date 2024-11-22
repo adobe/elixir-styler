@@ -66,5 +66,65 @@ defmodule Styler.Style.CommentDirectivesTest do
         """
       )
     end
+
+    test "assignments" do
+      assert_style(
+        """
+        # styler:sort
+        my_var =
+          ~w(
+            a
+            long
+            list
+            of
+            static
+            values
+          )
+        """,
+        """
+        # styler:sort
+        my_var =
+          ~w(
+            a
+            list
+            long
+            of
+            static
+            values
+          )
+        """
+      )
+
+      assert_style(
+        """
+        defmodule M do
+          @moduledoc false
+          # styler:sort
+          @attr ~w(
+              a
+              long
+              list
+              of
+              static
+              values
+            )
+        end
+        """,
+        """
+        defmodule M do
+          @moduledoc false
+          # styler:sort
+          @attr ~w(
+              a
+              list
+              long
+              of
+              static
+              values
+            )
+        end
+        """
+      )
+    end
   end
 end
