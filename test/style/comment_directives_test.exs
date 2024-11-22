@@ -17,7 +17,7 @@ defmodule Styler.Style.CommentDirectivesTest do
       assert_style "[:c, :b, :a]"
     end
 
-    test "sorts lists" do
+    test "sorts lists of atoms" do
       assert_style(
         """
         # styler:sort
@@ -34,6 +34,35 @@ defmodule Styler.Style.CommentDirectivesTest do
           :b,
           :c
         ]
+        """
+      )
+    end
+
+    test "sorts sigils" do
+      assert_style("# styler:sort\n~w|c a b|", "# styler:sort\n~w|a b c|")
+
+      assert_style(
+        """
+        # styler:sort
+        ~w(
+          a
+          long
+          list
+          of
+          static
+          values
+        )
+        """,
+        """
+        # styler:sort
+        ~w(
+          a
+          list
+          long
+          of
+          static
+          values
+        )
         """
       )
     end

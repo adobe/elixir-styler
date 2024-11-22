@@ -32,9 +32,29 @@ defmodule Styler.Style.CommentDirectives do
             zipper
 
           {{:__block__, meta, [list]}, _} when is_list(list) ->
-            Zipper.replace(found, {:__block__, meta, [Enum.sort_by(list, fn {f, _, a} -> {f, a} end)]})
+            list = Enum.sort_by(list, fn {f, _, a} -> {f, a} end)
+            Zipper.replace(found, {:__block__, meta, [list]})
 
-          _ ->
+          {{:sigil_w, sm, [{:<<>>, bm, [string]}, modifiers]} = node, _} ->
+            dbg(node)
+            # ew. gotta be a better way.
+            # this keeps indentation for the sigil via joiner, while prepend and append are the bookending whitespace
+            {prepend, joiner, append} =
+              case Regex.run(~r|^\s+|, string) do
+                # oneliner like `~w|c a b|`
+                nil -> {"", " ", ""}
+                # multline like
+                # `"\n  a\n  list\n  long\n  of\n  static\n  values\n"`
+                #   ^^^^ `prepend`       ^^^^ `joiner`             ^^ `append`
+                # note that joiner and append are the same in a multline (unsure if this is always true)
+                [joiner] -> {joiner, joiner, if(String.contains?(joiner, "\n"), do: "\n", else: "")}
+              end
+
+            string = string |> String.split() |> Enum.sort() |> Enum.join(joiner)
+            Zipper.replace(found, {:sigil_w, sm, [{:<<>>, bm, [prepend, string, append]}, modifiers]})
+
+          x ->
+            dbg(Zipper.node(x))
             found
         end
       end)
