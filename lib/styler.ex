@@ -25,7 +25,8 @@ defmodule Styler do
     Styler.Style.Defs,
     Styler.Style.Blocks,
     Styler.Style.Deprecations,
-    Styler.Style.Configs
+    Styler.Style.Configs,
+    Styler.Style.CommentDirectives
   ]
 
   @doc false
