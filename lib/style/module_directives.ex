@@ -413,10 +413,7 @@ defmodule Styler.Style.ModuleDirectives do
   defp sort(directives) do
     # sorting is done with `downcase` to match Credo
     directives
-    |> Enum.map(&{&1, &1 |> Macro.to_string() |> String.downcase()})
-    |> Enum.uniq_by(&elem(&1, 1))
-    |> List.keysort(1)
-    |> Enum.map(&elem(&1, 0))
+    |> Style.sort(format: :downcase)
     |> Style.reset_newlines()
   end
 end

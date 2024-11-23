@@ -59,8 +59,19 @@ defmodule Styler.Style do
   @doc "Traverses an ast node, updating all nodes' meta with `meta_fun`"
   def update_all_meta(node, meta_fun), do: Macro.prewalk(node, &Macro.update_meta(&1, meta_fun))
 
-  # useful for comparing AST without meta (line numbers, etc) interfering
+  @doc "prewalks ast and sets all meta to `nil`. useful for comparing AST without meta (line numbers, etc) interfering"
   def without_meta(ast), do: update_all_meta(ast, fn _ -> nil end)
+
+  @doc "sorts a list of nodes according to their string representations"
+  def sort(ast, opts \\ []) when is_list(ast) do
+    format = if opts[:format] == :downcase, do: &String.downcase/1, else: &(&1)
+
+    ast
+    |> Enum.map(&{&1, &1 |> Macro.to_string() |> format.()})
+    |> Enum.uniq_by(&elem(&1, 1))
+    |> List.keysort(1)
+    |> Enum.map(&elem(&1, 0))
+  end
 
   @doc """
   Returns the current node (wrapped in a `__block__` if necessary) if it's a valid place to insert additional nodes

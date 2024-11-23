@@ -153,5 +153,29 @@ defmodule Styler.Style.CommentDirectivesTest do
         """
       )
     end
+
+    test "list of tuples" do
+      # 2ples are represented as block literals while >2ples are created via `:{}`
+      # decided the easiest way to handle this is to just use string representation for meow
+      assert_style """
+      # styler:sort
+      [
+        {:styler, github: "adobe/elixir-styler"},
+        {:ash, "~> 3.0"},
+        {:fluxon, "~> 1.0.0", repo: :fluxon},
+        {:phoenix_live_reload, "~> 1.2", only: :dev},
+        {:tailwind, "~> 0.2", runtime: Mix.env() == :dev}
+      ]
+      ""","""
+      # styler:sort
+      [
+        {:ash, "~> 3.0"},
+        {:fluxon, "~> 1.0.0", repo: :fluxon},
+        {:phoenix_live_reload, "~> 1.2", only: :dev},
+        {:styler, github: "adobe/elixir-styler"},
+        {:tailwind, "~> 0.2", runtime: Mix.env() == :dev}
+      ]
+      """
+    end
   end
 end

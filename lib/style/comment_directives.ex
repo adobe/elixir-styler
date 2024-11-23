@@ -13,6 +13,7 @@ defmodule Styler.Style.CommentDirectives do
 
   @behaviour Styler.Style
 
+  alias Styler.Style
   alias Styler.Zipper
 
   def run(zipper, ctx) do
@@ -28,6 +29,7 @@ defmodule Styler.Style.CommentDirectives do
           end)
 
         if found do
+          #@TODO fix line numbers, move comments
           Zipper.update(found, &sort/1)
         else
           zipper
@@ -37,10 +39,7 @@ defmodule Styler.Style.CommentDirectives do
     {:halt, zipper, ctx}
   end
 
-  defp sort({:__block__, meta, [list]}) when is_list(list) do
-    list = Enum.sort_by(list, fn {f, _, a} -> {f, a} end)
-    {:__block__, meta, [list]}
-  end
+  defp sort({:__block__, meta, [list]}) when is_list(list), do: {:__block__, meta, [Style.sort(list)]}
 
   defp sort({:sigil_w, sm, [{:<<>>, bm, [string]}, modifiers]}) do
     # ew. gotta be a better way.
