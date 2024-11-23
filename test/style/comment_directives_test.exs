@@ -126,5 +126,32 @@ defmodule Styler.Style.CommentDirectivesTest do
         """
       )
     end
+
+    test "doesnt affect downstream nodes" do
+      assert_style(
+        """
+        # styler:sort
+        [:c, :a, :b]
+
+        @country_codes ~w(
+          po_PO
+          en_US
+          fr_CA
+          ja_JP
+        )
+        """,
+        """
+        # styler:sort
+        [:a, :b, :c]
+
+        @country_codes ~w(
+          po_PO
+          en_US
+          fr_CA
+          ja_JP
+        )
+        """
+      )
+    end
   end
 end

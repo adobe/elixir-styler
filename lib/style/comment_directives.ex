@@ -34,7 +34,7 @@ defmodule Styler.Style.CommentDirectives do
         end
       end)
 
-    {:skip, zipper, ctx}
+    {:halt, zipper, ctx}
   end
 
   defp sort({:__block__, meta, [list]}) when is_list(list) do
