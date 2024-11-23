@@ -29,7 +29,7 @@ defmodule Styler.Style.CommentDirectives do
           end)
 
         if found do
-          #@TODO fix line numbers, move comments
+          # @TODO fix line numbers, move comments
           Zipper.update(found, &sort/1)
         else
           zipper

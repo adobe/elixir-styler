@@ -64,7 +64,7 @@ defmodule Styler.Style do
 
   @doc "sorts a list of nodes according to their string representations"
   def sort(ast, opts \\ []) when is_list(ast) do
-    format = if opts[:format] == :downcase, do: &String.downcase/1, else: &(&1)
+    format = if opts[:format] == :downcase, do: &String.downcase/1, else: & &1
 
     ast
     |> Enum.map(&{&1, &1 |> Macro.to_string() |> format.()})
