@@ -24,6 +24,7 @@ defmodule Styler.Style.CommentDirectivesTest do
         [
           :c,
           :b,
+          :c,
           :a
         ]
         """,
@@ -32,6 +33,7 @@ defmodule Styler.Style.CommentDirectivesTest do
         [
           :a,
           :b,
+          :c,
           :c
         ]
         """

@@ -13,7 +13,6 @@ defmodule Styler.Style.CommentDirectives do
 
   @behaviour Styler.Style
 
-  alias Styler.Style
   alias Styler.Zipper
 
   def run(zipper, ctx) do
@@ -39,7 +38,8 @@ defmodule Styler.Style.CommentDirectives do
     {:halt, zipper, ctx}
   end
 
-  defp sort({:__block__, meta, [list]}) when is_list(list), do: {:__block__, meta, [Style.sort(list)]}
+  defp sort({:__block__, meta, [list]}) when is_list(list), do: {:__block__, meta, [sort(list)]}
+  defp sort(list) when is_list(list), do: Enum.sort_by(list, &Macro.to_string/1)
 
   defp sort({:sigil_w, sm, [{:<<>>, bm, [string]}, modifiers]}) do
     # ew. gotta be a better way.
