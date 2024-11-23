@@ -53,8 +53,8 @@ defmodule Styler.Style.CommentDirectives do
         # `"\n  a\n  list\n  long\n  of\n  static\n  values\n"`
         #   ^^^^ `prepend`       ^^^^ `joiner`             ^^ `append`
         # note that joiner and prepend are the same in a multiline (unsure if this is always true)
-        #@TODO: get all 3 in one pass of a regex. probably have to turn off greedy or something...
-        [joiner] -> {joiner, joiner, ~r|\s+$| |> Regex.run(string) |> hd}
+        # @TODO: get all 3 in one pass of a regex. probably have to turn off greedy or something...
+        [joiner] -> {joiner, joiner, ~r|\s+$| |> Regex.run(string) |> hd()}
       end
 
     string = string |> String.split() |> Enum.sort() |> Enum.join(joiner)
@@ -63,6 +63,5 @@ defmodule Styler.Style.CommentDirectives do
 
   defp sort({:=, m, [lhs, rhs]}), do: {:=, m, [lhs, sort(rhs)]}
   defp sort({:@, m, [{a, am, [assignment]}]}), do: {:@, m, [{a, am, [sort(assignment)]}]}
-  
-  defp sort(x), do: dbg(x)
+  defp sort(x), do: x
 end
