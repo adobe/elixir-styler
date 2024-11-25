@@ -9,7 +9,11 @@
 # governing permissions and limitations under the License.
 
 defmodule Styler.Style.CommentDirectives do
-  @moduledoc "TODO"
+  @moduledoc """
+  Leave a comment for Styler asking it to maintain code in a certain way.
+
+  `# styler:sort` maintains sorting of wordlists (by string comparison) and lists (string comparison of code representation)
+  """
 
   @behaviour Styler.Style
 
@@ -48,7 +52,7 @@ defmodule Styler.Style.CommentDirectives do
       case Regex.run(~r|^\s+|, string) do
         # oneliner like `~w|c a b|`
         nil -> {"", " ", ""}
-        # multline like
+        # multiline like
         # `"\n  a\n  list\n  long\n  of\n  static\n  values\n"`
         #   ^^^^ `prepend`       ^^^^ `joiner`             ^^ `append`
         # note that joiner and prepend are the same in a multiline (unsure if this is always true)
