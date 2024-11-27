@@ -318,26 +318,6 @@ defmodule Styler.Zipper do
   end
 
   @doc """
-  Same as `traverse/3`, but doesn't waste cycles going back to the top of the tree when traversal is finished
-
-  Useful when only the accumulator is of interest, and no updates to the zipper are.
-  """
-  @spec reduce(zipper, term, (zipper, term -> {zipper, term})) :: term
-  def reduce({_, nil} = zipper, acc, fun) do
-    do_reduce(zipper, acc, fun)
-  end
-
-  def reduce({tree, meta}, acc, fun) do
-    {{updated, _meta}, acc} = do_reduce({tree, nil}, acc, fun)
-    {{updated, meta}, acc}
-  end
-
-  defp do_reduce(zipper, acc, fun) do
-    {zipper, acc} = fun.(zipper, acc)
-    if next = next(zipper), do: do_reduce(next, acc, fun), else: acc
-  end
-
-  @doc """
   Traverses the tree in depth-first pre-order calling the given function for
   each node.
 
