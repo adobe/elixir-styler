@@ -35,7 +35,7 @@ defmodule Styler.StyleTest do
   # After module
   """
 
-  @comments @code |> Styler.string_to_quoted_with_comments() |> elem(1)
+  @comments @code |> Styler.string_to_ast() |> elem(1)
 
   describe "displace_comments/2" do
     test "Doesn't lose any comments" do

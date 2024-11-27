@@ -63,21 +63,21 @@ defmodule Styler do
   def features(_opts), do: [sigils: [], extensions: [".ex", ".exs"]]
 
   @impl Format
-  def format(input, formatter_opts) do
+  def format(input, formatter_opts \\ []) do
     file = formatter_opts[:file]
     styler_opts = formatter_opts[:styler] || []
 
     {ast, comments} =
       input
-      |> string_to_quoted_with_comments(to_string(file))
+      |> string_to_ast(to_string(file))
       |> style(file, styler_opts)
 
-    quoted_to_string(ast, comments, formatter_opts)
+    ast_to_string(ast, comments, formatter_opts)
   end
 
   @doc false
   # Wrap `Code.string_to_quoted_with_comments` with our desired options
-  def string_to_quoted_with_comments(code, file \\ "nofile") when is_binary(code) do
+  def string_to_ast(code, file \\ "nofile") when is_binary(code) do
     Code.string_to_quoted_with_comments!(code,
       literal_encoder: &__MODULE__.literal_encoder/2,
       token_metadata: true,
@@ -89,9 +89,8 @@ defmodule Styler do
   @doc false
   def literal_encoder(literal, meta), do: {:ok, {:__block__, meta, [literal]}}
 
-  @doc false
-  # Turns an ast and comments back into code, formatting it along the way.
-  def quoted_to_string(ast, comments, formatter_opts \\ []) do
+  @doc "Turns an ast and comments back into code, formatting it along the way."
+  def ast_to_string(ast, comments \\ [], formatter_opts \\ []) do
     opts = [{:comments, comments}, {:escape, false} | formatter_opts]
     {line_length, opts} = Keyword.pop(opts, :line_length, 122)
 

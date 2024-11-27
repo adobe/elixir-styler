@@ -317,8 +317,11 @@ defmodule Styler.Zipper do
     if next = next(zipper), do: do_traverse(next, acc, fun), else: {top(zipper), acc}
   end
 
-  # Same as `traverse/3`, but doesn't waste cycles going back to the top of the tree when traversal is finished
-  @doc false
+  @doc """
+  Same as `traverse/3`, but doesn't waste cycles going back to the top of the tree when traversal is finished
+
+  Useful when only the accumulator is of interest, and no updates to the zipper are.
+  """
   @spec reduce(zipper, term, (zipper, term -> {zipper, term})) :: term
   def reduce({_, nil} = zipper, acc, fun) do
     do_reduce(zipper, acc, fun)
@@ -390,17 +393,14 @@ defmodule Styler.Zipper do
     end
   end
 
-  @doc false
-  # Similar to traverse_while/3, but returns the `acc` directly, skipping the return to the top of the zipper.
-  # For that reason the :halt tuple is instead just a 2-ple of `{:halt, acc}`
-  @spec reduce_while(zipper, term, (zipper, term -> {command, zipper, term})) :: {zipper, term}
-  def reduce_while({_tree, nil} = zipper, acc, fun) do
-    do_reduce_while(zipper, acc, fun)
-  end
+  @doc """
+  Same as `traverse_while/3` except it only returns the acc, saving the work of returning to the top of the zipper.
 
-  def reduce_while({tree, meta}, acc, fun) do
-    {{updated, _meta}, acc} = do_reduce_while({tree, nil}, acc, fun)
-    {{updated, meta}, acc}
+  For that reason the `:halt` tuple is instead just a 2-ple of `{:halt, acc}`
+  """
+  @spec reduce_while(zipper, term, (zipper, term -> {:cont | :skip, zipper, term} | {:halt, term})) :: term
+  def reduce_while({tree, _meta}, acc, fun) do
+    do_reduce_while({tree, nil}, acc, fun)
   end
 
   defp do_reduce_while(zipper, acc, fun) do
