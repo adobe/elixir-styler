@@ -44,6 +44,7 @@ defmodule Styler.Style.CommentDirectives do
     {:halt, zipper, %{ctx | comments: comments}}
   end
 
+  # defstruct with a syntax-sugared keyword list hits here
   defp sort({parent, meta, [list]} = node, comments) when parent in ~w(defstruct __block__)a and is_list(list) do
     list = Enum.sort_by(list, &Macro.to_string/1)
     line = meta[:line]
@@ -54,6 +55,12 @@ defmodule Styler.Style.CommentDirectives do
         else: Style.order_line_meta_and_comments(list, comments, line)
 
     {{parent, meta, [list]}, comments}
+  end
+
+  # defstruct with a literal list
+  defp sort({:defstruct, meta, [{:__block__, _, [_]} = list]}, comments) do
+    {list, comments} = sort(list, comments)
+    {{:defstruct, meta, [list]}, comments}
   end
 
   defp sort({:%{}, meta, list}, comments) when is_list(list) do

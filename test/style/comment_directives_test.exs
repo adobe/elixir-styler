@@ -114,6 +114,31 @@ defmodule Styler.Style.CommentDirectivesTest do
         defstruct a: 4, b: 3, c: 2, d: 1
         """
       )
+
+      assert_style(
+        """
+        # styler:sort
+        defstruct [
+          :repo,
+          :query,
+          :order,
+          :chunk_size,
+          :timeout,
+          :cursor
+        ]
+        """,
+        """
+        # styler:sort
+        defstruct [
+          :chunk_size,
+          :cursor,
+          :order,
+          :query,
+          :repo,
+          :timeout
+        ]
+        """
+      )
     end
 
     test "sorts sigils" do
