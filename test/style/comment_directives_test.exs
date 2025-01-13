@@ -182,5 +182,71 @@ defmodule Styler.Style.CommentDirectivesTest do
         """
       )
     end
+
+    test "treats comments nicely" do
+      assert_style("""
+      # styler:sort
+      [
+        {:argon2_elixir, "~> 4.0"},
+        {:phoenix, "~> 1.7"},
+        {:cowboy, "~> 2.8", override: true},
+        # There's a stream_body bug in Hackney 1.18.2, so don't upgrade to that.
+        {:hackney, "1.18.1", override: true},
+        {:styler, "~> 1.2", only: [:dev, :test], runtime: false},
+        {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+        {:excellent_migrations, "~> 0.1", only: [:dev, :test], runtime: false},
+        # ecto 3.12 overrides
+        {:scrivener_ecto, github: "frameio/scrivener_ecto", override: true},
+        {:vtc, github: "frameio/vtc-ex", override: true},
+        # end ecto 3.12 overrides
+        {:ecto, "~> 3.12"},
+        {:ecto_sql, "~> 3.12"},
+        {:httpoison, "~> 2.1", override: true},
+        {:gen_stage, "~> 1.0", override: true},
+        {:dialyxir, "~> 1.1", runtime: false},
+        {:excoveralls, "~> 0.10", only: :test},
+        {:telemetry, "~> 1.0", override: true},
+        # We need to override because dataloader over-specifies its optional version spec
+        # and it conflicts with opentelemetry_phoenix
+        {:opentelemetry_process_propagator, "~> 0.3", override: true},
+        {:mix_audit, "~> 2.0", only: [:dev, :test], runtime: false},
+        {:junit_formatter, "~> 3.3", only: [:test]},
+        {:stream_data, "~> 1.0", only: [:dev, :test]}
+      ]
+
+      # some other comment
+      ""","""
+      # styler:sort
+      [
+        {:argon2_elixir, "~> 4.0"},
+        {:cowboy, "~> 2.8", override: true},
+        {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+        {:dialyxir, "~> 1.1", runtime: false},
+        # end ecto 3.12 overrides
+        {:ecto, "~> 3.12"},
+        {:ecto_sql, "~> 3.12"},
+        {:excellent_migrations, "~> 0.1", only: [:dev, :test], runtime: false},
+        {:excoveralls, "~> 0.10", only: :test},
+        {:gen_stage, "~> 1.0", override: true},
+        # There's a stream_body bug in Hackney 1.18.2, so don't upgrade to that.
+        {:hackney, "1.18.1", override: true},
+        {:httpoison, "~> 2.1", override: true},
+        {:junit_formatter, "~> 3.3", only: [:test]},
+        {:mix_audit, "~> 2.0", only: [:dev, :test], runtime: false},
+        # We need to override because dataloader over-specifies its optional version spec
+        # and it conflicts with opentelemetry_phoenix
+        {:opentelemetry_process_propagator, "~> 0.3", override: true},
+        {:phoenix, "~> 1.7"},
+        # ecto 3.12 overrides
+        {:scrivener_ecto, github: "frameio/scrivener_ecto", override: true},
+        {:stream_data, "~> 1.0", only: [:dev, :test]},
+        {:styler, "~> 1.2", only: [:dev, :test], runtime: false},
+        {:telemetry, "~> 1.0", override: true},
+        {:vtc, github: "frameio/vtc-ex", override: true}
+      ]
+
+      # some other comment
+      """)
+    end
   end
 end

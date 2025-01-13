@@ -121,7 +121,7 @@ defmodule Styler.Style.Configs do
 
   defp changed?(_), do: false
 
-  defp set_lines(nodes, comments, first_line) do
+  def set_lines(nodes, comments, first_line) do
     {nodes, comments, node_comments} = set_lines(nodes, comments, first_line, [], [])
     # @TODO if there are dangling comments between the nodes min/max, push them somewhere?
     # likewise deal with conflicting line comments?
@@ -162,22 +162,22 @@ defmodule Styler.Style.Configs do
     set_lines(nodes, comments, last_line, [node | n_acc], node_comments ++ c_acc)
   end
 
-  defp comments_for_node({_, m, _} = node, comments) do
+  def comments_for_node({_, m, _} = node, comments) do
     last_line = m[:end_of_expression][:line] || Style.max_line(node)
     comments_for_lines(comments, m[:line], last_line)
   end
 
-  defp comments_for_lines(comments, start_line, last_line) do
+  def comments_for_lines(comments, start_line, last_line) do
     comments
     |> Enum.reverse()
     |> comments_for_lines(start_line, last_line, [], [])
   end
 
-  defp comments_for_lines(reversed_comments, start, last, match, acc)
+  def comments_for_lines(reversed_comments, start, last, match, acc)
 
-  defp comments_for_lines([], _, _, match, acc), do: {Enum.reverse(match), acc}
+  def comments_for_lines([], _, _, match, acc), do: {Enum.reverse(match), acc}
 
-  defp comments_for_lines([%{line: line} = comment | rev_comments], start, last, match, acc) do
+  def comments_for_lines([%{line: line} = comment | rev_comments], start, last, match, acc) do
     cond do
       line > last -> comments_for_lines(rev_comments, start, last, match, [comment | acc])
       line >= start -> comments_for_lines(rev_comments, start, last, [comment | match], acc)
