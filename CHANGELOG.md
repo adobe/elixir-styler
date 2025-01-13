@@ -4,6 +4,8 @@
 they can and will change without that change being reflected in Styler's semantic version.
 ## main
 
+## 1.3.0
+
 ### Improvements
 
 #### `# styler:sort` Styler's first comment directive

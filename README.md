@@ -11,7 +11,11 @@ You can learn more about the history, purpose and implementation of Styler from 
 
 ## Features
 
-- auto-fixes [many credo rules](docs/credo.md), meaning you can turn them off to speed credo up
+### AST Rewrites as part of `mix format`
+
+[See our Rewrites documentation on hexdocs](https://hexdocs.pm/styler/styles.html)
+Styler fixes a plethora of elixir style and optimization issues automatically as part of `mix format`. In addition to automating corrections for [many credo rules](docs/credo.md) (meaning you can turn them off to speed credo up), Styler:
+
 - [keeps a strict module layout](docs/module_directives.md#directive-organization)
   - alphabetizes module directives
 - [extracts repeated aliases](docs/module_directives.md#alias-lifting)
@@ -21,7 +25,63 @@ You can learn more about the history, purpose and implementation of Styler from 
 - replaces strings with sigils when the string has many escaped quotes
 - ... and so much more
 
-[See our Rewrites documentation on hexdocs](https://hexdocs.pm/styler/styles.html)
+### Maintain static list order via `# styler:sort`
+
+Styler can keep static values sorted for your team as part of its formatting pass. To instruct it to do so, replace any `# Please keep this list sorted!` notes you wrote to your teammates with `# styler:sort`.
+
+#### Examples
+
+```elixir
+# styler:sort
+[:c, :a, :b]
+
+# styler:sort
+~w(a list of words)
+
+# styler:sort
+@country_codes ~w(
+  en_US
+  po_PO
+  fr_CA
+  ja_JP
+)
+
+# styler:sort
+a_var =
+  [
+    Modules,
+    In,
+    A,
+    List
+  ]
+```
+
+Would yield:
+
+```elixir
+# styler:sort
+[:a, :b, :c]
+
+# styler:sort
+~w(a list of words)
+
+# styler:sort
+@country_codes ~w(
+  en_US
+  fr_CA
+  ja_JP
+  po_PO
+)
+
+# styler:sort
+a_var =
+  [
+    A,
+    In,
+    List,
+    Modules
+  ]
+```
 
 ## Who is Styler for?
 
