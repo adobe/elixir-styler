@@ -170,69 +170,6 @@ defmodule Styler.Style do
     {directive, updated_meta, children}
   end
 
-  @doc """
-  "Fixes" the line numbers of nodes who have had their orders changed via sorting or other methods.
-  This "fix" simply ensures that comments don't get wrecked as part of us moving AST nodes willy-nilly.
-
-  The fix is rather naive, and simply enforces the following property on the code:
-  A given node must have a line number less than the following node.
-  Et voila! Comments behave much better.
-
-  ## In Detail
-
-  For example, given document
-
-    1: defmodule ...
-    2: alias B
-    3: # this is foo
-    4: def foo ...
-    5: alias A
-
-  Sorting aliases the ast node for  would put `alias A` (line 5) before `alias B` (line 2).
-
-    1: defmodule ...
-    5: alias A
-    2: alias B
-    3: # this is foo
-    4: def foo ...
-
-  Elixir's document algebra would then encounter `line: 5` and immediately dump all comments with `line <= 5`,
-  meaning after running through the formatter we'd end up with
-
-    1: defmodule
-    2: # hi
-    3: # this is foo
-    4: alias A
-    5: alias B
-    6:
-    7: def foo ...
-
-  This function fixes that by seeing that `alias A` has a higher line number than its following sibling `alias B` and so
-  updates `alias A`'s line to be preceding `alias B`'s line.
-
-  Running the results of this function through the formatter now no longer dumps the comments prematurely
-
-    1: defmodule ...
-    2: alias A
-    3: alias B
-    4: # this is foo
-    5: def foo ...
-  """
-  def fix_line_numbers(nodes, nil), do: fix_line_numbers(nodes, 999_999)
-  def fix_line_numbers(nodes, {_, meta, _}), do: fix_line_numbers(nodes, meta[:line])
-  def fix_line_numbers(nodes, max), do: nodes |> Enum.reverse() |> do_fix_lines(max, [])
-
-  defp do_fix_lines([], _, acc), do: acc
-
-  defp do_fix_lines([{_, meta, _} = node | nodes], max, acc) do
-    line = meta[:line]
-
-    # the -2 is just an ugly hack to leave room for one-liner comments and not hijack them.
-    if line > max,
-      do: do_fix_lines(nodes, max, [shift_line(node, max - line - 2) | acc]),
-      else: do_fix_lines(nodes, line, [node | acc])
-  end
-
   def max_line([_ | _] = list), do: list |> List.last() |> max_line()
 
   def max_line(ast) do
@@ -255,6 +192,90 @@ defmodule Styler.Style do
         end)
 
       max_line
+    end
+  end
+
+  def order_line_meta_and_comments(nodes, comments, first_line) do
+    {nodes, comments, node_comments} = fix_lines(nodes, comments, first_line, [], [])
+    {nodes, Enum.sort_by(comments ++ node_comments, & &1.line)}
+  end
+
+  defp fix_lines([], comments, _, node_acc, c_acc), do: {Enum.reverse(node_acc), comments, c_acc}
+
+  defp fix_lines([{_, meta, _} = node | nodes], comments, start_line, n_acc, c_acc) do
+    line = meta[:line]
+    last_line = meta[:end_of_expression][:line] || max_line(node)
+
+    {node, node_comments, comments} =
+      if start_line == line do
+        {node, [], comments}
+      else
+        {mine, comments} = comments_for_lines(comments, line, last_line)
+        line_with_comments = (List.first(mine)[:line] || line) - (List.first(mine)[:previous_eol_count] || 1) + 1
+
+        if line_with_comments == start_line do
+          {node, mine, comments}
+        else
+          shift = start_line - line_with_comments
+          # fix the node's line
+          node = shift_line(node, shift)
+          # fix the comment's line
+          mine = Enum.map(mine, &%{&1 | line: &1.line + shift})
+          {node, mine, comments}
+        end
+      end
+
+    {_, meta, _} = node
+    # @TODO what about comments that were free floating between blocks? i'm just ignoring them and maybe always will...
+    # kind of just want to shove them to the end though, so that they don't interrupt existing stanzas.
+    # i think that's accomplishable by doing a final call above that finds all comments in the comments list that weren't moved
+    # and which are in the range of start..finish and sets their lines to finish!
+    last_line = meta[:end_of_expression][:line] || max_line(node)
+    last_line = (meta[:end_of_expression][:newlines] || 1) + last_line
+    fix_lines(nodes, comments, last_line, [node | n_acc], node_comments ++ c_acc)
+  end
+
+  @doc """
+  Returns all comments "for" a node, including on the line before it.
+  see `comments_for_lines` for more
+  """
+  def comments_for_node({_, m, _} = node, comments) do
+    last_line = m[:end_of_expression][:line] || max_line(node)
+    comments_for_lines(comments, m[:line], last_line)
+  end
+
+  @doc """
+  Gets all comments in range start_line..last_line, and any comments immediately before start_line.s
+
+    1. code
+    2. # a
+    3. # b
+    4. code # c
+    5. # d
+    6. code
+    7. # e
+
+  here, comments_for_lines(comments, 4, 6) is "a", "b", "c", "d"
+  """
+  def comments_for_lines(comments, start_line, last_line) do
+    comments |> Enum.reverse() |> comments_for_lines(start_line, last_line, [], [])
+  end
+
+  defp comments_for_lines(reversed_comments, start, last, match, acc)
+
+  defp comments_for_lines([], _, _, match, acc), do: {Enum.reverse(match), acc}
+
+  defp comments_for_lines([%{line: line} = comment | rev_comments], start, last, match, acc) do
+    cond do
+      # after our block - no match
+      line > last -> comments_for_lines(rev_comments, start, last, match, [comment | acc])
+      # after start, before last -- it's a match!
+      line >= start -> comments_for_lines(rev_comments, start, last, [comment | match], acc)
+      # this is a comment immediately before start, which means it's modifying this block...
+      # we count that as a match, and look above it to see if it's a multiline comment
+      line == start - 1 -> comments_for_lines(rev_comments, start - 1, last, [comment | match], acc)
+      # comment before start - we've thus iterated through all comments which could be in our range
+      true -> {match, Enum.reverse(rev_comments, [comment | acc])}
     end
   end
 end

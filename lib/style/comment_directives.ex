@@ -17,6 +17,7 @@ defmodule Styler.Style.CommentDirectives do
 
   @behaviour Styler.Style
 
+  alias Styler.Style
   alias Styler.Zipper
 
   def run(zipper, ctx) do
@@ -43,9 +44,15 @@ defmodule Styler.Style.CommentDirectives do
     {:halt, zipper, %{ctx | comments: comments}}
   end
 
-  defp sort({:__block__, meta, [list]}, comments) when is_list(list) do
+  defp sort({:__block__, meta, [list]} = node, comments) when is_list(list) do
     list = Enum.sort_by(list, &Macro.to_string/1)
-    {list, comments} = Styler.Style.Configs.set_lines(list, comments, meta[:line])
+    line = meta[:line]
+    # no need to fix line numbers if it's a single line structure
+    {list, comments} =
+      if line == Style.max_line(node),
+        do: {list, comments},
+        else: Style.order_line_meta_and_comments(list, comments, line)
+
     {{:__block__, meta, [list]}, comments}
   end
 
