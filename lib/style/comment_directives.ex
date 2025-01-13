@@ -27,9 +27,9 @@ defmodule Styler.Style.CommentDirectives do
       |> Enum.map(& &1.line)
       |> Enum.reduce({zipper, ctx.comments}, fn line, {zipper, comments} ->
         found =
-          Zipper.find(zipper, fn
-            {_, meta, _} -> Keyword.get(meta, :line, -1) >= line
-            _ -> false
+          Zipper.find(zipper, fn node ->
+            node_line = Style.meta(node)[:line] || -1
+            node_line >= line
           end)
 
         if found do
@@ -100,6 +100,11 @@ defmodule Styler.Style.CommentDirectives do
   defp sort({:@, m, [{a, am, [assignment]}]}, comments) do
     {assignment, comments} = sort(assignment, comments)
     {{:@, m, [{a, am, [assignment]}]}, comments}
+  end
+
+  defp sort({key, value}, comments) do
+    {value, comments} = sort(value, comments)
+    {{key, value}, comments}
   end
 
   defp sort(x, comments), do: {x, comments}

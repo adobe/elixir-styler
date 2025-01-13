@@ -141,6 +141,55 @@ defmodule Styler.Style.CommentDirectivesTest do
       )
     end
 
+    test "inside keywords" do
+      assert_style(
+        """
+        %{
+          key:
+          # styler:sort
+          [
+            3,
+            2,
+            1
+          ]
+        }
+        """,
+        """
+        %{
+          # styler:sort
+          key: [
+            1,
+            2,
+            3
+          ]
+        }
+        """
+      )
+
+      assert_style(
+        """
+        %{
+          # styler:sort
+          key: [
+            3,
+            2,
+            1
+          ]
+        }
+        """,
+        """
+        %{
+          # styler:sort
+          key: [
+            1,
+            2,
+            3
+          ]
+        }
+        """
+      )
+    end
+
     test "sorts sigils" do
       assert_style("# styler:sort\n~w|c a b|", "# styler:sort\n~w|a b c|")
 

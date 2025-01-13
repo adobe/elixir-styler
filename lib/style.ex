@@ -240,6 +240,7 @@ defmodule Styler.Style do
   def meta({_, meta, _}), do: meta
   # kwl tuple ala a: :b
   def meta({{_, meta, _}, _}), do: meta
+  def meta(_), do: nil
 
   @doc """
   Returns all comments "for" a node, including on the line before it.
