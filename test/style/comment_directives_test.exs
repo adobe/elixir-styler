@@ -182,5 +182,56 @@ defmodule Styler.Style.CommentDirectivesTest do
         """
       )
     end
+
+    test "treats comments nicely" do
+      assert_style(
+        """
+        # pre-amble comment
+        # styler:sort
+        [
+          {:phoenix, "~> 1.7"},
+          # hackney comment
+          {:hackney, "1.18.1", override: true},
+          {:styler, "~> 1.2", only: [:dev, :test], runtime: false},
+          {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+          {:excellent_migrations, "~> 0.1", only: [:dev, :test], runtime: false},
+          # ecto
+          {:ecto, "~> 3.12"},
+          {:ecto_sql, "~> 3.12"},
+          # genstage comment 1
+          # genstage comment 2
+          {:gen_stage, "~> 1.0", override: true},
+          # telemetry
+          {:telemetry, "~> 1.0", override: true},
+          # dangling comment
+        ]
+
+        # some other comment
+        """,
+        """
+        # pre-amble comment
+        # styler:sort
+        [
+          {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+          # ecto
+          {:ecto, "~> 3.12"},
+          {:ecto_sql, "~> 3.12"},
+          {:excellent_migrations, "~> 0.1", only: [:dev, :test], runtime: false},
+          # genstage comment 1
+          # genstage comment 2
+          {:gen_stage, "~> 1.0", override: true},
+          # hackney comment
+          {:hackney, "1.18.1", override: true},
+          {:phoenix, "~> 1.7"},
+          {:styler, "~> 1.2", only: [:dev, :test], runtime: false},
+          # telemetry
+          {:telemetry, "~> 1.0", override: true}
+          # dangling comment
+        ]
+
+        # some other comment
+        """
+      )
+    end
   end
 end

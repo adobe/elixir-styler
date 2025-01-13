@@ -80,19 +80,14 @@ defmodule Styler.Style.Configs do
       |> Style.reset_newlines()
       |> Enum.concat(configs)
 
-    # `set_lines` performs better than `fix_line_numbers` for a large number of nodes moving, as it moves their comments with them
-    # however, it will also move any comments not associated with a node, causing wildly unpredictable sad times!
-    # so i'm trying to guess which change will be less damaging.
-    # moving >=3 nodes hints that this is an initial run, where `set_lines` definitely outperforms.
     {nodes, comments} =
       if changed?(nodes) do
         # after running, this block should take up the same # of lines that it did before
         # the first node of `rest` is greater than the highest line in configs, assignments
         # config line is the first line to be used as part of this block
-        # that will change when we consider preceding comments
-        {node_comments, _} = comments_for_node(config, comments)
+        {node_comments, _} = Style.comments_for_node(config, comments)
         first_line = min(List.last(node_comments)[:line] || cfm[:line], cfm[:line])
-        set_lines(nodes, comments, first_line)
+        Style.order_line_meta_and_comments(nodes, comments, first_line)
       else
         {nodes, comments}
       end
@@ -120,73 +115,6 @@ defmodule Styler.Style.Configs do
   end
 
   defp changed?(_), do: false
-
-  defp set_lines(nodes, comments, first_line) do
-    {nodes, comments, node_comments} = set_lines(nodes, comments, first_line, [], [])
-    # @TODO if there are dangling comments between the nodes min/max, push them somewhere?
-    # likewise deal with conflicting line comments?
-    {nodes, Enum.sort_by(comments ++ node_comments, & &1.line)}
-  end
-
-  def set_lines([], comments, _, node_acc, c_acc), do: {Enum.reverse(node_acc), comments, c_acc}
-
-  def set_lines([{_, meta, _} = node | nodes], comments, start_line, n_acc, c_acc) do
-    line = meta[:line]
-    last_line = meta[:end_of_expression][:line] || Style.max_line(node)
-
-    {node, node_comments, comments} =
-      if start_line == line do
-        {node, [], comments}
-      else
-        {mine, comments} = comments_for_lines(comments, line, last_line)
-        line_with_comments = (List.first(mine)[:line] || line) - (List.first(mine)[:previous_eol_count] || 1) + 1
-
-        if line_with_comments == start_line do
-          {node, mine, comments}
-        else
-          shift = start_line - line_with_comments
-          node = Style.shift_line(node, shift)
-
-          mine = Enum.map(mine, &%{&1 | line: &1.line + shift})
-          {node, mine, comments}
-        end
-      end
-
-    {_, meta, _} = node
-    # @TODO what about comments that were free floating between blocks? i'm just ignoring them and maybe always will...
-    # kind of just want to shove them to the end though, so that they don't interrupt existing stanzas.
-    # i think that's accomplishable by doing a final call above that finds all comments in the comments list that weren't moved
-    # and which are in the range of start..finish and sets their lines to finish!
-    last_line = meta[:end_of_expression][:line] || Style.max_line(node)
-    last_line = (meta[:end_of_expression][:newlines] || 1) + last_line
-    set_lines(nodes, comments, last_line, [node | n_acc], node_comments ++ c_acc)
-  end
-
-  defp comments_for_node({_, m, _} = node, comments) do
-    last_line = m[:end_of_expression][:line] || Style.max_line(node)
-    comments_for_lines(comments, m[:line], last_line)
-  end
-
-  defp comments_for_lines(comments, start_line, last_line) do
-    comments
-    |> Enum.reverse()
-    |> comments_for_lines(start_line, last_line, [], [])
-  end
-
-  defp comments_for_lines(reversed_comments, start, last, match, acc)
-
-  defp comments_for_lines([], _, _, match, acc), do: {Enum.reverse(match), acc}
-
-  defp comments_for_lines([%{line: line} = comment | rev_comments], start, last, match, acc) do
-    cond do
-      line > last -> comments_for_lines(rev_comments, start, last, match, [comment | acc])
-      line >= start -> comments_for_lines(rev_comments, start, last, [comment | match], acc)
-      # @TODO bug: match line looks like `x = :foo # comment for x`
-      # could account for that by pre-running the formatter on config files :/
-      line == start - 1 -> comments_for_lines(rev_comments, start - 1, last, [comment | match], acc)
-      true -> {match, Enum.reverse(rev_comments, [comment | acc])}
-    end
-  end
 
   defp accumulate([{:config, _, [_, _ | _]} = c | siblings], cs, as), do: accumulate(siblings, [c | cs], as)
   defp accumulate([{:=, _, [_lhs, _rhs]} = a | siblings], cs, as), do: accumulate(siblings, cs, [a | as])

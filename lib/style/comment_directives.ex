@@ -17,14 +17,15 @@ defmodule Styler.Style.CommentDirectives do
 
   @behaviour Styler.Style
 
+  alias Styler.Style
   alias Styler.Zipper
 
   def run(zipper, ctx) do
-    zipper =
+    {zipper, comments} =
       ctx.comments
       |> Enum.filter(&(&1.text == "# styler:sort"))
       |> Enum.map(& &1.line)
-      |> Enum.reduce(zipper, fn line, zipper ->
+      |> Enum.reduce({zipper, ctx.comments}, fn line, {zipper, comments} ->
         found =
           Zipper.find(zipper, fn
             {_, meta, _} -> Keyword.get(meta, :line, -1) >= line
@@ -32,20 +33,30 @@ defmodule Styler.Style.CommentDirectives do
           end)
 
         if found do
-          # @TODO fix line numbers, move comments
-          Zipper.update(found, &sort/1)
+          {node, _} = found
+          {sorted, comments} = sort(node, ctx.comments)
+          {Zipper.replace(found, sorted), comments}
         else
-          zipper
+          {zipper, comments}
         end
       end)
 
-    {:halt, zipper, ctx}
+    {:halt, zipper, %{ctx | comments: comments}}
   end
 
-  defp sort({:__block__, meta, [list]}) when is_list(list), do: {:__block__, meta, [sort(list)]}
-  defp sort(list) when is_list(list), do: Enum.sort_by(list, &Macro.to_string/1)
+  defp sort({:__block__, meta, [list]} = node, comments) when is_list(list) do
+    list = Enum.sort_by(list, &Macro.to_string/1)
+    line = meta[:line]
+    # no need to fix line numbers if it's a single line structure
+    {list, comments} =
+      if line == Style.max_line(node),
+        do: {list, comments},
+        else: Style.order_line_meta_and_comments(list, comments, line)
 
-  defp sort({:sigil_w, sm, [{:<<>>, bm, [string]}, modifiers]}) do
+    {{:__block__, meta, [list]}, comments}
+  end
+
+  defp sort({:sigil_w, sm, [{:<<>>, bm, [string]}, modifiers]}, comments) do
     # ew. gotta be a better way.
     # this keeps indentation for the sigil via joiner, while prepend and append are the bookending whitespace
     {prepend, joiner, append} =
@@ -61,10 +72,18 @@ defmodule Styler.Style.CommentDirectives do
       end
 
     string = string |> String.split() |> Enum.sort() |> Enum.join(joiner)
-    {:sigil_w, sm, [{:<<>>, bm, [prepend, string, append]}, modifiers]}
+    {{:sigil_w, sm, [{:<<>>, bm, [prepend, string, append]}, modifiers]}, comments}
   end
 
-  defp sort({:=, m, [lhs, rhs]}), do: {:=, m, [lhs, sort(rhs)]}
-  defp sort({:@, m, [{a, am, [assignment]}]}), do: {:@, m, [{a, am, [sort(assignment)]}]}
-  defp sort(x), do: x
+  defp sort({:=, m, [lhs, rhs]}, comments) do
+    {rhs, comments} = sort(rhs, comments)
+    {{:=, m, [lhs, rhs]}, comments}
+  end
+
+  defp sort({:@, m, [{a, am, [assignment]}]}, comments) do
+    {assignment, comments} = sort(assignment, comments)
+    {{:@, m, [{a, am, [assignment]}]}, comments}
+  end
+
+  defp sort(x, comments), do: {x, comments}
 end
