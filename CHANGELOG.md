@@ -10,7 +10,7 @@ they can and will change without that change being reflected in Styler's semanti
 
 #### `# styler:sort` Styler's first comment directive
 
-Styler will now keep a user-designated list or wordlist (`~w` sigil) sorted as part of formatting via the use of comments.
+Styler will now keep a user-designated list or wordlist (`~w` sigil) sorted as part of formatting via the use of comments. Elements of the list are sorted by their string representation.
 
 The intention is to remove comments to humans, like `# Please keep this list sorted!`, in favor of comments to robots: `# styler:sort`. Personally speaking, Styler is much better at alphabetical-order than I ever will be.
 
@@ -69,8 +69,6 @@ a_var =
     Modules
   ]
 ```
-
-Sorting is done according to erlang term ordering, so lists with elements of multiple types will work just fine.
 
 ## 1.2.1
 
