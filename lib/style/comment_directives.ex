@@ -44,7 +44,7 @@ defmodule Styler.Style.CommentDirectives do
     {:halt, zipper, %{ctx | comments: comments}}
   end
 
-  defp sort({:__block__, meta, [list]} = node, comments) when is_list(list) do
+  defp sort({parent, meta, [list]} = node, comments) when parent in ~w(defstruct __block__)a and is_list(list) do
     list = Enum.sort_by(list, &Macro.to_string/1)
     line = meta[:line]
     # no need to fix line numbers if it's a single line structure
@@ -53,7 +53,17 @@ defmodule Styler.Style.CommentDirectives do
         do: {list, comments},
         else: Style.order_line_meta_and_comments(list, comments, line)
 
-    {{:__block__, meta, [list]}, comments}
+    {{parent, meta, [list]}, comments}
+  end
+
+  defp sort({:%{}, meta, list}, comments) when is_list(list) do
+    {{:__block__, meta, [list]}, comments} = sort({:__block__, meta, [list]}, comments)
+    {{:%{}, meta, list}, comments}
+  end
+
+  defp sort({:%, m, [struct, map]}, comments) do
+    {map, comments} = sort(map, comments)
+    {{:%, m, [struct, map]}, comments}
   end
 
   defp sort({:sigil_w, sm, [{:<<>>, bm, [string]}, modifiers]}, comments) do

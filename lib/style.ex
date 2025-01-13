@@ -202,7 +202,8 @@ defmodule Styler.Style do
 
   defp fix_lines([], comments, _, node_acc, c_acc), do: {Enum.reverse(node_acc), comments, c_acc}
 
-  defp fix_lines([{_, meta, _} = node | nodes], comments, start_line, n_acc, c_acc) do
+  defp fix_lines([node | nodes], comments, start_line, n_acc, c_acc) do
+    meta = meta(node)
     line = meta[:line]
     last_line = meta[:end_of_expression][:line] || max_line(node)
 
@@ -225,7 +226,7 @@ defmodule Styler.Style do
         end
       end
 
-    {_, meta, _} = node
+    meta = meta(node)
     # @TODO what about comments that were free floating between blocks? i'm just ignoring them and maybe always will...
     # kind of just want to shove them to the end though, so that they don't interrupt existing stanzas.
     # i think that's accomplishable by doing a final call above that finds all comments in the comments list that weren't moved
@@ -234,6 +235,11 @@ defmodule Styler.Style do
     last_line = (meta[:end_of_expression][:newlines] || 1) + last_line
     fix_lines(nodes, comments, last_line, [node | n_acc], node_comments ++ c_acc)
   end
+
+  # typical node
+  def meta({_, meta, _}), do: meta
+  # kwl tuple ala a: :b
+  def meta({{_, meta, _}, _}), do: meta
 
   @doc """
   Returns all comments "for" a node, including on the line before it.

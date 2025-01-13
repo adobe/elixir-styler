@@ -4,6 +4,18 @@
 they can and will change without that change being reflected in Styler's semantic version.
 ## main
 
+## 1.3.1
+
+### Improvements
+
+- `# styler:sort` now works with maps and the `defstruct` macro
+
+### Fixes
+
+- `# styler:sort` no longer blows up on keyword lists :X
+
+### Fixes
+
 ## 1.3.0
 
 ### Improvements

@@ -40,6 +40,82 @@ defmodule Styler.Style.CommentDirectivesTest do
       )
     end
 
+    test "sort keywordy things" do
+      assert_style(
+        """
+        # styler:sort
+        [
+          c: 2,
+          b: 3,
+          a: 4,
+          d: 1
+        ]
+        """,
+        """
+        # styler:sort
+        [
+          a: 4,
+          b: 3,
+          c: 2,
+          d: 1
+        ]
+        """
+      )
+
+      assert_style(
+        """
+        # styler:sort
+        %{
+          c: 2,
+          b: 3,
+          a: 4,
+          d: 1
+        }
+        """,
+        """
+        # styler:sort
+        %{
+          a: 4,
+          b: 3,
+          c: 2,
+          d: 1
+        }
+        """
+      )
+
+      assert_style(
+        """
+        # styler:sort
+        %Struct{
+          c: 2,
+          b: 3,
+          a: 4,
+          d: 1
+        }
+        """,
+        """
+        # styler:sort
+        %Struct{
+          a: 4,
+          b: 3,
+          c: 2,
+          d: 1
+        }
+        """
+      )
+
+      assert_style(
+        """
+        # styler:sort
+        defstruct c: 2, b: 3, a: 4, d: 1
+        """,
+        """
+        # styler:sort
+        defstruct a: 4, b: 3, c: 2, d: 1
+        """
+      )
+    end
+
     test "sorts sigils" do
       assert_style("# styler:sort\n~w|c a b|", "# styler:sort\n~w|a b c|")
 
