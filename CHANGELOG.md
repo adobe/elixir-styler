@@ -4,6 +4,8 @@
 they can and will change without that change being reflected in Styler's semantic version.
 ## main
 
+## 1.3.2
+
 ### Improvements
 
 - `# styler:sort` can be used to sort values of key-value pairs. eg, sort the value of a single key in a map (Closes #208, h/t @ypconstante)
