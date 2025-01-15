@@ -4,6 +4,10 @@
 they can and will change without that change being reflected in Styler's semantic version.
 ## main
 
+### Fixes
+
+- fix a bug in comment-movement when multiple `# styler:sort` directives are added to a file at the same time
+
 ## 1.3.2
 
 ### Improvements

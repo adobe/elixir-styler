@@ -33,8 +33,7 @@ defmodule Styler.Style.CommentDirectives do
           end)
 
         if found do
-          {node, _} = found
-          {sorted, comments} = sort(node, ctx.comments)
+          {sorted, comments} = found |> Zipper.node() |> sort(comments)
           {Zipper.replace(found, sorted), comments}
         else
           {zipper, comments}
