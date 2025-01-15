@@ -41,7 +41,69 @@ defmodule Styler.Style.CommentDirectives do
         end
       end)
 
+    {zipper, comments} =
+      comments
+      |> Enum.filter(&(&1.text == "# styler:sort-phx-router"))
+      |> Enum.map(& &1.line)
+      |> Enum.reduce({zipper, comments}, fn line, {zipper, comments} ->
+        found =
+          Zipper.find(zipper, fn node ->
+            node_line = Style.meta(node)[:line] || -1
+            node_line >= line
+          end)
+
+        if found do
+          sort_phx(found, comments)
+        else
+          {zipper, comments}
+        end
+      end)
+
     {:halt, zipper, %{ctx | comments: comments}}
+  end
+
+  defp sort_phx({node, meta}, comments) do
+    IO.puts("sorting")
+    # @TODO one pass reduce for this
+    {phx, not_phx} =
+      Enum.split_with([node | meta.r], fn
+        {x, _, _} -> x in ~w(pipeline pipe_through scope get put patch post delete resources)a
+        _ -> false
+      end)
+
+    {pipelines, routes} = Enum.split_with(phx, &match?({x, _, _} when x in [:pipeline, :pipe_through], &1))
+
+    pipelines = recursive_sort(pipelines)
+    routes = recursive_sort(routes)
+
+    {[node | siblings], comments} =
+      Style.order_line_meta_and_comments(pipelines ++ routes ++ not_phx, comments, Style.meta(node)[:line])
+
+    {{node, %{meta | r: siblings}}, comments}
+  end
+
+  defp recursive_sort(list) when is_list(list) do
+    list
+    |> Enum.map(fn {f, m, children} ->
+      children =
+        Enum.map(children, fn
+          [{{:__block__, m1, [:do]}, {:__block__, m2, list}}] ->
+            [{{:__block__, m1, [:do]}, {:__block__, m2, recursive_sort(list)}}]
+
+          other ->
+            other
+        end)
+
+      {f, m, children}
+    end)
+    |> Enum.sort_by(fn
+      {f, _, [{:__block__, _, [literal]} | _]} ->
+        #@TODO get/post/put/patch/delete/resources precedence
+        {literal, f}
+
+      other ->
+        other
+    end)
   end
 
   # defstruct with a syntax-sugared keyword list hits here
