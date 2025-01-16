@@ -4,6 +4,34 @@
 they can and will change without that change being reflected in Styler's semantic version.
 ## main
 
+### Improvements
+
+- `# styler:sort` will sort arbitrary ast nodes within a `do end` block:
+
+    Given:
+        # styler:sort
+        my_macro "some arg" do
+          another_macro :q
+          another_macro :w
+          another_macro :e
+          another_macro :r
+          another_macro :t
+          another_macro :y
+        end
+
+    We get
+        # styler:sort
+        my_macro "some arg" do
+          another_macro :e
+          another_macro :q
+          another_macro :r
+          another_macro :t
+          another_macro :w
+          another_macro :y
+        end
+
+
+
 ### Fixes
 
 - fix a bug in comment-movement when multiple `# styler:sort` directives are added to a file at the same time

@@ -333,6 +333,39 @@ defmodule Styler.Style.CommentDirectivesTest do
       )
     end
 
+    test "nodes within a do end block" do
+      assert_style(
+        """
+        # styler:sort
+        my_macro "some arg" do
+          another_macro :q
+          # w
+          another_macro :w
+          another_macro :e
+          # r comment 1
+          # r comment 2
+          another_macro :r
+          another_macro :t
+          another_macro :y
+        end
+        """,
+        """
+        # styler:sort
+        my_macro "some arg" do
+          another_macro(:e)
+          another_macro(:q)
+          # r comment 1
+          # r comment 2
+          another_macro(:r)
+          another_macro(:t)
+          # w
+          another_macro(:w)
+          another_macro(:y)
+        end
+        """
+      )
+    end
+
     test "treats comments nicely" do
       assert_style(
         """

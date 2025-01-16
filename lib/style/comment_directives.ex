@@ -106,5 +106,23 @@ defmodule Styler.Style.CommentDirectives do
     {{key, value}, comments}
   end
 
+  # sorts arbitrary ast nodes within a `do end` list
+  defp sort({f, m, args} = node, comments) do
+    if m[:do] && m[:end] && match?([{{:__block__, _, [:do]}, {:__block__, _, _}}], List.last(args)) do
+      {[{{:__block__, m1, [:do]}, {:__block__, m2, nodes}}], args} = List.pop_at(args, -1)
+
+      {nodes, comments} =
+        nodes
+        |> Enum.sort_by(&Macro.to_string/1)
+        |> Style.order_line_meta_and_comments(comments, m[:line])
+
+      args = List.insert_at(args, -1, [{{:__block__, m1, [:do]}, {:__block__, m2, nodes}}])
+
+      {{f, m, args}, comments}
+    else
+      {node, comments}
+    end
+  end
+
   defp sort(x, comments), do: {x, comments}
 end
