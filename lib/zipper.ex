@@ -172,18 +172,18 @@ defmodule Styler.Zipper do
   top level.
   """
   @spec insert_left(zipper, tree) :: zipper
-  def insert_left({_, nil}, _), do: raise(ArgumentError, message: "Can't insert siblings at the top level.")
-  def insert_left({tree, meta}, child), do: {tree, %{meta | l: [child | meta.l]}}
+  def insert_left(zipper, child), do: prepend_siblings(zipper, [child])
 
   @doc """
   Inserts many siblings to the left.
+  If the node is at the top of the tree, builds a new root `:__block__` while maintaining focus on the current node.
 
   Equivalent to
 
       Enum.reduce(siblings, zipper, &Zipper.insert_left(&2, &1))
   """
   @spec prepend_siblings(zipper, [tree]) :: zipper
-  def prepend_siblings({_, nil}, _), do: raise(ArgumentError, message: "Can't insert siblings at the top level.")
+  def prepend_siblings({node, nil}, siblings), do: {:__block__, [], siblings ++ [node]} |> zip() |> down() |> rightmost()
   def prepend_siblings({tree, meta}, siblings), do: {tree, %{meta | l: Enum.reverse(siblings, meta.l)}}
 
   @doc """
@@ -192,18 +192,18 @@ defmodule Styler.Zipper do
   top level.
   """
   @spec insert_right(zipper, tree) :: zipper
-  def insert_right({_, nil}, _), do: raise(ArgumentError, message: "Can't insert siblings at the top level.")
-  def insert_right({tree, meta}, child), do: {tree, %{meta | r: [child | meta.r]}}
+  def insert_right(zipper, child), do: insert_siblings(zipper, [child])
 
   @doc """
   Inserts many siblings to the right.
+  If the node is at the top of the tree, builds a new root `:__block__` while maintaining focus on the current node.
 
   Equivalent to
 
       Enum.reduce(siblings, zipper, &Zipper.insert_right(&2, &1))
   """
   @spec insert_siblings(zipper, [tree]) :: zipper
-  def insert_siblings({_, nil}, _), do: raise(ArgumentError, message: "Can't insert siblings at the top level.")
+  def insert_siblings({node, nil}, siblings), do: {:__block__, [], [node | siblings]} |> zip() |> down()
   def insert_siblings({tree, meta}, siblings), do: {tree, %{meta | r: siblings ++ meta.r}}
 
   @doc """

@@ -384,6 +384,11 @@ defmodule Styler.Style.BlocksTest do
         z
         """
       )
+
+      assert_style "with do: x", "x"
+      assert_style "with do x end", "x"
+      assert_style "with do x else foo -> bar end", "x"
+      assert_style "with foo() do bar() else _ -> baz() end", "foo()\nbar()"
     end
 
     test "doesn't false positive with vars" do
@@ -430,7 +435,7 @@ defmodule Styler.Style.BlocksTest do
         """
       )
 
-      for nontrivial_head <- ["foo", ":ok <- foo, :ok <- bar"] do
+      for nontrivial_head <- [":ok <- foo, :ok <- bar"] do
         assert_style("""
         with #{nontrivial_head} do
           :success

@@ -6,6 +6,7 @@ they can and will change without that change being reflected in Styler's semanti
 
 ### Improvements
 
+- `with do: body` and variations with no arrows in the head will be rewritten to just `body`
 - `# styler:sort` will sort arbitrary ast nodes within a `do end` block:
 
     Given:
@@ -29,8 +30,6 @@ they can and will change without that change being reflected in Styler's semanti
           another_macro :w
           another_macro :y
         end
-
-
 
 ### Fixes
 

@@ -470,9 +470,9 @@ defmodule StylerTest.ZipperTest do
              |> Zipper.root() == [1, :left, 2, :right, 3]
     end
 
-    test "raise when attempting to insert a sibling at the root" do
-      assert_raise ArgumentError, fn -> 42 |> Zipper.zip() |> Zipper.insert_left(:nope) end
-      assert_raise ArgumentError, fn -> 42 |> Zipper.zip() |> Zipper.insert_right(:nope) end
+    test "builds a new root node made of a block" do
+      assert {42, %{l: [:nope], ptree: {{:__block__, _, _}, nil}}} = 42 |> Zipper.zip() |> Zipper.insert_left(:nope)
+      assert {42, %{r: [:nope], ptree: {{:__block__, _, _}, nil}}} = 42 |> Zipper.zip() |> Zipper.insert_right(:nope)
     end
   end
 
