@@ -308,8 +308,12 @@ defmodule Styler.Style.ModuleDirectives do
   defp find_liftable_aliases(ast, dealiases) do
     excluded = dealiases |> Map.keys() |> Enum.into(Styler.Config.get(:lifting_excludes))
 
+    firsts = MapSet.new(dealiases, fn {_last, [first | _]} -> first end)
+
     ast
     |> Zipper.zip()
+    # we're reducing a datastructure that looks like
+    # %{last => {aliases, seen_before?} | :some_collision_probelm}
     |> Zipper.reduce_while(%{}, fn
       # we don't want to rewrite alias name `defx Aliases ... do` of these three keywords
       {{defx, _, args}, _} = zipper, lifts when defx in ~w(defmodule defimpl defprotocol)a ->
@@ -330,7 +334,7 @@ defmodule Styler.Style.ModuleDirectives do
       {{:quote, _, _}, _} = zipper, lifts ->
         {:skip, zipper, lifts}
 
-      {{:__aliases__, _, [_, _, _ | _] = aliases}, _} = zipper, lifts ->
+      {{:__aliases__, _, [first, _, _ | _] = aliases}, _} = zipper, lifts ->
         last = List.last(aliases)
 
         lifts =
@@ -342,13 +346,54 @@ defmodule Styler.Style.ModuleDirectives do
             last in excluded or Enum.any?(aliases, &(not is_atom(&1))) ->
               lifts
 
-            # track how often we see this alias - once we've seen it a second time we'll known
+            # aliasing this would change the meaning of an existing alias
+            last > first and last in firsts ->
+              lifts
+
+            # We've seen this once before, time to mark it for lifting and do some bookkeeping for first-collisions
+            lifts[last] == {aliases, false} ->
+              lifts
+              |> Map.put(last, {aliases, true})
+              |> Map.update!(first, fn
+                {:collision_with_first, claimants, colliders} ->
+                  # release our claim on this collision
+                  claimants = MapSet.delete(claimants, aliases)
+
+                  if Enum.empty?(claimants) and Enum.any?(colliders) do
+                    # no more claimants, try to promote a collider to be lifted
+
+                    colliders = Enum.to_list(colliders)
+                    # There's no longer a collision because the only claimant is being lifted.
+                    # So, promote a claimant with these criteria
+                    # - required: its first comes _after_ last, so we aren't promoting an alias that changes the meaning of the other alias we're doing
+                    # - preferred: take a collider we know we want to lift (we've seen it multiple times)
+                    Enum.find(colliders, fn {[first | _], seen?} -> seen? and first > last end) ||
+                      Enum.find(colliders, fn {[first | _], _} -> first > last end) ||
+                      :collision_with_first
+                  else
+                    {:collision_with_first, claimants, colliders}
+                  end
+
+                other ->
+                  other
+              end)
+
             true ->
-              Map.update(lifts, last, {aliases, false}, fn
-                {^aliases, _} -> {aliases, true}
-                # if we have `Foo.Bar.Baz` and `Foo.Bar.Bop.Baz` both not aliased, we'll create a collision by lifting both
-                # grouping by last alias lets us detect these collisions
-                _ -> :collision_with_last
+              lifts
+              |> Map.update(last, {aliases, false}, fn
+                # if something is claiming the atom we want, add ourselves to the list of colliders
+                {:collision_with_first, claimers, colliders} ->
+                  {:collision_with_first, claimers, Map.update(colliders, aliases, false, fn _ -> true end)}
+
+                other ->
+                  other
+              end)
+              |> Map.update(first, {:collision_with_first, MapSet.new([aliases]), %{}}, fn
+                {:collision_with_first, claimers, colliders} ->
+                  {:collision_with_first, MapSet.put(claimers, aliases), colliders}
+
+                other ->
+                  other
               end)
           end
 
@@ -362,6 +407,7 @@ defmodule Styler.Style.ModuleDirectives do
         #   C.foo()
         #
         # lifting A.B.C would create a collision with C.
+        # unlike the collision_with_first tuple book-keeping, there's no recovery here because we won't lift a < 3 length alias
         {:skip, zipper, Map.put(lifts, first, :collision_with_first)}
 
       zipper, lifts ->

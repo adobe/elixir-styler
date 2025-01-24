@@ -221,6 +221,109 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
     )
   end
 
+  test "two modules that seem to conflict but don't!" do
+    assert_style(
+      """
+      defmodule Foo do
+        @moduledoc false
+
+        A.B.C.foo(X.Y.A)
+        A.B.C.bar()
+
+        X.Y.A
+      end
+      """,
+      """
+      defmodule Foo do
+        @moduledoc false
+
+        alias A.B.C
+        alias X.Y.A
+
+        C.foo(A)
+        C.bar()
+
+        A
+      end
+      """
+    )
+  end
+
+  test "if multiple lifts collide, lifts only one" do
+    assert_style(
+      """
+      defmodule Foo do
+        @moduledoc false
+
+        A.B.C.f()
+        A.B.C.f()
+        X.Y.C.f()
+      end
+      """,
+      """
+      defmodule Foo do
+        @moduledoc false
+
+        alias A.B.C
+
+        C.f()
+        C.f()
+        X.Y.C.f()
+      end
+      """
+    )
+
+    assert_style(
+      """
+      defmodule Foo do
+        @moduledoc false
+
+        A.B.C.f()
+        X.Y.C.f()
+        X.Y.C.f()
+        A.B.C.f()
+      end
+      """,
+      """
+      defmodule Foo do
+        @moduledoc false
+
+        alias A.B.C
+
+        C.f()
+        X.Y.C.f()
+        X.Y.C.f()
+        C.f()
+      end
+      """
+    )
+
+    assert_style(
+      """
+      defmodule Foo do
+        @moduledoc false
+
+        X.Y.C.f()
+        A.B.C.f()
+        X.Y.C.f()
+        A.B.C.f()
+      end
+      """,
+      """
+      defmodule Foo do
+        @moduledoc false
+
+        alias X.Y.C
+
+        C.f()
+        A.B.C.f()
+        C.f()
+        A.B.C.f()
+      end
+      """
+    )
+  end
+
   describe "comments stay put" do
     test "comments before alias stanza" do
       assert_style(
@@ -306,29 +409,6 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       end
     end
 
-    test "collisions with other lifts" do
-      assert_style """
-      defmodule NuhUh do
-        @moduledoc false
-
-        A.B.C.f()
-        A.B.C.f()
-        X.Y.C.f()
-      end
-      """
-
-      assert_style """
-      defmodule NuhUh do
-        @moduledoc false
-
-        A.B.C.f()
-        A.B.C.f()
-        X.Y.C.f()
-        X.Y.C.f()
-      end
-      """
-    end
-
     test "collisions with submodules" do
       assert_style """
       defmodule A do
@@ -344,6 +424,45 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
         A.B.C.f()
       end
       """
+    end
+
+    test "collisions with 3-deep one-off" do
+      assert_style """
+      defmodule Foo do
+        @moduledoc false
+
+        X.Y.Z.foo(A.B.X)
+
+        A.B.X
+      end
+      """
+    end
+
+    test "when new alias being sorted in would change an existing alias" do
+      assert_style(
+        """
+        defmodule Foo do
+          @moduledoc false
+
+          X.Y.Z.foo(A.B.X)
+          X.Y.Z.bar()
+
+          A.B.X
+        end
+        """,
+        """
+        defmodule Foo do
+          @moduledoc false
+
+          alias X.Y.Z
+
+          Z.foo(A.B.X)
+          Z.bar()
+
+          A.B.X
+        end
+        """
+      )
     end
 
     test "defprotocol, defmodule, or defimpl" do

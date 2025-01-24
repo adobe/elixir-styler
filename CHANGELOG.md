@@ -7,7 +7,10 @@ they can and will change without that change being reflected in Styler's semanti
 
 ### Improvements
 
-- alias lifting: styler will now replace an expanded alias with its alias when the user has already defined that alias (#201, h/t me)
+This release taught Styler to try just that little bit harder when doing alias lifting.
+
+- general improvements around conflict detection, lifting in more correct places and fewer incorrect places (#193, h/t @jsw800)
+- use knowledge of existing aliases to shorten invocations (#201, h/t me)
 
     example:
         alias A.B.C
@@ -22,6 +25,7 @@ they can and will change without that change being reflected in Styler's semanti
         C.foo()
         C.bar()
         C.baz()
+
 
 ## 1.3.3
 
