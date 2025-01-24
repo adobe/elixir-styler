@@ -352,31 +352,40 @@ defmodule Styler.Style.ModuleDirectives do
 
             # We've seen this once before, time to mark it for lifting and do some bookkeeping for first-collisions
             lifts[last] == {aliases, false} ->
-              lifts
-              |> Map.put(last, {aliases, true})
-              |> Map.update!(first, fn
+              lifts = Map.put(lifts, last, {aliases, true})
+
+              # Here's the bookkeeping for collisions with this alias's first module name...
+              case lifts[first] do
                 {:collision_with_first, claimants, colliders} ->
                   # release our claim on this collision
                   claimants = MapSet.delete(claimants, aliases)
+                  empty? = Enum.empty?(claimants)
 
-                  if Enum.empty?(claimants) and Enum.any?(colliders) do
-                    # no more claimants, try to promote a collider to be lifted
+                  cond do
+                    empty? and Enum.any?(colliders) ->
+                      # no more claimants, try to promote a collider to be lifted
+                      colliders = Enum.to_list(colliders)
+                      # There's no longer a collision because the only claimant is being lifted.
+                      # So, promote a claimant with these criteria
+                      # - required: its first comes _after_ last, so we aren't promoting an alias that changes the meaning of the other alias we're doing
+                      # - preferred: take a collider we know we want to lift (we've seen it multiple times)
+                      lift =
+                        Enum.find(colliders, fn {[first | _], seen?} -> seen? and first > last end) ||
+                          Enum.find(colliders, fn {[first | _], _} -> first > last end) ||
+                          :collision_with_first
 
-                    colliders = Enum.to_list(colliders)
-                    # There's no longer a collision because the only claimant is being lifted.
-                    # So, promote a claimant with these criteria
-                    # - required: its first comes _after_ last, so we aren't promoting an alias that changes the meaning of the other alias we're doing
-                    # - preferred: take a collider we know we want to lift (we've seen it multiple times)
-                    Enum.find(colliders, fn {[first | _], seen?} -> seen? and first > last end) ||
-                      Enum.find(colliders, fn {[first | _], _} -> first > last end) ||
-                      :collision_with_first
-                  else
-                    {:collision_with_first, claimants, colliders}
+                      Map.put(lifts, first, lift)
+
+                    empty? ->
+                      Map.delete(lifts, first)
+
+                    true ->
+                      Map.put(lifts, first, {:collision_with_first, claimants, colliders})
                   end
 
-                other ->
-                  other
-              end)
+                _ ->
+                  lifts
+              end
 
             true ->
               lifts
