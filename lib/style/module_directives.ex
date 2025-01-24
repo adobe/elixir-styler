@@ -282,8 +282,7 @@ defmodule Styler.Style.ModuleDirectives do
     # we can't use the dealias map built into state as that's what things look like before sorting
     # now that we've sorted, it could be different!
     dealiases = AliasEnv.define(aliases)
-    excluded = dealiases |> Map.keys() |> Enum.into(Styler.Config.get(:lifting_excludes))
-    liftable = find_liftable_aliases(requires ++ nondirectives, excluded)
+    liftable = find_liftable_aliases(requires ++ nondirectives, dealiases)
 
     if Enum.any?(liftable) do
       # This is a silly hack that helps comments stay put.
@@ -306,7 +305,9 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  defp find_liftable_aliases(ast, excluded) do
+  defp find_liftable_aliases(ast, dealiases) do
+    excluded = dealiases |> Map.keys() |> Enum.into(Styler.Config.get(:lifting_excludes))
+
     ast
     |> Zipper.zip()
     |> Zipper.reduce_while(%{}, fn
@@ -333,15 +334,22 @@ defmodule Styler.Style.ModuleDirectives do
         last = List.last(aliases)
 
         lifts =
-          if last in excluded or not Enum.all?(aliases, &is_atom/1) do
-            lifts
-          else
-            Map.update(lifts, last, {aliases, false}, fn
-              {^aliases, _} -> {aliases, true}
-              # if we have `Foo.Bar.Baz` and `Foo.Bar.Bop.Baz` both not aliased, we'll create a collision by lifting both
-              # grouping by last alias lets us detect these collisions
-              _ -> :collision_with_last
-            end)
+          cond do
+            # this alias already exists, they just wrote it out fully and are leaving it up to us to shorten it down!
+            dealiases[last] == aliases ->
+              Map.put(lifts, last, {aliases, true})
+
+            last in excluded or Enum.any?(aliases, &(not is_atom(&1))) ->
+              lifts
+
+            # track how often we see this alias - once we've seen it a second time we'll known
+            true ->
+              Map.update(lifts, last, {aliases, false}, fn
+                {^aliases, _} -> {aliases, true}
+                # if we have `Foo.Bar.Baz` and `Foo.Bar.Bop.Baz` both not aliased, we'll create a collision by lifting both
+                # grouping by last alias lets us detect these collisions
+                _ -> :collision_with_last
+              end)
           end
 
         {:skip, zipper, lifts}

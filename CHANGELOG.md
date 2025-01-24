@@ -5,6 +5,24 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Improvements
+
+- alias lifting: styler will now replace an expanded alias with its alias when the user has already defined that alias (#201, h/t me)
+
+    example:
+        alias A.B.C
+
+        A.B.C.foo()
+        A.B.C.bar()
+        A.B.C.baz()
+
+    becomes:
+        alias A.B.C
+
+        C.foo()
+        C.bar()
+        C.baz()
+
 ## 1.3.3
 
 ### Improvements
