@@ -75,10 +75,6 @@ defmodule Styler.Style.Blocks do
     {:cont, Zipper.replace(zipper, {:if, m, children}), ctx}
   end
 
-  def run({{:with, _, [[{{:__block__, _, [:do]}, body} | _]]}, _} = zipper, ctx) do
-    {:cont, Zipper.replace(zipper, body), ctx}
-  end
-
   # Credo.Check.Refactor.WithClauses
   def run({{:with, _, children}, _} = zipper, ctx) when is_list(children) do
     do_block? = Enum.any?(children, &Style.do_block?/1)
