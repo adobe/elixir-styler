@@ -11,77 +11,18 @@ You can learn more about the history, purpose and implementation of Styler from 
 
 ## Features
 
-### AST Rewrites as part of `mix format`
+Styler fixes a plethora of elixir style and optimization issues automatically as part of mix format.
 
-[See our Rewrites documentation on hexdocs](https://hexdocs.pm/styler/styles.html)
-Styler fixes a plethora of elixir style and optimization issues automatically as part of `mix format`. In addition to automating corrections for [many credo rules](docs/credo.md) (meaning you can turn them off to speed credo up), Styler:
+[See Styler's documentation](https://hexdocs.pm/styler/styles.html) for the comprehensive list of its features.
 
-- [keeps a strict module layout](docs/module_directives.md#directive-organization)
-  - alphabetizes module directives
-- [extracts repeated aliases](docs/module_directives.md#alias-lifting)
-- [makes your pipe chains pretty as can be](docs/pipes.md)
-  - pipes and unpipes function calls based on the number of calls
-  - optimizes standard library calls (`a |> Enum.map(m) |> Enum.into(Map.new)` => `Map.new(a, m)`)
-- replaces strings with sigils when the string has many escaped quotes
-- ... and so much more
+The fastest way to see what all it can do you for you is to just try it out in your codebase, but ere's a list of a few features to help you decide if you're interested in Styler.
 
-### Maintain static list order via `# styler:sort`
-
-Styler can keep static values sorted for your team as part of its formatting pass. To instruct it to do so, replace any `# Please keep this list sorted!` notes you wrote to your teammates with `# styler:sort`.
-
-#### Examples
-
-```elixir
-# styler:sort
-[:c, :a, :b]
-
-# styler:sort
-~w(a list of words)
-
-# styler:sort
-@country_codes ~w(
-  en_US
-  po_PO
-  fr_CA
-  ja_JP
-)
-
-# styler:sort
-a_var =
-  [
-    Modules,
-    In,
-    A,
-    List
-  ]
-```
-
-Would yield:
-
-```elixir
-# styler:sort
-[:a, :b, :c]
-
-# styler:sort
-~w(a list of words)
-
-# styler:sort
-@country_codes ~w(
-  en_US
-  fr_CA
-  ja_JP
-  po_PO
-)
-
-# styler:sort
-a_var =
-  [
-    A,
-    In,
-    List,
-    Modules
-  ]
-```
+- sorts and organizes `import`/`alias`/`require` and other [module directives](docs/module_directives.md)
+- keeps lists, sigils, and even arbitrary code sorted with the `# styler:sort` [comment directive](TODO write comment directive docs)
+- automatically creates aliases for repeatedly referenced modules names ([_"alias lifting"_](docs/module_directives.md#alias-lifting))
+- optimizes pipe chains for [readability and performance](docs/pipes.md)
+- rewrite strings as sigils when it results in fewer escapes
+- auto-fixes [many credo rules](docs/credo.md), meaning you can spend less time fighting with CI
 
 ## Who is Styler for?
 
