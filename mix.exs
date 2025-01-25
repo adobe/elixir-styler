@@ -70,6 +70,7 @@ defmodule Styler.MixProject do
         "docs/control_flow_macros.md": [title: "Control Flow Macros (if, case, ...)"],
         "docs/mix_configs.md": [title: "Mix Configs (config/*.exs)"],
         "docs/module_directives.md": [title: "Module Directives (use, alias, ...)"],
+        "docs/comment_directives.md": [title: "Comment Directives (# styler:sort)"],
         "docs/credo.md": [title: "Styler & Credo"],
         "README.md": [title: "Styler"]
       ]

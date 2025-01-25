@@ -162,6 +162,20 @@ C.foo()
 C.bar()
 ```
 
+Styler also notices when you have a module aliased and aren't employing that alias and will do the updates for you.
+
+```elixir
+# Given
+alias My.Apps.Widget
+
+x = Repo.get(My.Apps.Widget, id)
+
+# Styled
+alias My.Apps.Widget
+
+x = Repo.get(Widget, id)
+```
+
 ### Collisions
 
 Styler won't lift aliases that will collide with existing aliases, and likewise won't lift any module whose name would collide with a standard library name.

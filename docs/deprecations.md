@@ -25,9 +25,32 @@ This is covered by the Elixir Formatter with the `--migrate` flag, but Styler br
 
 Rewrite `unless x` to `if !x`
 
+### 1.19
+
+#### Change Struct Updates to Map Updates (Experimental)
+
+1.19 deprecates struct update syntax in favor of map update syntax. Styler will do this update for you if you're on Elixir 1.19.0-dev or later.
+
+```elixir
+# This
+%Struct{x | y}
+# Styles to this
+%{x | y}
+```
+
+**WARNING** Double check your diffs to make sure your variable is pattern matching against the same struct if you want to harness 1.18's type checking features.
+
+A future version of Styler may be smart enough to do this check for you and perform the appropriate updates to the assignment location; no guarantees though. Track via #199, h/t @SteffenDE
+
+### 1.18
+
+None?
+
 ### 1.17
 
 [1.17 Deprecations](https://hexdocs.pm/elixir/1.17.0/changelog.html#4-hard-deprecations)
+
+- Replace `:timer.units(x)` with the new `to_timeout(unit: x)` for `hours|minutes|seconds`
 
 #### Range Matching Without Step
 
