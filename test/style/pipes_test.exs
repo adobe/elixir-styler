@@ -934,6 +934,9 @@ defmodule Styler.Style.PipesTest do
       assert_style ~s<"\#{#{pipe}}">
     end
 
+    test "pipifying pipes" do
+    end
+
     test "when it's not actually the first argument!" do
       assert_style """
       a
@@ -944,6 +947,7 @@ defmodule Styler.Style.PipesTest do
 
     test "pipifying" do
       assert_style "d(a |> b |> c)", "a |> b() |> c() |> d()"
+      assert_style("c(a |> b, d)", "a |> b() |> c(d)")
 
       assert_style(
         """

@@ -370,9 +370,16 @@ defmodule Styler.Style.ModuleDirectives do
                       # - required: its first comes _after_ last, so we aren't promoting an alias that changes the meaning of the other alias we're doing
                       # - preferred: take a collider we know we want to lift (we've seen it multiple times)
                       lift =
-                        Enum.find(colliders, fn {[first | _], seen?} -> seen? and first > last end) ||
-                          Enum.find(colliders, fn {[first | _], _} -> first > last end) ||
-                          :collision_with_first
+                        Enum.reduce_while(colliders, :collision_with_first, fn
+                          {[first | _], true} = liftable, _ when first > last ->
+                            {:halt, liftable}
+
+                          {[first | _], _false} = promotable, :collision_with_first when first > last ->
+                            {:cont, promotable}
+
+                          _, result ->
+                            {:cont, result}
+                        end)
 
                       Map.put(lifts, first, lift)
 
