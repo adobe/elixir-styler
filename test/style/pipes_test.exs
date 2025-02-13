@@ -934,9 +934,6 @@ defmodule Styler.Style.PipesTest do
       assert_style ~s<"\#{#{pipe}}">
     end
 
-    test "pipifying pipes" do
-    end
-
     test "when it's not actually the first argument!" do
       assert_style """
       a

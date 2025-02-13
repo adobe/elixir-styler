@@ -168,7 +168,7 @@ defmodule Styler.Style.Pipes do
         {:cont, zipper, ctx}
 
       true ->
-        # Recurse in case the function-looking is a multi pipe
+        # Recurse in case this is a multi pipe
         zipper
         |> Zipper.replace({:|>, m, [pipe, {f, m, args}]})
         |> run(ctx)
