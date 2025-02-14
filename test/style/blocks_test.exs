@@ -397,6 +397,12 @@ defmodule Styler.Style.BlocksTest do
       """)
     end
 
+    test "else clause arrow" do
+      assert_style """
+      with {:ok, number} <- foo(), true <- is_even(number), do: :even, else: (_ -> :odd)
+      """, ""
+    end
+
     test "removes identity else clauses" do
       assert_style(
         """
