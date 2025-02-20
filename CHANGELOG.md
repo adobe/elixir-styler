@@ -7,6 +7,12 @@ they can and will change without that change being reflected in Styler's semanti
 
 ### Improvements
 
+#### Ex1.17+
+
+Replace `:timer.units(x)` with the new `to_timeout(unit: x)` for `hours|minutes|seconds`
+
+#### Alias Lifting
+
 This release taught Styler to try just that little bit harder when doing alias lifting.
 
 - general improvements around conflict detection, lifting in more correct places and fewer incorrect places (#193, h/t @jsw800)

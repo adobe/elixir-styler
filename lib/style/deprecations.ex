@@ -58,6 +58,13 @@ defmodule Styler.Style.Deprecations do
          do: {:|>, m, [lhs, {f, fm, [lob, opts]}]}
   end
 
+  if Version.match?(System.version(), ">= 1.17.0-dev") do
+    for {erl, ex} <- [hours: :hour, minutes: :minute, seconds: :second] do
+      defp style({{:., _, [{:__block__, _, [:timer]}, unquote(erl)]}, fm, [x]}),
+        do: {:to_timeout, fm, [[{{:__block__, [format: :keyword, line: fm[:line]], [unquote(ex)]}, x}]]}
+    end
+  end
+
   # For ranges where `start > stop`, you need to explicitly include the step
   # Enum.slice(enumerable, 1..-2) => Enum.slice(enumerable, 1..-2//1)
   # String.slice("elixir", 2..-1) => String.slice("elixir", 2..-1//1)
