@@ -789,15 +789,17 @@ defmodule Styler.Style.BlocksTest do
     end
 
     test "elixir1.17+ stab regressions" do
-      assert_style """
-                   with :ok <- foo, do: :bar, else: (_ -> :baz)
-                   """,
-                   """
-                   case foo do
-                     :ok -> :bar
-                     _ -> :baz
-                   end
-                   """
+      assert_style(
+        """
+        with :ok <- foo, do: :bar, else: (_ -> :baz)
+        """,
+        """
+        case foo do
+          :ok -> :bar
+          _ -> :baz
+        end
+        """
+      )
     end
   end
 
