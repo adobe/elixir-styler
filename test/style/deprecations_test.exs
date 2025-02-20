@@ -116,6 +116,10 @@ defmodule Styler.Style.DeprecationsTest do
     end
   end
 
+  test "struct update, deprecated in 1.19" do
+    assert_style "%Foo{widget | bar: :baz}", "%{widget | bar: :baz}"
+  end
+
   describe "1.16+" do
     @describetag skip: Version.match?(System.version(), "< 1.16.0-dev")
 
@@ -143,14 +147,6 @@ defmodule Styler.Style.DeprecationsTest do
       assert_style "a |> x() |> :timer.hours()"
       assert_style "a |> x() |> :timer.minutes()"
       assert_style "a |> x() |> :timer.seconds()"
-    end
-  end
-
-  describe "1.19+" do
-    @describetag skip: Version.match?(System.version(), "< 1.19.0-dev")
-
-    test "struct update" do
-      assert_style "%Foo{widget | bar: :baz}", "%{widget | bar: :baz}"
     end
   end
 end

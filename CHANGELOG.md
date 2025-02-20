@@ -37,14 +37,9 @@ This release taught Styler to try just that little bit harder when doing alias l
         C.bar()
         C.baz()
 
-#### Ex1.17+
+#### Struct Updates => Map Updates
 
-- Replace `:timer.units(x)` with the new `to_timeout(unit: x)` for `hours|minutes|seconds`
-- Handle `, else: (_ -> x)` bugs introduced by `(_ -> x)` being termed a literal (#219, h/t @iamhassangm)
-
-#### Ex1.19+ (experimental)
-
-1.19 deprecates struct update syntax in favor of map update syntax. Styler will do this update for you if you're on Elixir 1.19.0-dev or later.
+1.19 deprecates struct update syntax in favor of map update syntax.
 
 ```elixir
 # This
@@ -53,15 +48,17 @@ This release taught Styler to try just that little bit harder when doing alias l
 %{x | y}
 ```
 
-**WARNING** Double check your diffs to make sure your variable is pattern matching against the same struct if you want to harness 1.18's type checking features.
+**WARNING** Double check your diffs to make sure your variable is pattern matching against the same struct if you want to harness 1.19's type checking features. Apologies to folks who hoped Styler would do this step for you <3 (#199, h/t @SteffenDE)
 
-A future version of Styler may be smart enough to do this check for you and perform the appropriate updates to the assignment location; no guarantees though. Track via #199, h/t @SteffenDE
+#### Ex1.17+
+
+- Replace `:timer.units(x)` with the new `to_timeout(unit: x)` for `hours|minutes|seconds` (This style is only applied if you're on 1.17+)
 
 ### Fixes
 
 - `pipes`: handle pipifying when the first arg is itself a pipe: `c(a |> b, d)` => `a |> b() |> c(d)` (#214, h/t @kybishop)
 - `pipes`: handle pipifying nested functions `d(c(a |> b))` => `a |> b |> c() |> d` (#216, h/t @emkguts)
-- `with`: correctly handle a stabby `with` `, else: (_ -> :ok)` being rewritten to a case (#219, h/t @iamhassangm)
+- `with`: fix a stabby `with` `, else: (_ -> :ok)` being rewritten to a case (#219, h/t @iamhassangm)
 
 ## 1.3.3
 

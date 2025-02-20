@@ -25,11 +25,9 @@ This is covered by the Elixir Formatter with the `--migrate` flag, but Styler br
 
 Rewrite `unless x` to `if !x`
 
-### 1.19
+### Change Struct Updates to Map Updates
 
-#### Change Struct Updates to Map Updates (Experimental)
-
-1.19 deprecates struct update syntax in favor of map update syntax. Styler will do this update for you if you're on Elixir 1.19.0-dev or later.
+1.19 deprecates struct update syntax in favor of map update syntax.
 
 ```elixir
 # This
@@ -38,9 +36,7 @@ Rewrite `unless x` to `if !x`
 %{x | y}
 ```
 
-**WARNING** Double check your diffs to make sure your variable is pattern matching against the same struct if you want to harness 1.18's type checking features.
-
-A future version of Styler may be smart enough to do this check for you and perform the appropriate updates to the assignment location; no guarantees though. Track via #199, h/t @SteffenDE
+**WARNING** Double check your diffs to make sure your variable is pattern matching against the same struct if you want to harness 1.19's type checking features.
 
 ### 1.18
 
