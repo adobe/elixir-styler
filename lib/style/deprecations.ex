@@ -98,7 +98,7 @@ defmodule Styler.Style.Deprecations do
 
   defp style(node), do: node
 
-  defp rewrite_range_match({:.., dm, [first, {_, m, _} = last]}), do: {:"..//", dm, [first, last, {:_, m, nil}]}
+  defp rewrite_range_match({:.., dm, [first, {_, m, _} = last]}), do: {:..//, dm, [first, last, {:_, m, nil}]}
   defp rewrite_range_match(x), do: x
 
   defp add_step_to_date_range?(first, last) do
@@ -117,7 +117,7 @@ defmodule Styler.Style.Deprecations do
          {:ok, stop} <- extract_value_from_range(last),
          true <- start > stop do
       step = {:__block__, [token: "1", line: lm[:line]], [1]}
-      {:"..//", rm, [first, last, step]}
+      {:..//, rm, [first, last, step]}
     else
       _ -> range
     end
