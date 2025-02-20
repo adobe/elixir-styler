@@ -5,25 +5,16 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.4
+
+- A very nice change in alias lifting means Styler will make sure that your code is _using_ the aliases that it's specified.
+- Shoutout to the smartrent folks for finding pipifying recursion issues
+- Elixir 1.17 improvements and fixes
+- Elixir 1.19-dev: delete struct updates
+
+Read on for details.
+
 ### Improvements
-
-#### Ex1.17+
-
-- Replace `:timer.units(x)` with the new `to_timeout(unit: x)` for `hours|minutes|seconds`
-- Handle `, else: (_ -> x)` bugs introduced by `(_ -> x)` being termed a literal (#219, h/t @iamhassangm)
-
-#### Ex1.18+
-
-Delete deprecated struct update syntax in favor of map update syntax.
-
-```elixir
-# This
-%Struct{x | y}
-# Styles to this
-%{x | y}
-```
-
-**WARNING** Double check your diffs to make sure your variable is pattern matching against the same struct if you want to harness 1.18's type checking features. (#199, h/t @SteffenDE)
 
 #### Alias Lifting
 
@@ -45,6 +36,26 @@ This release taught Styler to try just that little bit harder when doing alias l
         C.foo()
         C.bar()
         C.baz()
+
+#### Ex1.17+
+
+- Replace `:timer.units(x)` with the new `to_timeout(unit: x)` for `hours|minutes|seconds`
+- Handle `, else: (_ -> x)` bugs introduced by `(_ -> x)` being termed a literal (#219, h/t @iamhassangm)
+
+#### Ex1.19+ (experimental)
+
+1.19 deprecates struct update syntax in favor of map update syntax. Styler will do this update for you if you're on Elixir 1.19.0-dev or later.
+
+```elixir
+# This
+%Struct{x | y}
+# Styles to this
+%{x | y}
+```
+
+**WARNING** Double check your diffs to make sure your variable is pattern matching against the same struct if you want to harness 1.18's type checking features.
+
+A future version of Styler may be smart enough to do this check for you and perform the appropriate updates to the assignment location; no guarantees though. Track via #199, h/t @SteffenDE
 
 ### Fixes
 
