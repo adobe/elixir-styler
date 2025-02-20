@@ -65,6 +65,11 @@ defmodule Styler.Style.Deprecations do
     end
   end
 
+  if Version.match?(System.version(), ">= 1.18.0-dev") do
+    # Struct update syntax was deprecated `%Foo{x | y} => %{x | y}`
+    defp style({:%, _, [_struct, {:%{}, _, [{:|, _, _}]} = update]}), do: update
+  end
+
   # For ranges where `start > stop`, you need to explicitly include the step
   # Enum.slice(enumerable, 1..-2) => Enum.slice(enumerable, 1..-2//1)
   # String.slice("elixir", 2..-1) => String.slice("elixir", 2..-1//1)

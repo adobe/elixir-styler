@@ -11,6 +11,19 @@ they can and will change without that change being reflected in Styler's semanti
 
 Replace `:timer.units(x)` with the new `to_timeout(unit: x)` for `hours|minutes|seconds`
 
+#### Ex1.18+
+
+Delete deprecated struct update syntax in favor of map update syntax.
+
+```elixir
+# This
+%Struct{x | y}
+# Styles to this
+%{x | y}
+```
+
+**WARNING** Double check your diffs to make sure your variable is pattern matching against the same struct if you want to harness 1.18's type checking features. (#199, h/t @SteffenDE)
+
 #### Alias Lifting
 
 This release taught Styler to try just that little bit harder when doing alias lifting.
