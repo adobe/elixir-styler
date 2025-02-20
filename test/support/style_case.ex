@@ -82,6 +82,7 @@ defmodule Styler.StyleCase do
                 _ -> false
               end
 
+          # This isn't enabled in any test, but can be a useful audit
           if @ordered_siblings do
             case Zipper.left(zipper) do
               {{_, prev_meta, _} = prev, _} ->

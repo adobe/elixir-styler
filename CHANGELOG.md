@@ -49,6 +49,7 @@ This release taught Styler to try just that little bit harder when doing alias l
 ### Fixes
 
 - `pipes`: handle pipifying when the first arg is itself a pipe: `c(a |> b, d)` => `a |> b() |> c(d)` (#214, h/t @kybishop)
+- `pipes`: handle pipifying nested functions `d(c(a |> b))` => `a |> b |> c() |> d` (#216, h/t @emkguts)
 - `with`: correctly handle a stabby `with` `, else: (_ -> :ok)` being rewritten to a case (#219, h/t @iamhassangm)
 
 ## 1.3.3

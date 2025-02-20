@@ -132,7 +132,7 @@ defmodule Styler.Style.Pipes do
 
   # a(b |> c[, ...args])
   # The first argument to a function-looking node is a pipe.
-  # Maybe pipe the whole thing?
+  # Maybe pipify the whole thing?
   def run({{f, m, [{:|>, _, _} = pipe | args]}, _} = zipper, ctx) do
     parent =
       case Zipper.up(zipper) do
@@ -168,10 +168,11 @@ defmodule Styler.Style.Pipes do
         {:cont, zipper, ctx}
 
       true ->
-        # Recurse in case this is a multi pipe
-        zipper
-        |> Zipper.replace({:|>, m, [pipe, {f, m, args}]})
-        |> run(ctx)
+        zipper = Zipper.replace(zipper, {:|>, m, [pipe, {f, m, args}]})
+        # it's possible this is a nested function call `c(b(a |> b))`, so we should walk up the tree for de-nesting
+        zipper = Zipper.up(zipper) || zipper
+        # recursion ensures we get those nested function calls and any additional pipes
+        run(zipper, ctx)
     end
   end
 

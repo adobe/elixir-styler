@@ -943,9 +943,8 @@ defmodule Styler.Style.PipesTest do
     end
 
     test "pipifying" do
-      assert_style "d(a |> b |> c)", "a |> b() |> c() |> d()"
-      assert_style("c(a |> b, d)", "a |> b() |> c(d)")
-
+      assert_style("e(d(a |> b |> c), f)", "a |> b() |> c() |> d() |> e(f)")
+      
       assert_style(
         """
         # d
