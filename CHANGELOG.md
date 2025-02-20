@@ -9,7 +9,8 @@ they can and will change without that change being reflected in Styler's semanti
 
 #### Ex1.17+
 
-Replace `:timer.units(x)` with the new `to_timeout(unit: x)` for `hours|minutes|seconds`
+- Replace `:timer.units(x)` with the new `to_timeout(unit: x)` for `hours|minutes|seconds`
+- Handle `, else: (_ -> x)` bugs introduced by `(_ -> x)` being termed a literal (#219, h/t @iamhassangm)
 
 #### Ex1.18+
 
@@ -48,6 +49,7 @@ This release taught Styler to try just that little bit harder when doing alias l
 ### Fixes
 
 - `pipes`: handle pipifying when the first arg is itself a pipe: `c(a |> b, d)` => `a |> b() |> c(d)` (#214, h/t @kybishop)
+- `with`: correctly handle a stabby `with` `, else: (_ -> :ok)` being rewritten to a case (#219, h/t @iamhassangm)
 
 ## 1.3.3
 

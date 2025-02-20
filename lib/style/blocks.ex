@@ -54,10 +54,28 @@ defmodule Styler.Style.Blocks do
   def run({{:with, m, [{:<-, am, [success, single_statement]}, [body, elses]]}, zm}, ctx) do
     {{:__block__, do_meta, [:do]}, body} = body
     {{:__block__, _, [:else]}, elses} = elses
+
+    elses =
+      case elses do
+        # unwrap a stab ala `, else: (_ -> :ok)`. these became literals in 1.17
+        {:__block__, _, [[{:->, _, _}] = stab]} -> stab
+        elses -> elses
+      end
+
+    # drops keyword formatting etc
+    do_meta = [line: do_meta[:line]]
     clauses = [{{:__block__, am, [:do]}, [{:->, do_meta, [[success], body]} | elses]}]
-    # fun fact: i added the do/end meta just because i noticed it was missing while debugging something
-    # and it fixed the bug 🤷
-    case_meta = [do: [line: do_meta], end: [line: Style.max_line(elses)], line: m[:line]]
+    end_line = Style.max_line(elses) + 1
+
+    # fun fact: i added the detailed meta just because i noticed it was missing while debugging something ...
+    # ... and it fixed the bug 🤷
+    case_meta = [
+      end_of_expression: [newlines: 1, line: end_line],
+      do: do_meta,
+      end: [line: end_line],
+      line: m[:line]
+    ]
+
     # recurse in case this new case should be rewritten to a `if`, etc
     run({{:case, case_meta, [single_statement, clauses]}, zm}, ctx)
   end
