@@ -187,35 +187,37 @@ defmodule Styler.Style.Blocks do
 
       # drop singleton identity else clauses like `else foo -> foo end`
       elses =
-        case elses do
-          [{{_, _, [:else]}, [{:->, _, [[left], right]}]}] -> if nodes_equivalent?(left, right), do: [], else: elses
-          _ -> elses
+        with [{{_, _, [:else]}, [{:->, _, [[left], right]}]}] <- elses,
+             true <- nodes_equivalent?(left, right),
+             do: [],
+             else: (_ -> elses)
+
+      # Remove Redundant body
+      {postroll, reversed_clauses, do_body} =
+        if Enum.empty?(postroll) and Enum.empty?(elses) and nodes_equivalent?(lhs, do_body) do
+          # removing redundant RHS can expose more non-arrows behind it, so repeat our postroll process
+          {postroll, reversed_clauses} = Enum.split_while(rest, &(not left_arrow?(&1)))
+          {postroll, reversed_clauses, rhs}
+        else
+          {postroll, reversed_clauses, do_body}
         end
 
+      # Put the postroll into the body
       {reversed_clauses, do_body} =
-        cond do
-          # Put the postroll into the body
-          Enum.any?(postroll) ->
-            {node, do_body_meta, do_children} = do_body
-            do_children = if node == :__block__, do: do_children, else: [do_body]
-            do_body = {:__block__, Keyword.take(do_body_meta, [:line]), Enum.reverse(postroll, do_children)}
-            {reversed_clauses, do_body}
-
-          # Credo.Check.Refactor.RedundantWithClauseResult
-          Enum.empty?(elses) and nodes_equivalent?(lhs, do_body) ->
-            {rest, rhs}
-
-          # no change
-          true ->
-            {reversed_clauses, do_body}
+        if Enum.any?(postroll) do
+          {node, do_body_meta, do_children} = do_body
+          do_children = if node == :__block__, do: do_children, else: [do_body]
+          do_body = {:__block__, Keyword.take(do_body_meta, [:line]), Enum.reverse(postroll, do_children)}
+          {reversed_clauses, do_body}
+        else
+          {reversed_clauses, do_body}
         end
 
-      do_line = do_meta[:line]
       final_clause_line = final_clause_meta[:line]
 
       do_line =
         cond do
-          do_meta[:format] == :keyword && final_clause_line + 1 >= do_line -> do_line
+          do_meta[:format] == :keyword && final_clause_line + 1 >= do_meta[:line] -> do_meta[:line]
           do_meta[:format] == :keyword -> final_clause_line + 1
           true -> final_clause_line
         end
@@ -243,12 +245,12 @@ defmodule Styler.Style.Blocks do
           |> Zipper.prepend_siblings(preroll)
           |> run(ctx)
 
-        # the # of `<-` canged, so we should have another look at this with statement
+        # the # of `<-` changed, so we should have another look at this with statement
         Enum.any?(postroll) ->
           run(zipper, ctx)
 
         true ->
-          # of clauess didn't change, so don't reecurse or we'll loop FOREEEVEERR
+          # of clauses didn't change, so don't reecurse or we'll loop FOREEEVEERR
           {:cont, zipper, ctx}
       end
     end
