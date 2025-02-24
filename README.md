@@ -76,7 +76,9 @@ Styler's only current configuration option is `:alias_lifting_exclude`, which ac
 
 #### No Credo-Style Enable/Disable
 
-Styler [will not add configuration](https://github.com/adobe/elixir-styler/pull/127#issuecomment-1912242143) for ad-hoc enabling/disabling of rewrites. Sorry! Its implementation simply does not support that approach. There are however many forks out there that have attempted this; please explore the [Github forks tab](https://github.com/adobe/elixir-styler/forks) to see if there's a project that suits your needs or that you can draw inspiration from.
+Styler [will not add configuration](https://github.com/adobe/elixir-styler/pull/127#issuecomment-1912242143) for ad-hoc enabling/disabling of rewrites. Sorry!
+
+However, Smartrent has a fork of Styler named [Quokka](https://github.com/smartrent/quokka) that allows for finegrained control of Styler. Maybe it's what you're looking for. If not, you can always fork it or Styler as a starting point for your own tool!
 
 Ultimately Styler is @adobe's internal tool that we're happy to share with the world. We're delighted if you like it as is, and just as excited if it's a starting point for you to make something even better for yourself.
 
