@@ -18,6 +18,10 @@ they can and will change without that change being reflected in Styler's semanti
     to_timeout(week: 1)
     ```
 
+### Fixes
+
+- fixed styler raising when encountering invalid function definition ast
+
 ## 1.4
 
 - A very nice change in alias lifting means Styler will make sure that your code is _using_ the aliases that it's specified.

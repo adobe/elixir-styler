@@ -62,19 +62,18 @@ defmodule Styler.Style.Defs do
     end
   end
 
-  # all the other kinds of defs!
-  # @TODO all paths here skip, which means that `def a .. quote do def b ...` won't style `def b`
-  def run({{def, def_meta, [head, body]}, _} = zipper, ctx) when def in [:def, :defp] do
+  def run({{def, def_meta, [head, [{{:__block__, dm, [:do]}, {_, bm, _}} | _] = body]}, _} = zipper, ctx)
+      when def in [:def, :defp] do
     def_line = def_meta[:line]
+    end_line = def_meta[:end][:line] || bm[:closing][:line] || dm[:line]
 
-    if do_meta = def_meta[:do] do
-      # This is a def with a do end block
-      end_line = def_meta[:end][:line]
-
-      if def_line == end_line do
+    cond do
+      def_line == end_line ->
         {:skip, zipper, ctx}
-      else
-        do_line = do_meta[:line]
+
+      # def do end
+      Keyword.has_key?(def_meta, :do) ->
+        do_line = dm[:line]
         delta = def_line - do_line
 
         def_meta =
@@ -92,19 +91,12 @@ defmodule Styler.Style.Defs do
           |> Style.shift_comments(do_line..end_line, delta)
 
         {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
-      end
-    else
-      # This is a def with a keyword do
-      [{{:__block__, do_meta, [:do]}, {_, body_meta, _}}] = body
-      end_line = body_meta[:closing][:line] || do_meta[:line]
 
-      if def_line == end_line do
-        {:skip, zipper, ctx}
-      else
+      # def , do:
+      true ->
         node = Style.set_line({def, def_meta, [head, body]}, def_line)
         comments = Style.displace_comments(ctx.comments, def_line..end_line)
         {:skip, Zipper.replace(zipper, node), %{ctx | comments: comments}}
-      end
     end
   end
 
