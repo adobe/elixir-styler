@@ -341,4 +341,34 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style("Enum.reverse(foo, bar) ++ bar")
     end
   end
+
+  describe "to_timeout" do
+    test "to next unit" do
+      facts = [
+        {1000, :millisecond, :second},
+        {60, :second, :minute},
+        {60, :minute, :hour},
+        {24, :hour, :day},
+        {7, :day, :week}
+      ]
+
+      for {n, unit, next} <- facts do
+        assert_style "to_timeout(#{unit}: #{n} * m)", "to_timeout(#{next}: m)"
+        assert_style "to_timeout(#{unit}: m * #{n})", "to_timeout(#{next}: m)"
+        assert_style "to_timeout(#{unit}: #{n})", "to_timeout(#{next}: 1)"
+      end
+
+      assert_style "to_timeout(second: 60 * 60)", "to_timeout(hour: 1)"
+    end
+
+    test "combined with :timer.x deprecation rewrite" do
+      assert_style ":timer.minutes(60 * 4)", "to_timeout(hour: 4)"
+    end
+
+    test "doesnt mess with" do
+      assert_style "to_timeout(hour: n * m)"
+      assert_style "to_timeout(whatever)"
+      assert_style "to_timeout(hour: 24 * 1, second: 60 * 4)"
+    end
+  end
 end

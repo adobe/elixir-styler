@@ -186,6 +186,49 @@ defmodule Styler.Style.SingleNode do
   defp style({:case, cm, [head, [{do_, arrows}]]}), do: {:case, cm, [head, [{do_, rewrite_arrows(arrows)}]]}
   defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
 
+  defp style({:to_timeout, meta, [[{{:__block__, um, [unit]}, {:*, _, [left, right]}}]]} = node)
+       when unit in ~w(day hour minute second millisecond)a do
+    [l, r] =
+      Enum.map([left, right], fn
+        {_, _, [x]} -> x
+        _ -> nil
+      end)
+
+    {step, next_unit} =
+      case unit do
+        :day -> {7, :week}
+        :hour -> {24, :day}
+        :minute -> {60, :hour}
+        :second -> {60, :minute}
+        :millisecond -> {1000, :second}
+      end
+
+    if step in [l, r] do
+      n = if l == step, do: right, else: left
+      style({:to_timeout, meta, [[{{:__block__, um, [next_unit]}, n}]]})
+    else
+      node
+    end
+  end
+
+  defp style({:to_timeout, meta, [[{{:__block__, um, [unit]}, {:__block__, tm, [n]}}]]} = node) do
+    step_up =
+      case {unit, n} do
+        {:day, 7} -> :week
+        {:hour, 24} -> :day
+        {:minute, 60} -> :hour
+        {:second, 60} -> :minute
+        {:millisecond, 1000} -> :second
+        _ -> nil
+      end
+
+    if step_up do
+      {:to_timeout, meta, [[{{:__block__, um, [step_up]}, {:__block__, [token: "1", line: tm[:line]], [1]}}]]}
+    else
+      node
+    end
+  end
+
   defp style(node), do: node
 
   defp replace_into({:., dm, [{_, am, _} = enum, _]}, collectable, rest) do

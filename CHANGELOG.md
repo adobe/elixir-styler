@@ -5,6 +5,19 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Improvements
+
+- `to_timeout/1` use the next largest unit in some simple instances
+
+    ```elixir
+    # before
+    to_timeout(second: 60 * m)
+    to_timeout(day: 7)
+    # after
+    to_timeout(minute: m)
+    to_timeout(week: 1)
+    ```
+
 ## 1.4
 
 - A very nice change in alias lifting means Styler will make sure that your code is _using_ the aliases that it's specified.
