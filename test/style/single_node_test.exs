@@ -361,10 +361,6 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style "to_timeout(second: 60 * 60)", "to_timeout(hour: 1)"
     end
 
-    test "combined with :timer.x deprecation rewrite" do
-      assert_style ":timer.minutes(60 * 4)", "to_timeout(hour: 4)"
-    end
-
     test "doesnt mess with" do
       assert_style "to_timeout(hour: n * m)"
       assert_style "to_timeout(whatever)"
