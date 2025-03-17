@@ -5,9 +5,11 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.4.1
+
 ### Improvements
 
-- `to_timeout/1` use the next largest unit in some simple instances
+- `to_timeout/1` rewrites to use the next largest unit in some simple instances
 
     ```elixir
     # before
