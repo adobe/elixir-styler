@@ -31,6 +31,7 @@ defmodule Styler.Style.Blocks do
   alias Styler.Zipper
 
   defguardp is_negator(n) when elem(n, 0) in [:!, :not, :!=, :!==]
+  defguardp is_empty_body(n) when elem(n, 0) == :__block__ and elem(n, 2) in [[nil], []]
 
   # case statement with exactly 2 `->` cases
   # rewrite to `if` if it's any of 3 trivial cases
@@ -139,13 +140,13 @@ defmodule Styler.Style.Blocks do
       [negator, [{do_, do_body}, {else_, else_body}]] when is_negator(negator) ->
         zipper |> Zipper.replace({:if, m, [invert(negator), [{do_, else_body}, {else_, do_body}]]}) |> run(ctx)
 
-      # drop `else end`
-      [head, [do_block, {_, {:__block__, _, []}}]] ->
+      # drop `else end` and `else: nil`
+      [head, [do_block, {_, else_body}]] when is_empty_body(else_body) ->
         {:cont, Zipper.replace(zipper, {:if, m, [head, [do_block]]}), ctx}
 
-      # drop `else: nil`
-      [head, [do_block, {_, {:__block__, _, [nil]}}]] ->
-        {:cont, Zipper.replace(zipper, {:if, m, [head, [do_block]]}), ctx}
+      # invert and drop `do: nil`
+      [head, [{do_, do_body}, {_, else_body}]] when is_empty_body(do_body) ->
+        {:cont, Zipper.replace(zipper, {:if, m, [invert(head), [{do_, else_body}]]}), ctx}
 
       [head, [do_, else_]] ->
         if Style.max_line(do_) > Style.max_line(else_) do

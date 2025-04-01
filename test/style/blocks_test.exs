@@ -988,6 +988,32 @@ defmodule Styler.Style.BlocksTest do
       )
     end
 
+    test "inverts do nil" do
+      assert_style("if a, do: b, else: nil", "if a, do: b")
+
+      assert_style("if a do nil else b end", """
+      if !a do
+        b
+      end
+      """)
+
+      assert_style(
+        """
+        if a == b do
+          # comment
+        else
+          :ok
+        end
+        """,
+        """
+        if a != b do
+          # comment
+          :ok
+        end
+        """
+      )
+    end
+
     test "double negator rewrites" do
       for a <- ~w(not !), block <- ["do: z", "do: z, else: zz"] do
         assert_style "if #{a} (x != y), #{block}", "if x == y, #{block}"

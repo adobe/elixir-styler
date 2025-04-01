@@ -5,6 +5,10 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Improvements
+
+- `if`: drop empty `do` bodies like `if a, do: nil, else: b` => `if !a, do: b` (#227)
+
 ## 1.4.1
 
 ### Improvements

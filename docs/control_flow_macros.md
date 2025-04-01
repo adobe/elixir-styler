@@ -21,6 +21,8 @@ We advocate for `case` and `if` as the first tools to be considered for any cont
 
 Never! `unless` [is being deprecated](https://github.com/elixir-lang/elixir/pull/13769#issuecomment-2334878315) and so should not be used.
 
+Styler replaces `unless` statements with their `if` equivalent similar to using the `mix format --migrate_unless` flag.
+
 ### use `with` when...
 
 > `with` great power comes great responsibility
@@ -56,33 +58,25 @@ if a, do: b, else: nil
 if a, do: b
 ```
 
+It also removes `do: nil` when an `else` is present, inverting the head to maintain semantics
+
+```elixir
+if a, do: nil, else: b
+# styled:
+if !a, do: b
+```
+
 ### Negation Inversion
 
-Styler removes negators in the head of `if` and `unless` statements by "inverting" the statement.
+Styler removes negators in the head of `if` statements by "inverting" the statement.
 The following operators are considered "negators": `!`, `not`, `!=`, `!==`
-
 
 Examples:
 
 ```elixir
-# negated `if` statement with no `else` clause are rewritten to `unless`
-if not x, do: y
-# Styled:
-unless x, do: y
-
 # negated `if` statements with an `else` clause have their clauses inverted and negation removed
 if !x, do: y, else: z
 # Styled:
-if x, do: z, else: y
-
-# negated `unless` statements are rewritten to `if`
-unless x != y, do: z
-# B styled:
-if x == y, do: z
-
-# `unless` with `else` is verboten; these are always rewritten to `if` statements
-unless x, do: y, else: z
-# styled:
 if x, do: z, else: y
 ```
 
