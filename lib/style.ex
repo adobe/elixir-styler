@@ -193,29 +193,30 @@ defmodule Styler.Style do
     end
   end
 
-  # Reoders the nodes' meta and comments line numbers to fit the order of the nodes.
-  def order_line_meta_and_comments(nodes, comments, first_line), do: fix_lines(nodes, comments, first_line, [], [])
+  @doc "Sets the nodes' meta line and comments' line numbers to fit the ordering of the nodes list."
+  def order_line_meta_and_comments(nodes, comments, first_line) do
+    {nodes, node_comments, comments, _line} =
+      Enum.reduce(nodes, {[], [], comments, first_line}, fn node, {n_acc, c_acc, comments, start_line} ->
+        meta = meta(node)
+        line = meta[:line]
+        last_line = max_line(node)
 
-  defp fix_lines([node | nodes], comments, start_line, n_acc, c_acc) do
-    meta = meta(node)
-    line = meta[:line]
-    last_line = max_line(node)
-    {mine, comments} = comments_for_lines(comments, line, last_line)
-    line_with_comments = List.first(mine)[:line] || line
-    shift = start_line - line_with_comments + 1
+        # @TODO what about comments that were free floating between blocks? i'm just ignoring them and maybe always will...
+        # kind of just want to shove them to the end though, so that they don't interrupt existing stanzas.
+        # i think that's accomplishable by doing a final call above that finds all comments in the comments list that weren't moved
+        # and which are in the range of start..finish and sets their lines to finish!
+        {mine, comments} = comments_for_lines(comments, line, last_line)
+        line_with_comments = List.first(mine)[:line] || line
+        shift = start_line - line_with_comments + 1
 
-    shifted_node = shift_line(node, shift)
-    shifted_comments = Enum.map(mine, &%{&1 | line: &1.line + shift})
+        shifted_node = shift_line(node, shift)
+        shifted_comments = Enum.map(mine, &%{&1 | line: &1.line + shift})
+        last_line = last_line + shift + (meta[:end_of_expression][:newlines] || 0)
+        {[shifted_node | n_acc], shifted_comments ++ c_acc, comments, last_line}
+      end)
 
-    # @TODO what about comments that were free floating between blocks? i'm just ignoring them and maybe always will...
-    # kind of just want to shove them to the end though, so that they don't interrupt existing stanzas.
-    # i think that's accomplishable by doing a final call above that finds all comments in the comments list that weren't moved
-    # and which are in the range of start..finish and sets their lines to finish!
-    last_line = last_line + shift + (meta[:end_of_expression][:newlines] || 0)
-    fix_lines(nodes, comments, last_line, [shifted_node | n_acc], shifted_comments ++ c_acc)
+    {Enum.reverse(nodes), Enum.sort_by(comments ++ node_comments, & &1.line)}
   end
-
-  defp fix_lines([], comments, _, nodes, node_c), do: {Enum.reverse(nodes), Enum.sort_by(comments ++ node_c, & &1.line)}
 
   # typical node
   def meta({_, meta, _}), do: meta
