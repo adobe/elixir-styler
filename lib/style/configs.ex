@@ -86,7 +86,7 @@ defmodule Styler.Style.Configs do
         # the first node of `rest` is greater than the highest line in configs, assignments
         # config line is the first line to be used as part of this block
         {node_comments, _} = Style.comments_for_node(config, comments)
-        first_line = min(List.last(node_comments)[:line] || cfm[:line], cfm[:line])
+        first_line = min(List.first(node_comments)[:line] || cfm[:line], cfm[:line])
         Style.order_line_meta_and_comments(nodes, comments, first_line)
       else
         {nodes, comments}

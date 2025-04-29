@@ -354,38 +354,40 @@ defmodule Styler.Style.ConfigsTest do
 
     test "big block regression #230" do
       # The nodes are in reverse order
-      assert_style """
-                   import Config
+      assert_style(
+        """
+        import Config
 
-                   # z-a
-                   # z-b
-                   # z-c
-                   # z-d
-                   # z-e
-                   config :z, z
+        # z-a
+        # z-b
+        # z-c
+        # z-d
+        # z-e
+        config :z, z
 
-                   # y
-                   config :y, y
+        # y
+        config :y, y
 
-                   # x
-                   config :x, x
-                   """,
-                   """
-                   import Config
+        # x
+        config :x, x
+        """,
+        """
+        import Config
 
-                   # x
-                   config :x, x
+        # x
+        config :x, x
 
-                   # y
-                   config :y, y
+        # y
+        config :y, y
 
-                   # z-a
-                   # z-b
-                   # z-c
-                   # z-d
-                   # z-e
-                   config :z, z
-                   """
+        # z-a
+        # z-b
+        # z-c
+        # z-d
+        # z-e
+        config :z, z
+        """
+      )
     end
   end
 end

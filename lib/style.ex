@@ -194,28 +194,26 @@ defmodule Styler.Style do
   end
 
   @doc "Sets the nodes' meta line and comments' line numbers to fit the ordering of the nodes list."
+  # TODO this doesn't grab comments which are floating as their own paragrpah, unconnected to a node
+  # they'll just be left floating where they were, then mangled with the re-ordered comments..
   def order_line_meta_and_comments(nodes, comments, first_line) do
-    {nodes, node_comments, comments, _line} =
-      Enum.reduce(nodes, {[], [], comments, first_line}, fn node, {n_acc, c_acc, comments, start_line} ->
+    {nodes, shifted_comments, comments, _line} =
+      Enum.reduce(nodes, {[], [], comments, first_line}, fn node, {n_acc, c_acc, comments, move_to_line} ->
         meta = meta(node)
         line = meta[:line]
         last_line = max_line(node)
-
-        # @TODO what about comments that were free floating between blocks? i'm just ignoring them and maybe always will...
-        # kind of just want to shove them to the end though, so that they don't interrupt existing stanzas.
-        # i think that's accomplishable by doing a final call above that finds all comments in the comments list that weren't moved
-        # and which are in the range of start..finish and sets their lines to finish!
         {mine, comments} = comments_for_lines(comments, line, last_line)
-        line_with_comments = List.first(mine)[:line] || line
-        shift = start_line - line_with_comments + 1
 
+        shift = move_to_line - (List.first(mine)[:line] || line) + 1
         shifted_node = shift_line(node, shift)
         shifted_comments = Enum.map(mine, &%{&1 | line: &1.line + shift})
-        last_line = last_line + shift + (meta[:end_of_expression][:newlines] || 0)
-        {[shifted_node | n_acc], shifted_comments ++ c_acc, comments, last_line}
+
+        move_to_line = last_line + shift + (meta[:end_of_expression][:newlines] || 0)
+
+        {[shifted_node | n_acc], shifted_comments ++ c_acc, comments, move_to_line}
       end)
 
-    {Enum.reverse(nodes), Enum.sort_by(comments ++ node_comments, & &1.line)}
+    {Enum.reverse(nodes), Enum.sort_by(comments ++ shifted_comments, & &1.line)}
   end
 
   # typical node
