@@ -202,7 +202,7 @@ defmodule Styler.Style do
     line = meta[:line]
     last_line = max_line(node)
     {mine, comments} = comments_for_lines(comments, line, last_line)
-    line_with_comments = List.last(mine)[:line] || line
+    line_with_comments = List.first(mine)[:line] || line
     shift = start_line - line_with_comments + 1
 
     shifted_node = shift_line(node, shift)
@@ -258,9 +258,9 @@ defmodule Styler.Style do
       # we count that as a match, and look above it to see if it's a multiline comment
       line == start - 1 -> comments_for_lines(rev_comments, start - 1, last, [comment | match], acc)
       # comment before start - we've thus iterated through all comments which could be in our range
-      true -> {Enum.reverse(match), Enum.reverse(rev_comments, [comment | acc])}
+      true -> {match, Enum.reverse(rev_comments, [comment | acc])}
     end
   end
 
-  defp comments_for_lines([], _, _, match, acc), do: {Enum.reverse(match), acc}
+  defp comments_for_lines([], _, _, match, acc), do: {match, acc}
 end
