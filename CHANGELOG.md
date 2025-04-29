@@ -5,10 +5,6 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
-### Improvements
-
-- `if`: drop empty `do` bodies like `if a, do: nil, else: b` => `if !a, do: b` (#227)
-
 ### Fixes
 
 - fix bug that mangled large blocks of comments when sorting in configs or with `# styler:sort` (#230, h/t @cschmatzler)
