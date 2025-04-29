@@ -194,8 +194,7 @@ defmodule Styler.Style do
   end
 
   # Reoders the nodes' meta and comments line numbers to fit the order of the nodes.
-  def order_line_meta_and_comments(nodes, comments, first_line),
-    do: fix_lines(nodes, comments, first_line, [], [])
+  def order_line_meta_and_comments(nodes, comments, first_line), do: fix_lines(nodes, comments, first_line, [], [])
 
   defp fix_lines([node | nodes], comments, start_line, n_acc, c_acc) do
     meta = meta(node)
@@ -216,9 +215,7 @@ defmodule Styler.Style do
     fix_lines(nodes, comments, last_line, [shifted_node | n_acc], shifted_comments ++ c_acc)
   end
 
-  defp fix_lines([], comments, _, nodes, node_comments), do: {Enum.reverse(nodes), Enum.sort_by(comments ++ node_comments, & &1.line)}
-
-
+  defp fix_lines([], comments, _, nodes, node_c), do: {Enum.reverse(nodes), Enum.sort_by(comments ++ node_c, & &1.line)}
 
   # typical node
   def meta({_, meta, _}), do: meta
