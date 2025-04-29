@@ -166,6 +166,7 @@ defmodule Styler.Style.ConfigsTest do
         config :a, 2
         config :a, 3
         config :a, 4
+
         # comment
         # b comment
         config :b, 1
@@ -334,9 +335,9 @@ defmodule Styler.Style.ConfigsTest do
           c: :d,
           e: :f
 
-        config :c,
-          # some junk after b, idk
+        # some junk after b, idk
 
+        config :c,
           # ca
           ca: :ca,
           # cb 1
@@ -349,6 +350,42 @@ defmodule Styler.Style.ConfigsTest do
         # end of config
         """
       )
+    end
+
+    test "big block regression #230" do
+      # The nodes are in reverse order
+      assert_style """
+                   import Config
+
+                   # z-a
+                   # z-b
+                   # z-c
+                   # z-d
+                   # z-e
+                   config :z, z
+
+                   # y
+                   config :y, y
+
+                   # x
+                   config :x, x
+                   """,
+                   """
+                   import Config
+
+                   # x
+                   config :x, x
+
+                   # y
+                   config :y, y
+
+                   # z-a
+                   # z-b
+                   # z-c
+                   # z-d
+                   # z-e
+                   config :z, z
+                   """
     end
   end
 end
