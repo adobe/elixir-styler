@@ -69,7 +69,7 @@ if !a, do: b
 ### Negation Inversion
 
 Styler removes negators in the head of `if` statements by "inverting" the statement.
-The following operators are considered "negators": `!`, `not`, `!=`, `!==`
+The following operators are considered "negators": `!`, `not`, `!=`, `!==`, `is_nil`
 
 Examples:
 
@@ -83,7 +83,12 @@ if x, do: z, else: y
 Because elixir relies on truthy/falsey values for its `if` statements, boolean casting is unnecessary and so double negation is simply removed.
 
 ```elixir
-if !!x, do: y
+if !x, do: y
+# styled:
+if x, do: y
+
+# similarly
+if !is_nil(x), do: y
 # styled:
 if x, do: y
 ```

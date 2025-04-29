@@ -8,6 +8,13 @@ they can and will change without that change being reflected in Styler's semanti
 ### Improvements
 
 - `if`: drop empty `do` bodies like `if a, do: nil, else: b` => `if !a, do: b` (#227)
+- `if`: treat `is_nil` as a negator.
+
+  this means `if is_nil(x), do: a, else: b` will be inverted to `if x, do: b, else: a`
+
+  or `if !is_nil(x), do: y` will be rewritten as `if x, do: y`
+
+  This could cause problems where x is `false` =)
 
 ### Fixes
 

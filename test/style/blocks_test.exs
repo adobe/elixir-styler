@@ -1012,6 +1012,12 @@ defmodule Styler.Style.BlocksTest do
         end
         """
       )
+
+      assert_style "if is_nil(a.b), do: nil, else: a.c", "if a.b, do: a.c"
+    end
+
+    test "if not is_nil" do
+      assert_style "if is_nil(a), do: b, else: c", "if a, do: c, else: b"
     end
 
     test "double negator rewrites" do
