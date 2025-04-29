@@ -30,7 +30,7 @@ defmodule Styler.Style.Blocks do
   alias Styler.Style
   alias Styler.Zipper
 
-  defguardp is_if_negator(n) when elem(n, 0) in [:!, :not, :!=, :!==, :is_nil]
+  defguardp is_negator(n) when elem(n, 0) in [:!, :not, :!=, :!==]
   defguardp is_empty_body(n) when elem(n, 0) == :__block__ and elem(n, 2) in [[nil], []]
 
   # case statement with exactly 2 `->` cases
@@ -132,12 +132,12 @@ defmodule Styler.Style.Blocks do
     case children do
       # double negator
       # if !!x, do: y[, else: ...] => if x, do: y[, else: ...]
-      [{_, _, [nb]} = na, do_else] when is_if_negator(na) and is_if_negator(nb) ->
+      [{_, _, [nb]} = na, do_else] when is_negator(na) and is_negator(nb) ->
         zipper |> Zipper.replace({:if, m, [invert(nb), do_else]}) |> run(ctx)
 
       # Credo.Check.Refactor.NegatedConditionsWithElse
       # if !x, do: y, else: z => if x, do: z, else: y
-      [negator, [{do_, do_body}, {else_, else_body}]] when is_if_negator(negator) ->
+      [negator, [{do_, do_body}, {else_, else_body}]] when is_negator(negator) ->
         zipper |> Zipper.replace({:if, m, [invert(negator), [{do_, else_body}, {else_, do_body}]]}) |> run(ctx)
 
       # drop `else end` and `else: nil`
@@ -368,6 +368,5 @@ defmodule Styler.Style.Blocks do
   defp invert({:!, _, [condition]}), do: condition
   defp invert({:not, _, [condition]}), do: condition
   defp invert({:in, m, [_, _]} = ast), do: {:not, m, [ast]}
-  defp invert({:is_nil, _, [a]}), do: a
   defp invert({_, m, _} = ast), do: {:!, [line: m[:line]], [ast]}
 end
