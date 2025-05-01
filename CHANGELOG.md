@@ -5,9 +5,11 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.4.2
+
 ### Fixes
 
-- fix bug that mangled large blocks of comments when sorting in configs or with `# styler:sort` (#230, h/t @cschmatzler)
+- fix comment misplacement for large comment blocks in config files and `# styler:sort` (#230, h/t @cschmatzler)
 
 ## 1.4.1
 
@@ -28,7 +30,7 @@ they can and will change without that change being reflected in Styler's semanti
 
 - fixed styler raising when encountering invalid function definition ast
 
-## 1.4
+## 1.4.0
 
 - A very nice change in alias lifting means Styler will make sure that your code is _using_ the aliases that it's specified.
 - Shoutout to the smartrent folks for finding pipifying recursion issues
