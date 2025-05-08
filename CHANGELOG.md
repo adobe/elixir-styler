@@ -49,6 +49,7 @@ This release taught Styler to try just that little bit harder when doing alias l
 - use knowledge of existing aliases to shorten invocations (#201, h/t me)
 
     example:
+
         alias A.B.C
 
         A.B.C.foo()
@@ -56,6 +57,7 @@ This release taught Styler to try just that little bit harder when doing alias l
         A.B.C.baz()
 
     becomes:
+
         alias A.B.C
 
         C.foo()
@@ -93,6 +95,7 @@ This release taught Styler to try just that little bit harder when doing alias l
 - `# styler:sort` will sort arbitrary ast nodes within a `do end` block:
 
     Given:
+
         # styler:sort
         my_macro "some arg" do
           another_macro :q
@@ -104,6 +107,7 @@ This release taught Styler to try just that little bit harder when doing alias l
         end
 
     We get
+
         # styler:sort
         my_macro "some arg" do
           another_macro :e
@@ -133,8 +137,6 @@ This release taught Styler to try just that little bit harder when doing alias l
 ### Fixes
 
 - `# styler:sort` no longer blows up on keyword lists :X
-
-### Fixes
 
 ## 1.3.0
 
