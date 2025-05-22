@@ -26,14 +26,8 @@ defmodule Styler.Zipper do
   import Kernel, except: [node: 1]
 
   @type tree :: Macro.t()
-
-  @opaque path :: %{
-            l: [tree],
-            ptree: zipper,
-            r: [tree]
-          }
-
   @type zipper :: {tree, path | nil}
+  @type path :: {left :: [tree], parent :: zipper, right :: [tree]}
   @type t :: zipper
   @type command :: :cont | :skip | :halt
 
@@ -91,7 +85,7 @@ defmodule Styler.Zipper do
   def down(zipper) do
     case children(zipper) do
       [] -> nil
-      [first | rest] -> {first, %{ptree: zipper, l: [], r: rest}}
+      [first | rest] -> {first, {[], zipper, rest}}
     end
   end
 
@@ -102,9 +96,8 @@ defmodule Styler.Zipper do
   @spec up(zipper) :: zipper | nil
   def up({_, nil}), do: nil
 
-  def up({tree, meta}) do
-    children = Enum.reverse(meta.l, [tree | meta.r])
-    {parent, parent_meta} = meta.ptree
+  def up({tree, {l, {parent, parent_meta}, r}}) do
+    children = Enum.reverse(l, [tree | r])
     {do_replace_children(parent, children), parent_meta}
   end
 
@@ -112,16 +105,16 @@ defmodule Styler.Zipper do
   Returns the zipper of the left sibling of the node at this zipper, or nil.
   """
   @spec left(zipper) :: zipper | nil
-  def left({tree, %{l: [ltree | l], r: r} = meta}), do: {ltree, %{meta | l: l, r: [tree | r]}}
+  def left({tree, {[ltree | l], p, r}}), do: {ltree, {l, p, [tree | r]}}
   def left(_), do: nil
 
   @doc """
   Returns the leftmost sibling of the node at this zipper, or itself.
   """
   @spec leftmost(zipper) :: zipper
-  def leftmost({tree, %{l: [_ | _] = l} = meta}) do
-    [leftmost | r] = Enum.reverse(l, [tree | meta.r])
-    {leftmost, %{meta | l: [], r: r}}
+  def leftmost({tree, {[_ | _] = l, p, r}}) do
+    [leftmost | r] = Enum.reverse(l, [tree | r])
+    {leftmost, {[], p, r}}
   end
 
   def leftmost({_, _} = zipper), do: zipper
@@ -130,16 +123,16 @@ defmodule Styler.Zipper do
   Returns the zipper of the right sibling of the node at this zipper, or nil.
   """
   @spec right(zipper) :: zipper | nil
-  def right({tree, %{r: [rtree | r]} = meta}), do: {rtree, %{meta | r: r, l: [tree | meta.l]}}
+  def right({tree, {l, p, [rtree | r]}}), do: {rtree, {[tree | l], p, r}}
   def right(_), do: nil
 
   @doc """
   Returns the rightmost sibling of the node at this zipper, or itself.
   """
   @spec rightmost(zipper) :: zipper
-  def rightmost({tree, %{r: [_ | _] = r} = meta}) do
-    [rightmost | l] = Enum.reverse(r, [tree | meta.l])
-    {rightmost, %{meta | l: l, r: []}}
+  def rightmost({tree, {l, p, [_ | _] = r}}) do
+    [rightmost | l] = Enum.reverse(r, [tree | l])
+    {rightmost, {l, p, []}}
   end
 
   def rightmost({_, _} = zipper), do: zipper
@@ -163,8 +156,8 @@ defmodule Styler.Zipper do
   """
   @spec remove(zipper) :: zipper
   def remove({_, nil}), do: raise(ArgumentError, message: "Cannot remove the top level node.")
-  def remove({_, %{l: [left | rest]} = meta}), do: prev_down({left, %{meta | l: rest}})
-  def remove({_, %{ptree: {parent, parent_meta}, r: children}}), do: {do_replace_children(parent, children), parent_meta}
+  def remove({_, {[left | rest], p, r}}), do: prev_down({left, {rest, p, r}})
+  def remove({_, {_, {parent, parent_meta}, children}}), do: {do_replace_children(parent, children), parent_meta}
 
   @doc """
   Inserts the item as the left sibling of the node at this zipper, without
@@ -184,7 +177,7 @@ defmodule Styler.Zipper do
   """
   @spec prepend_siblings(zipper, [tree]) :: zipper
   def prepend_siblings({node, nil}, siblings), do: {:__block__, [], siblings ++ [node]} |> zip() |> down() |> rightmost()
-  def prepend_siblings({tree, meta}, siblings), do: {tree, %{meta | l: Enum.reverse(siblings, meta.l)}}
+  def prepend_siblings({tree, {l, p, r}}, siblings), do: {tree, {Enum.reverse(siblings, l), p , r}}
 
   @doc """
   Inserts the item as the right sibling of the node at this zipper, without
@@ -204,7 +197,7 @@ defmodule Styler.Zipper do
   """
   @spec insert_siblings(zipper, [tree]) :: zipper
   def insert_siblings({node, nil}, siblings), do: {:__block__, [], [node | siblings]} |> zip() |> down()
-  def insert_siblings({tree, meta}, siblings), do: {tree, %{meta | r: siblings ++ meta.r}}
+  def insert_siblings({tree, {l, p, r}}, siblings), do: {tree, {l, p, siblings ++ r}}
 
   @doc """
   Inserts the item as the leftmost child of the node at this zipper,
