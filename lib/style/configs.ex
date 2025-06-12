@@ -48,9 +48,8 @@ defmodule Styler.Style.Configs do
   end
 
   def run({{:config, cfm, [_, _ | _]} = config, zm}, %{mix_config?: true, comments: comments} = ctx) do
-    {l, p, r} = zm
     # all of these list are reversed due to the reduce
-    {configs, assignments, rest} = accumulate(r, [], [])
+    {configs, assignments, rest} = accumulate(zm.r, [], [])
     # @TODO
     # okay so comments between nodes that we moved.......
     # lets just push them out of the way (???). so
@@ -93,9 +92,9 @@ defmodule Styler.Style.Configs do
         {nodes, comments}
       end
 
-    [config | left_siblings] = Enum.reverse(nodes, l)
+    [config | left_siblings] = Enum.reverse(nodes, zm.l)
 
-    {:skip, {config, {left_siblings, p, rest}}, %{ctx | comments: comments}}
+    {:skip, {config, %{zm | l: left_siblings, r: rest}}, %{ctx | comments: comments}}
   end
 
   def run(zipper, %{config?: true} = ctx) do

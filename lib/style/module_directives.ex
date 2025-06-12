@@ -107,9 +107,9 @@ defmodule Styler.Style.ModuleDirectives do
   # puts `@derive` before `defstruct` etc, fixing compiler warnings
   def run({{:@, _, [{:derive, _, _}]}, _} = zipper, ctx) do
     case Style.ensure_block_parent(zipper) do
-      {:ok, {derive, {l, p, r}}} ->
+      {:ok, {derive, %{l: left_siblings} = z_meta}} ->
         previous_defstruct =
-          l
+          left_siblings
           |> Stream.with_index()
           |> Enum.find_value(fn
             {{struct_def, meta, _}, index} when struct_def in @defstruct -> {meta[:line], index}
@@ -119,8 +119,8 @@ defmodule Styler.Style.ModuleDirectives do
         if previous_defstruct do
           {defstruct_line, defstruct_index} = previous_defstruct
           derive = Style.set_line(derive, defstruct_line - 1)
-          left_siblings = List.insert_at(l, defstruct_index + 1, derive)
-          {:skip, Zipper.remove({derive, {left_siblings, p, r}}), ctx}
+          left_siblings = List.insert_at(left_siblings, defstruct_index + 1, derive)
+          {:skip, Zipper.remove({derive, %{z_meta | l: left_siblings}}), ctx}
         else
           {:cont, zipper, ctx}
         end
