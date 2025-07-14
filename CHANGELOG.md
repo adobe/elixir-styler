@@ -5,6 +5,10 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Fixes
+
+- fix de-sugaring of syntax-sugared keyword lists whose values weren't atoms in map values (#236, h/t @RisPNG)
+
 ## 1.4.2
 
 ### Fixes

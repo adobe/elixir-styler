@@ -241,19 +241,13 @@ defmodule Styler.Style.Pipes do
     else
       # looks like it's just a normal function, so lift the first arg up into a new pipe
       # `foo(a, ...) |> ...` => `a |> foo(...) |> ...`
+      #
+      # If the first arg is a syntax-sugared kwl, we need to manually desugar it
       arg =
-        case arg do
-          # If the first arg is a syntax-sugared kwl, we need to manually desugar it to cover all scenarios
-          [{{:__block__, bm, _}, {:__block__, _, _}} | _] ->
-            if bm[:format] == :keyword do
-              {:__block__, [line: line, closing: [line: line]], [arg]}
-            else
-              arg
-            end
-
-          arg ->
-            arg
-        end
+        with [{{:__block__, bm, _}, _} | _] <- arg,
+             :keyword <- bm[:format],
+             do: {:__block__, [line: line, closing: [line: line]], [arg]},
+             else: (_ -> arg)
 
       {{:|>, [line: line], [arg, {fun, meta, args}]}, nil}
     end

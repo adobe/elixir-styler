@@ -455,8 +455,8 @@ defmodule Styler.Style.PipesTest do
     end
 
     test "writes brackets for unpiped kwl" do
-      assert_style("foo(kwl: :arg) |> bar()", "[kwl: :arg] |> foo() |> bar()")
-      assert_style("%{a: foo(a: :b, c: :d) |> bar()}", "%{a: [a: :b, c: :d] |> foo() |> bar()}")
+      assert_style("foo(kwl: arg) |> bar()", "[kwl: arg] |> foo() |> bar()")
+      assert_style("%{a: foo(a: b, c: :d) |> bar()}", "%{a: [a: b, c: :d] |> foo() |> bar()}")
       assert_style("%{a: foo([a: :b, c: :d]) |> bar()}", "%{a: [a: :b, c: :d] |> foo() |> bar()}")
     end
 
