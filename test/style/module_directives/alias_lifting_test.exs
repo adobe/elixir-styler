@@ -208,17 +208,23 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       alias A.B.C
 
       A.B.C.foo()
-      A.B.C.foo()
-      A.B.C.foo()
       """,
       """
       alias A.B.C
 
       C.foo()
-      C.foo()
-      C.foo()
       """
     )
+
+    assert_style """
+                 alias A.B
+                 A.B.foo()
+                 """,
+                 """
+                 alias A.B
+
+                 B.foo()
+                 """
   end
 
   test "two modules that seem to conflict but don't!" do

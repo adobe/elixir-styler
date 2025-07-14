@@ -407,7 +407,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         alias B.B
         alias D.D
 
-        require A.A
+        require A
         require A.C
 
         @type foo :: :ok

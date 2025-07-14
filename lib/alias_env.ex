@@ -14,7 +14,7 @@ defmodule Styler.AliasEnv do
 
   Not anywhere as correct as what the compiler gives us, but close enough for open source work.
 
-  A alias env is a map from an alias's `as` to its resolution in a context.
+  An alias env is a map from an alias's `as` to its resolution in a context.
 
   Given the ast for
 
@@ -49,15 +49,18 @@ defmodule Styler.AliasEnv do
     end)
   end
 
-  # if the list of modules is itself already aliased, dealias it with the compound alias
-  # given:
-  #   alias Foo.Bar
-  #   Bar.Baz.Bop.baz()
+  # Lengthens an alias to its full name, if its first name is defined in the environment
   #
-  # lifting Bar.Baz.Bop should result in:
-  #   alias Foo.Bar
-  #   alias Foo.Bar.Baz.Bop
-  #   Bop.baz()
+  # given code:
+  #   alias Bar.Baz.Foo #<- env
+  #   Foo.Woo.Cool # <- modules
+  # get code:
+  #   alias Bar.Baz.Foo
+  #   Bar.Baz.Foo.Woo.Cool
+  #
+  # or in terms of this function:
+  # > do_expand(%{Foo: [Bar, Baz, Foo]}, [Foo, Woo, Cool])
+  # # => [Bar, Baz, Foo, Woo, Cool]
   defp do_expand(env, [first | rest] = modules) do
     if dealias = env[first], do: dealias ++ rest, else: modules
   end
