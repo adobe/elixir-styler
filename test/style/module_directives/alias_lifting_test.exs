@@ -369,7 +369,7 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
 
   describe "it doesn't lift" do
     test "collisions with configured modules" do
-      Styler.Config.set!(alias_lifting_exclude: ~w(C)a)
+      Styler.Config.set(alias_lifting_exclude: ~w(C)a)
 
       assert_style """
       alias Foo.Bar
@@ -378,7 +378,7 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       A.B.C
       """
 
-      Styler.Config.set!([])
+      Styler.Config.set([])
     end
 
     test "collisions with std lib" do

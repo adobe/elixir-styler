@@ -32,7 +32,7 @@ defmodule Styler do
   @doc false
   def style({ast, comments}, file, opts) do
     on_error = opts[:on_error] || :log
-    Styler.Config.set(opts)
+    Styler.Config.initialize(opts)
     zipper = Zipper.zip(ast)
 
     {{ast, _}, comments} =

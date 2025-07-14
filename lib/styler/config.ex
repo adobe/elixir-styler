@@ -19,14 +19,15 @@ defmodule Styler.Config do
     Range Record Regex Registry Set Stream String StringIO Supervisor System Task Time Tuple URI Version
   )a)
 
-  def set(config) do
+  def initialize(config) do
     :persistent_term.get(@key)
     :ok
   rescue
-    ArgumentError -> set!(config)
+    ArgumentError -> set(config)
   end
 
-  def set!(config) do
+  # Public for tests
+  def set(config) do
     excludes =
       config[:alias_lifting_exclude]
       |> List.wrap()
@@ -42,8 +43,16 @@ defmodule Styler.Config do
       end)
       |> MapSet.union(@stdlib)
 
+    elixir_version =
+      case config[:minimum_supported_elixir_version] do
+        vsn when is_binary(vsn) -> Version.parse!(vsn)
+        nil -> nil
+        other -> raise ArgumentError, "`:minimum_supported_elixir_version` must be a string, got: #{inspect(other)}"
+      end
+
     :persistent_term.put(@key, %{
-      lifting_excludes: excludes
+      lifting_excludes: excludes,
+      minimum_supported_elixir_version: elixir_version
     })
   end
 
@@ -51,5 +60,13 @@ defmodule Styler.Config do
     @key
     |> :persistent_term.get()
     |> Map.fetch!(key)
+  end
+
+  def version_compatible?(%Version{} = version) do
+    if minimum_supported_elixir_version = get(:minimum_supported_elixir_version) do
+      Version.compare(version, minimum_supported_elixir_version) != :gt
+    else
+      true
+    end
   end
 end

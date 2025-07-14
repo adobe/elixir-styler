@@ -67,12 +67,14 @@ Styler can be configured in your `.formatter.exs` file
 [
   plugins: [Styler],
   styler: [
-    alias_lifting_exclude: [...]
+    alias_lifting_exclude: [...],
+    minimum_supported_elixir_version: "..."
   ]
 ]
 ```
 
-Styler's only current configuration option is `:alias_lifting_exclude`, which accepts a list of atoms to _not_ lift. See the [Module Directive documentation](docs/module_directives.md#alias-lifting) for more.
+* `alias_lifting_exclude`: a list of module names to _not_ lift. See the [Module Directive documentation](docs/module_directives.md#alias-lifting) for more.
+* `minimum_supported_elixir_version`: intended for library authors; overrides the Elixir version Styler relies on with respect to some deprecation rewrites. See [Deprecations documentation](docs/deprecations.md#version-configuration) for more.
 
 #### No Credo-Style Enable/Disable
 

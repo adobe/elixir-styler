@@ -5,6 +5,10 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Improvements
+
+- added `:minimum_supported_elixir_version` configuration to better support libraries using Styler (#231, h/t @maennchen)
+
 ### Fixes
 
 - fix de-sugaring of syntax-sugared keyword lists whose values weren't atoms in map values (#236, h/t @RisPNG)

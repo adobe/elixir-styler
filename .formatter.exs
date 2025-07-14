@@ -8,6 +8,6 @@
     assert_style: 2
   ],
   plugins: [Styler],
-  styler: [alias_lifting_exclude: []],
+  styler: [alias_lifting_exclude: [], minimum_supported_elixir_version: nil],
   line_length: 122
 ]
