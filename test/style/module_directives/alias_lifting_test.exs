@@ -12,6 +12,21 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
   @moduledoc false
   use Styler.StyleCase, async: true
 
+  test "lifts aliases in snippets" do
+    assert_style(
+      """
+      A.B.C
+      A.B.C
+      """,
+      """
+      alias A.B.C
+
+      C
+      C
+      """
+    )
+  end
+
   test "lifts aliases repeated >=2 times from 3 deep" do
     assert_style(
       """

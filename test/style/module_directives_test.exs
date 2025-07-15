@@ -538,7 +538,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
     assert_style "@derive Inspect"
   end
 
-  test "de-aliases use/behaviour/import/moduledoc" do
+  test "expands use/behaviour/import/moduledoc aliases" do
     assert_style(
       """
       defmodule MyModule do

@@ -50,9 +50,45 @@ defmodule Styler.Style.ModuleDirectives do
   @attr_directives ~w(moduledoc shortdoc behaviour)a
   @defstruct ~w(schema embedded_schema defstruct)a
 
-  @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
+  @env %{
+    shortdoc: [],
+    moduledoc: [],
+    behaviour: [],
+    use: [],
+    import: [],
+    alias: [],
+    require: [],
+    nondirectives: [],
+    alias_env: %{},
+    attrs: MapSet.new(),
+    attr_lifts: []
+  }
 
-  def run({{:defmodule, _, children}, _} = zipper, ctx) do
+  @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
+  # module directives typically doesn't do anything until it sees a module (typical .ex file) or a directive (like a snippet)
+  # however, if we're in a snippet with no directives we'll never do any work!
+  # so, we fast-forward the traversal looking for an interesting node.
+  # if we find one, we'll mark that this file is interesting and proceed as normal from there.
+  # if we _dont_ find one, then we're likely in a snippet with no typical directives.
+  #   in that case, all that's left is to apply alias lifting and halt.
+  def run(zipper, %{__MODULE__ => true} = ctx), do: do_run(zipper, ctx)
+
+  def run(zipper, ctx) do
+    if interesting_zipper = Zipper.find(zipper, &interesting?/1) do
+      do_run(interesting_zipper, Map.put(ctx, __MODULE__, true))
+    else
+      # there's no defmodules or aliasy things - see if we can do some alias lifting?
+      case lift_aliases(%{@env | nondirectives: Zipper.children(zipper)}) do
+        %{alias: []} -> {:halt, zipper, ctx}
+        %{alias: lifts, nondirectives: children} -> {:halt, Zipper.replace_children(zipper, lifts ++ children), ctx}
+      end
+    end
+  end
+
+  defp interesting?({x, _, _}) when x in [:defmodule, :a | @directives], do: true
+  defp interesting?(_), do: false
+
+  defp do_run({{:defmodule, _, children}, _} = zipper, ctx) do
     [name, [{{:__block__, do_meta, [:do]}, _body}]] = children
 
     if do_meta[:format] == :keyword do
@@ -88,14 +124,14 @@ defmodule Styler.Style.ModuleDirectives do
 
             {:skip, zipper, ctx}
           else
-            run(body_zipper, ctx)
+            do_run(body_zipper, ctx)
           end
       end
     end
   end
 
   # Style directives inside of snippets or function defs.
-  def run({{directive, _, children}, _} = zipper, ctx) when directive in @directives and is_list(children) do
+  defp do_run({{directive, _, children}, _} = zipper, ctx) when directive in @directives and is_list(children) do
     # Need to be careful that we aren't getting false positives on variables or fns like `def import(foo)` or `alias = 1`
     case Style.ensure_block_parent(zipper) do
       {:ok, zipper} -> {:skip, zipper |> Zipper.up() |> organize_directives(), ctx}
@@ -105,7 +141,7 @@ defmodule Styler.Style.ModuleDirectives do
   end
 
   # puts `@derive` before `defstruct` etc, fixing compiler warnings
-  def run({{:@, _, [{:derive, _, _}]}, _} = zipper, ctx) do
+  defp do_run({{:@, _, [{:derive, _, _}]}, _} = zipper, ctx) do
     case Style.ensure_block_parent(zipper) do
       {:ok, {derive, %{l: left_siblings} = z_meta}} ->
         previous_defstruct =
@@ -130,7 +166,7 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  def run(zipper, ctx), do: {:cont, zipper, ctx}
+  defp do_run(zipper, ctx), do: {:cont, zipper, ctx}
 
   defp moduledoc({:__aliases__, m, aliases}) do
     name = aliases |> List.last() |> to_string()
@@ -142,20 +178,6 @@ defmodule Styler.Style.ModuleDirectives do
 
   # a dynamic module name, like `defmodule my_variable do ... end`
   defp moduledoc(_), do: nil
-
-  @acc %{
-    shortdoc: [],
-    moduledoc: [],
-    behaviour: [],
-    use: [],
-    import: [],
-    alias: [],
-    require: [],
-    nondirectives: [],
-    alias_env: %{},
-    attrs: MapSet.new(),
-    attr_lifts: []
-  }
 
   defp lift_module_attrs({node, _, _} = ast, %{attrs: attrs} = acc) do
     if MapSet.size(attrs) == 0 do
@@ -186,7 +208,7 @@ defmodule Styler.Style.ModuleDirectives do
     acc =
       parent
       |> Zipper.children()
-      |> Enum.reduce(@acc, fn
+      |> Enum.reduce(@env, fn
         {:@, _, [{attr_directive, _, _}]} = ast, acc when attr_directive in @attr_directives ->
           # attr_directives are moved above aliases, so we need to expand them
           {ast, acc} = acc.alias_env |> AliasEnv.expand_ast(ast) |> lift_module_attrs(acc)
