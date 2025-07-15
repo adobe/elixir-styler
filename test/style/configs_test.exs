@@ -389,5 +389,45 @@ defmodule Styler.Style.ConfigsTest do
         """
       )
     end
+
+    test "phx config" do
+      assert_style(
+        """
+        import Config
+
+        config :demo, DemoWeb.Endpoint,
+          http: [ip: {127, 0, 0, 1}, port: 4000]
+
+        # In order to use HTTPS in development, a self-signed
+        #
+        #     mix phx.gen.cert
+        #
+        # If desired, both `http:` and `https:` keys can be
+
+        # Set a higher stacktrace during development. Avoid configuring such
+        config :phoenix, :stacktrace_depth, 20
+
+        # Initialize plugs at runtime for faster development compilation
+        config :phoenix, :plug_init_mode, :runtime
+        """,
+        """
+        import Config
+
+        config :demo, DemoWeb.Endpoint, http: [ip: {127, 0, 0, 1}, port: 4000]
+
+        # Initialize plugs at runtime for faster development compilation
+        config :phoenix, :plug_init_mode, :runtime
+
+        # In order to use HTTPS in development, a self-signed
+        #
+        #     mix phx.gen.cert
+        #
+        # If desired, both `http:` and `https:` keys can be
+
+        # Set a higher stacktrace during development. Avoid configuring such
+        config :phoenix, :stacktrace_depth, 20
+        """
+      )
+    end
   end
 end

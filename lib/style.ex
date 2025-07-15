@@ -244,19 +244,19 @@ defmodule Styler.Style do
     comments |> Enum.reverse() |> comments_for_lines(start_line, last_line, [], [])
   end
 
-  defp comments_for_lines([%{line: line} = comment | rev_comments], start, last, match, acc) do
+  defp comments_for_lines([%{line: line, previous_eol_count: eol} = comment | rev_comments], start, last, matches, misses) do
     cond do
       # after our block - no match
-      line > last -> comments_for_lines(rev_comments, start, last, match, [comment | acc])
+      line > last -> comments_for_lines(rev_comments, start, last, matches, [comment | misses])
       # after start, before last -- it's a match!
-      line >= start -> comments_for_lines(rev_comments, start, last, [comment | match], acc)
+      line >= start -> comments_for_lines(rev_comments, start, last, [comment | matches], misses)
       # this is a comment immediately before start, which means it's modifying this block...
       # we count that as a match, and look above it to see if it's a multiline comment
-      line == start - 1 -> comments_for_lines(rev_comments, start - 1, last, [comment | match], acc)
+      line == start - 1 -> comments_for_lines(rev_comments, start - eol, last, [comment | matches], misses)
       # comment before start - we've thus iterated through all comments which could be in our range
-      true -> {match, Enum.reverse(rev_comments, [comment | acc])}
+      true -> {matches, Enum.reverse(rev_comments, [comment | misses])}
     end
   end
 
-  defp comments_for_lines([], _, _, match, acc), do: {match, acc}
+  defp comments_for_lines([], _, _, matches, misses), do: {matches, misses}
 end
