@@ -70,6 +70,34 @@ defmodule Styler.AliasEnv do
     if dealias = env[first], do: dealias ++ rest, else: modules
   end
 
-  @doc "An inverted AliasEnv is useful for translating a module to its alias, if one existed in the env"
-  def invert(env), do: Map.new(env, fn {k, v} -> {v, k} end)
+  @doc """
+  An inverted AliasEnv is useful for translating a module to its alias, if one existed in the env
+
+  In the case that a module is aliased multiple times, the inverted env will only keep the final alias as lexically sorted
+  """
+  def invert(env) do
+    # It's a bit of a bummer to do the extra group_by out of caution that this 1-off mistake happens,
+    # but ultimately we're usually working with a small list so performance costs are negligible
+    env
+    |> Enum.group_by(fn {_, v} -> v end, fn {k, _} -> k end)
+    |> Map.new(fn
+      {modules, [as]} ->
+        {modules, as}
+
+      # someone has something goofy going on, aliasing the same module with multiple names
+      # alias A.B.C
+      # alias A.B.C, as: Bar
+      # alias A.B.C, as: Foo
+      # we'll choose the one that comes last lexically, which will be the alpha-sorted last entry that isn't the default as
+      # "bug": if the last happens to be `alias A.B.C, as: C`, well, they shouldn't've written such crazy code
+      {modules, multiple_as} ->
+        default_as = List.last(modules)
+        # being clever - rather than rejecting the default up front and doing an extra list-traversal,
+        # just sort things and if the default comes first, grab the second element
+        case Enum.sort(multiple_as, :desc) do
+          [^default_as, last_as | _] -> {modules, last_as}
+          [last_as | _] -> {modules, last_as}
+        end
+    end)
+  end
 end

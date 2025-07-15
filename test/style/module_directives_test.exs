@@ -688,5 +688,28 @@ defmodule Styler.Style.ModuleDirectivesTest do
         """
       )
     end
+
+    test "forces a single alias" do
+      assert_style(
+        """
+        alias A.B.C.D.E, as: B
+        alias A.B.C.D.E, as: C
+        alias A.B.C.D.E
+
+        B
+        C
+        E
+        """,
+        """
+        alias A.B.C.D.E
+        alias A.B.C.D.E, as: B
+        alias A.B.C.D.E, as: C
+
+        C
+        C
+        C
+        """
+      )
+    end
   end
 end

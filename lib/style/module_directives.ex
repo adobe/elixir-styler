@@ -474,10 +474,19 @@ defmodule Styler.Style.ModuleDirectives do
         zipper = if to_as[modules], do: Zipper.remove(zipper), else: zipper
         {:cont, zipper}
 
-      # Checking for at least 2 parts is a minor optimization - no need to see if we have an alias for a singleton
-      # it's possible someone did `alias Foo, as: Bar` and we'll miss that application
-      # but if they did they ........ probably don't care about code enough to be using styler? :D
+      # We check even modules of 1 length to catch silly situations like
+      # alias A.B.C
+      # alias A.B.C, as: X
+      # That'll then rename all C to X and C will become unused
       {{:__aliases__, meta, [_ | _] = modules}, _} = zipper ->
+        # if modules |> List.last|> to_string() |> String.ends_with?("Mock") do
+        #   dbg(to_as)
+        #   dbg(alias_env)
+        #   dbg(modules)
+        #   dbg(to_as[modules])
+        #   dbg(AliasEnv.expand(alias_env, modules))
+        #   dbg(to_as[AliasEnv.expand(alias_env, modules)])
+        # end
         zipper =
           cond do
             # There's an alias for this module - replace it with its `as`

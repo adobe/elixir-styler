@@ -59,4 +59,17 @@ defmodule Styler.AliasEnvTest do
 
     assert aliases |> define() |> expand_ast(ast) == expected
   end
+
+  test "invert" do
+    {_, _, aliases} =
+      quote do
+        alias A.B
+        alias A.B.C
+        alias A.B.C, as: X
+        alias A.B.C, as: Y
+      end
+
+    env = define(aliases)
+    assert invert(env) == %{[:A, :B, :C] => :Y, [:A, :B] => :B}
+  end
 end
