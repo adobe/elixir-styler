@@ -64,7 +64,6 @@ defmodule Styler.Style.ModuleDirectives do
     attr_lifts: []
   }
 
-  @moduledoc_false {:@, [line: nil], [{:moduledoc, [line: nil], [{:__block__, [line: nil], [false]}]}]}
   # module directives typically doesn't do anything until it sees a module (typical .ex file) or a directive (like a snippet)
   # however, if we're in a snippet with no directives we'll never do any work!
   # so, we fast-forward the traversal looking for an interesting node.
@@ -172,7 +171,8 @@ defmodule Styler.Style.ModuleDirectives do
     name = aliases |> List.last() |> to_string()
     # module names ending with these suffixes will not have a default moduledoc appended
     if !String.ends_with?(name, ~w(Test Mixfile MixProject Controller Endpoint Repo Router Socket View HTML JSON)) do
-      Style.set_line(@moduledoc_false, m[:line] + 1)
+      meta = [line: m[:line] + 1]
+      {:@, meta, [{:moduledoc, meta, [{:__block__, meta, [false]}]}]}
     end
   end
 
