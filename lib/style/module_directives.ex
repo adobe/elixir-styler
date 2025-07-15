@@ -189,7 +189,7 @@ defmodule Styler.Style.ModuleDirectives do
       |> Enum.reduce(@acc, fn
         {:@, _, [{attr_directive, _, _}]} = ast, acc when attr_directive in @attr_directives ->
           # attr_directives are moved above aliases, so we need to expand them
-          {ast, acc} = acc.alias_env |> AliasEnv.expand(ast) |> lift_module_attrs(acc)
+          {ast, acc} = acc.alias_env |> AliasEnv.expand_ast(ast) |> lift_module_attrs(acc)
           %{acc | attr_directive => [ast | acc[attr_directive]]}
 
         {:@, _, [{attr, _, _}]} = ast, acc ->
@@ -199,7 +199,7 @@ defmodule Styler.Style.ModuleDirectives do
           {ast, acc} = lift_module_attrs(ast, acc)
           ast = expand(ast)
           # import and used get hoisted above aliases, so need to expand them
-          ast = if directive in ~w(import use)a, do: AliasEnv.expand(acc.alias_env, ast), else: ast
+          ast = if directive in ~w(import use)a, do: AliasEnv.expand_ast(acc.alias_env, ast), else: ast
           alias_env = if directive == :alias, do: AliasEnv.define(acc.alias_env, ast), else: acc.alias_env
 
           # the reverse accounts for `expand` putting things in reading order, whereas we're accumulating in reverse
@@ -291,10 +291,11 @@ defmodule Styler.Style.ModuleDirectives do
       # The `cap_line` algo was designed to handle high-line stuff moving up into low line territory, so we set our
       # new node to have an arbitrarily high line annnnd comments behave! i think.
       m = [line: 999_999]
+      aliases_m = [last: m] ++ m
 
       aliases =
         liftable
-        |> Enum.map(&AliasEnv.expand(alias_env, {:alias, m, [{:__aliases__, [{:last, m} | m], &1}]}))
+        |> Enum.map(&{:alias, m, [{:__aliases__, aliases_m, AliasEnv.expand(alias_env, &1)}]})
         |> Enum.concat(aliases)
         |> sort()
 
@@ -438,42 +439,63 @@ defmodule Styler.Style.ModuleDirectives do
     |> MapSet.new(fn {_, {aliases, true}} -> aliases end)
   end
 
-  defp apply_aliases(acc), do: apply_aliases(acc, Map.new(acc.alias_env, fn {as, modules} -> {modules, as} end))
+  defp apply_aliases(acc) do
+    apply_aliases(acc, AliasEnv.invert(acc.alias_env))
+  end
 
-  defp apply_aliases(acc, to_apply) when map_size(to_apply) == 0, do: acc
+  defp apply_aliases(acc, inverted_env) when map_size(inverted_env) == 0, do: acc
 
-  defp apply_aliases(%{require: requires, nondirectives: nondirectives} = acc, to_apply) do
+  defp apply_aliases(%{require: requires, nondirectives: nondirectives, alias_env: alias_env} = acc, inverted_env) do
     # applying aliases to requires can change their ordering again
-    requires = requires |> apply_aliases(to_apply) |> sort()
-    nondirectives = apply_aliases(nondirectives, to_apply)
+    requires = requires |> apply_aliases(inverted_env, alias_env) |> sort()
+    nondirectives = apply_aliases(nondirectives, inverted_env, alias_env)
     %{acc | require: requires, nondirectives: nondirectives}
   end
 
-  # traverses the AST, watching for modules which have been aliased (to_alias)
-  defp apply_aliases(ast, to_alias) do
+  # applies the aliases withi `to_as` across the given ast
+  # alias_env is used to expand partial aliases
+  defp apply_aliases(ast, to_as, alias_env) do
     ast
     |> Zipper.zip()
-    |> Zipper.traverse(fn
+    |> Zipper.traverse_while(fn
       {{defx, _, [{:__aliases__, _, _} | _]}, _} = zipper when defx in ~w(defmodule defimpl defprotocol)a ->
         # move the focus to the body block, skipping over the alias (and the `for` keyword for `defimpl`)
-        zipper |> Zipper.down() |> Zipper.rightmost() |> Zipper.down() |> Zipper.down() |> Zipper.right()
+        zipper = zipper |> Zipper.down() |> Zipper.rightmost() |> Zipper.down() |> Zipper.down() |> Zipper.right()
+        {:cont, zipper}
 
-      # TODO if this isn't removing alias nodes, what is?
-      #
-      # {{:alias, _, [{:__aliases__, _, [_ | _] = aliases}]}, _} = zipper ->
-      #   # the alias was aliased deeper down. we've lifted that alias to a root, so delete this alias
-      #   if to_alias[to_alias],
-      #     do: Zipper.remove(zipper),
-      #     else: zipper
+      {{:quote, _, _}, _} = zipper ->
+        {:skip, zipper}
 
-      # TODO add a test for the `alias... as:` case
+      # apply_aliases is only called on nondirectives (+requires), so this alias must exist within a child node like a def
+      # if it's within `to_as` then it's an alias that's already defined further up and is thus a duplicate
+      # either because we lifted and so created a duplicate, or it was just plain ol' user user error.
+      # either way, we can nix it
+      {{:alias, _, [{:__aliases__, _, [_ | _] = modules}]}, _} = zipper ->
+        zipper = if to_as[modules], do: Zipper.remove(zipper), else: zipper
+        {:cont, zipper}
+
+      # Checking for at least 2 parts is a minor optimization - no need to see if we have an alias for a singleton
+      # it's possible someone did `alias Foo, as: Bar` and we'll miss that application
+      # but if they did they ........ probably don't care about code enough to be using styler? :D
       {{:__aliases__, meta, [_ | _] = modules}, _} = zipper ->
-        if as = to_alias[modules],
-          do: Zipper.replace(zipper, {:__aliases__, meta, [as]}),
-          else: zipper
+        zipper =
+          cond do
+            # There's an alias for this module - replace it with its `as`
+            as = to_as[modules] -> Zipper.replace(zipper, {:__aliases__, meta, [as]})
+            # There's an alias for this modules expansion - replace it with its `as`
+            #
+            # This addresses the following:
+            # given modules=`C.D`, to_as=`A.B.C => C, A.B.C.D => X`,
+            # should yield -> `X` because `C.D -> A.B.C.D -> X`
+            as = to_as[AliasEnv.expand(alias_env, modules)] -> Zipper.replace(zipper, {:__aliases__, meta, [as]})
+            true -> zipper
+          end
+
+        # minor optimization - don't need to walk the module list!
+        {:skip, zipper}
 
       zipper ->
-        zipper
+        {:cont, zipper}
     end)
     |> Zipper.node()
   end
