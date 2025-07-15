@@ -189,3 +189,29 @@ You can specify additional modules to exclude from lifting via the `:alias_lifti
   styler: [alias_lifting_exclude: [:C]],
 ]
 ```
+
+## Alias Application
+
+Styler applies aliases in those cases where a developer wrote out a full module name without realizing that the module is already aliased.
+
+```elixir
+# Given
+alias A.B
+alias A.B.C
+alias A.B.C.D, as: X
+
+A.B.foo()
+A.B.C.foo()
+A.B.C.D.woo()
+C.D.woo()
+
+# Styled
+alias A.B
+alias A.B.C
+alias A.B.C.D, as: X
+
+B.foo()
+C.foo()
+X.woo()
+X.woo()
+```
