@@ -202,25 +202,6 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
     )
   end
 
-  test "replaces known aliases" do
-    assert_style(
-      """
-      alias A.B.C
-
-      A.B.C.foo()
-      A.B.C.foo()
-      A.B.C.foo()
-      """,
-      """
-      alias A.B.C
-
-      C.foo()
-      C.foo()
-      C.foo()
-      """
-    )
-  end
-
   test "two modules that seem to conflict but don't!" do
     assert_style(
       """

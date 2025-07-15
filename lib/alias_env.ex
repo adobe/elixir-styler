@@ -14,7 +14,7 @@ defmodule Styler.AliasEnv do
 
   Not anywhere as correct as what the compiler gives us, but close enough for open source work.
 
-  A alias env is a map from an alias's `as` to its resolution in a context.
+  An alias env is a map from an alias's `as` to its resolution in a context.
 
   Given the ast for
 
@@ -25,40 +25,79 @@ defmodule Styler.AliasEnv do
       %{:Bar => [:Foo, :Bar]}
   """
   def define(env \\ %{}, ast)
-
   def define(env, asts) when is_list(asts), do: Enum.reduce(asts, env, &define(&2, &1))
+  def define(env, {:alias, _, [{:__aliases__, _, aliases}]}), do: define(env, aliases, List.last(aliases))
+  def define(env, {:alias, _, [{:__aliases__, _, aliases}, [{_, {:__aliases__, _, [as]}}]]}), do: define(env, aliases, as)
+  # `alias __MODULE__` or other oddities i'm not bothering to get right
+  def define(env, {:alias, _, _}), do: env
 
-  def define(env, {:alias, _, aliases}) do
-    case aliases do
-      [{:__aliases__, _, aliases}] -> define(env, aliases, List.last(aliases))
-      [{:__aliases__, _, aliases}, [{_as, {:__aliases__, _, [as]}}]] -> define(env, aliases, as)
-      # `alias __MODULE__` or other oddities i'm not bothering to get right
-      _ -> env
-    end
-  end
+  defp define(env, modules, as), do: Map.put(env, as, expand(env, modules))
 
-  defp define(env, modules, as), do: Map.put(env, as, do_expand(env, modules))
+  @doc """
+  Lengthens an alias to its full name, if its first name is defined in the environment"
 
+  Useful for transforming the ast for code like:
+
+      alias Bar.Baz.Foo #<- given the env with this alias
+      Foo.Woo.Cool # <- ast
+
+  to the ast for code like:
+
+      alias Bar.Baz.Foo
+      Bar.Baz.Foo.Woo.Cool
+  """
   # no need to traverse ast if there are no aliases
-  def expand(env, ast) when map_size(env) == 0, do: ast
+  def expand_ast(env, ast) when map_size(env) == 0, do: ast
 
-  def expand(env, ast) do
+  def expand_ast(env, ast) do
     Macro.prewalk(ast, fn
-      {:__aliases__, meta, modules} -> {:__aliases__, meta, do_expand(env, modules)}
+      {:__aliases__, meta, modules} -> {:__aliases__, meta, expand(env, modules)}
       ast -> ast
     end)
   end
 
-  # if the list of modules is itself already aliased, dealias it with the compound alias
-  # given:
-  #   alias Foo.Bar
-  #   Bar.Baz.Bop.baz()
-  #
-  # lifting Bar.Baz.Bop should result in:
-  #   alias Foo.Bar
-  #   alias Foo.Bar.Baz.Bop
-  #   Bop.baz()
-  defp do_expand(env, [first | rest] = modules) do
+  @doc """
+  Expands modules from env (wow that was helpful).
+
+  Using the examples from `expand_ast`, this works roughly like so:
+
+     > expand(%{Foo: [Bar, Baz, Foo]}, [Foo, Woo, Cool])
+     => [Bar, Baz, Foo, Woo, Cool]
+     > expand(%{}, [No, Alias, For, Me])
+     => [No, Alias, For, Me]
+  """
+  def expand(env, [first | rest] = modules) do
     if dealias = env[first], do: dealias ++ rest, else: modules
+  end
+
+  @doc """
+  An inverted AliasEnv is useful for translating a module to its alias, if one existed in the env
+
+  In the case that a module is aliased multiple times, the inverted env will only keep the final alias as lexically sorted
+  """
+  def invert(env) do
+    # It's a bit of a bummer to do the extra group_by out of caution that this 1-off mistake happens,
+    # but ultimately we're usually working with a small list so performance costs are negligible
+    env
+    |> Enum.group_by(fn {_, v} -> v end, fn {k, _} -> k end)
+    |> Map.new(fn
+      {modules, [as]} ->
+        {modules, as}
+
+      # someone has something goofy going on, aliasing the same module with multiple names
+      # alias A.B.C
+      # alias A.B.C, as: Bar
+      # alias A.B.C, as: Foo
+      # we'll choose the one that comes last lexically, which will be the alpha-sorted last entry that isn't the default as
+      # "bug": if the last happens to be `alias A.B.C, as: C`, well, they shouldn't've written such crazy code
+      {modules, multiple_as} ->
+        default_as = List.last(modules)
+        # being clever - rather than rejecting the default up front and doing an extra list-traversal,
+        # just sort things and if the default comes first, grab the second element
+        case Enum.sort(multiple_as, :desc) do
+          [^default_as, last_as | _] -> {modules, last_as}
+          [last_as | _] -> {modules, last_as}
+        end
+    end)
   end
 end

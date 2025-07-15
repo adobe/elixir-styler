@@ -7,6 +7,7 @@ they can and will change without that change being reflected in Styler's semanti
 
 ### Improvements
 
+- apply aliases to code. if a module is aliased, and then later referenced with its full name, Styler will now shorten it to its alias. (#235, h/t me)
 - added `:minimum_supported_elixir_version` configuration to better support libraries using Styler (#231, h/t @maennchen)
 
 ### Fixes

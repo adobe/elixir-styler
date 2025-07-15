@@ -407,7 +407,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         alias B.B
         alias D.D
 
-        require A.A
+        require A
         require A.C
 
         @type foo :: :ok
@@ -615,6 +615,99 @@ defmodule Styler.Style.ModuleDirectivesTest do
 
           @library_options library_options
         end
+        """
+      )
+    end
+  end
+
+  describe "apply aliases" do
+    test "replaces known aliases" do
+      assert_style(
+        """
+        alias A.B
+        alias A.B.C
+        alias A.B.C.D, as: X
+
+        A.B.foo()
+        A.B.C.foo()
+        A.B.C.D.woo()
+        C.D.woo()
+        """,
+        """
+        alias A.B
+        alias A.B.C
+        alias A.B.C.D, as: X
+
+        B.foo()
+        C.foo()
+        X.woo()
+        X.woo()
+        """
+      )
+    end
+
+    test "ignores quotes" do
+      assert_style(
+        """
+        alias A.B.C
+
+        A.B.C
+
+        quote do
+          A.B.C
+        end
+        """,
+        """
+        alias A.B.C
+
+        C
+
+        quote do
+          A.B.C
+        end
+        """
+      )
+    end
+
+    test "removes embedded duplicate aliases" do
+      assert_style(
+        """
+        alias A.B
+
+        def foo do
+          alias A.B
+          A.B.bar()
+        end
+        """,
+        """
+        alias A.B
+
+        def foo do
+          B.bar()
+        end
+        """
+      )
+    end
+
+    test "forces a single alias" do
+      assert_style(
+        """
+        alias A.B.C.D.E, as: B
+        alias A.B.C.D.E, as: C
+        alias A.B.C.D.E
+
+        B
+        C
+        E
+        """,
+        """
+        alias A.B.C.D.E
+        alias A.B.C.D.E, as: B
+        alias A.B.C.D.E, as: C
+
+        C
+        C
+        C
         """
       )
     end
