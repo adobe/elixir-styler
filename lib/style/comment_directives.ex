@@ -101,6 +101,11 @@ defmodule Styler.Style.CommentDirectives do
     {{:@, m, [{a, am, [assignment]}]}, comments}
   end
 
+  defp sort({:"::", m, [name, typespec]}, comments) do
+    {typespec, comments} = sort(typespec, comments)
+    {{:"::", m, [name, typespec]}, comments}
+  end
+
   defp sort({key, value}, comments) do
     {value, comments} = sort(value, comments)
     {{key, value}, comments}

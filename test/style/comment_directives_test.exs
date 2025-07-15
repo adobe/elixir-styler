@@ -219,6 +219,39 @@ defmodule Styler.Style.CommentDirectivesTest do
       )
     end
 
+    test "typespecs" do
+      assert_style(
+        """
+        # styler:sort
+        @type t :: %__MODULE__{
+                id: Ecto.UUID.t(),
+                street_address: String.t(),
+                postal_code: String.t(),
+                locality: String.t(),
+                region: String.t(),
+                country_iso: String.t(),
+                deleted_at: DateTime.t() | nil,
+                inserted_at: DateTime.t(),
+                updated_at: DateTime.t()
+              }
+        """,
+        """
+        # styler:sort
+        @type t :: %__MODULE__{
+                country_iso: String.t(),
+                deleted_at: DateTime.t() | nil,
+                id: Ecto.UUID.t(),
+                inserted_at: DateTime.t(),
+                locality: String.t(),
+                postal_code: String.t(),
+                region: String.t(),
+                street_address: String.t(),
+                updated_at: DateTime.t()
+              }
+        """
+      )
+    end
+
     test "assignments" do
       assert_style(
         """
