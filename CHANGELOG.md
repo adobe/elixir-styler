@@ -5,6 +5,8 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.5.0
+
 ### Improvements
 
 - apply aliases to code. if a module is aliased, and then later referenced with its full name, Styler will now shorten it to its alias. (#235, h/t me)
