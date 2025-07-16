@@ -13,16 +13,18 @@ You can learn more about the history, purpose and implementation of Styler from 
 
 Styler fixes a plethora of Elixir style and optimization issues automatically as part of mix format.
 
-[See Styler's documentation on Hex](https://hexdocs.pm/styler/index.html) for the comprehensive list of its features.
+[See Styler's documentation on Hex](https://hexdocs.pm/styler/styles.html) for the comprehensive list of its features.
 
 The fastest way to see what all it can do you for you is to just try it out in your codebase... but here's a list of a few features to help you decide if you're interested in Styler:
 
-- sorts and organizes `import`/`alias`/`require` and other [module directives](docs/module_directives.md)
-- keeps lists, sigils, and even arbitrary code sorted with the `# styler:sort` [comment directive](docs/comment_directives.md)
-- automatically creates aliases for repeatedly referenced modules names ([_"alias lifting"_](docs/module_directives.md#alias-lifting))
-- optimizes pipe chains for [readability and performance](docs/pipes.md)
-- rewrites strings as sigils when it results in fewer escapes
-- auto-fixes [many credo rules](docs/credo.md), meaning you can spend less time fighting with CI
+- sorts and organizes `import`,`alias`,`require` and other module directives
+- automatically creates aliases for repeatedly referenced modules names (_"alias lifting"_) and makes sure aliases you've defined are being used
+- keeps lists, sigils, and even arbitrary code sorted with the `# styler:sort` comment directive
+- optimizes pipe chains for readability and performance
+- rewrites deprecated Elixir standard library code, speeding adoption of new releases
+- auto-fixes many credo rules, meaning you can spend less time fighting with CI
+
+[Here's another link to features Table of Contents for you](https://hexdocs.pm/styler/styles.html)
 
 ## Who is Styler for?
 
