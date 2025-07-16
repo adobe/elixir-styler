@@ -1,10 +1,8 @@
-## Comment Directives
-
 Comment Directives are a Styler feature that let you instruct Styler to do maintain additional formatting via comments.
 
 The plural in the name is optimistic as there's currently only one, but who knows
 
-### `# styler:sort`
+## `# styler:sort`
 
 Styler can keep static values sorted for your team as part of its formatting pass. To instruct it to do so, replace any `# Please keep this list sorted!` notes you wrote to your teammates with `# styler:sort`
 
@@ -24,7 +22,7 @@ Styler will apply those sorts when they're on the righthand side fo the followin
 - assignments (eg `x = ~w(a list again)`)
 - `defstruct`
 
-#### Examples
+### Examples
 
 **Before**
 

@@ -1,6 +1,4 @@
-## Pipe Chains
-
-### Pipe Start
+## Pipe Start
 
 Styler will ensure that the start of a pipechain is a 0-arity function, a raw value, or a variable.
 
@@ -38,7 +36,7 @@ if_result
 |> IO.inspect()
 ```
 
-### Add parenthesis to function calls in pipes
+## Add parenthesis to function calls in pipes
 
 ```elixir
 a |> b |> c |> d
@@ -46,7 +44,7 @@ a |> b |> c |> d
 a |> b() |> c() |> d()
 ```
 
-### Remove Unnecessary `then/2`
+## Remove Unnecessary `then/2`
 
 When the piped argument is being passed as the first argument to the inner function, there's no need for `then/2`.
 
@@ -58,7 +56,7 @@ a |> f(...) |> b()
 
 - add parens to function calls `|> fun |>` => `|> fun() |>`
 
-### Add `then/2` when defining and calling anonymous functions in pipes
+## Add `then/2` when defining and calling anonymous functions in pipes
 
 ```elixir
 a |> (fn x -> x end).() |> c()
@@ -66,7 +64,7 @@ a |> (fn x -> x end).() |> c()
 a |> then(fn x -> x end) |> c()
 ```
 
-### Piped function optimizations
+## Piped function optimizations
 
 Two function calls into one! Fewer steps is always nice.
 
@@ -107,7 +105,7 @@ a |> b() |> Enum.each(fun)
 a |> b() |> Enum.each(fun)
 ```
 
-### Unpiping Single Pipes
+## Unpiping Single Pipes
 
 Styler rewrites pipechains with a single pipe to be function calls. Notably, this rule combined with the optimizations rewrites above means some chains with more than one pipe will also become function calls.
 
@@ -121,7 +119,7 @@ map = a |> Enum.map(mapper) |> Map.new()
 map = Map.new(a, mapper)
 ```
 
-### Pipe-ify
+## Pipe-ify
 
 If the first argument to a function call is a pipe, Styler makes the function call the final pipe of the chain.
 

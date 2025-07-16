@@ -194,8 +194,6 @@ defmodule Styler.Style do
   end
 
   @doc "Sets the nodes' meta line and comments' line numbers to fit the ordering of the nodes list."
-  # TODO this doesn't grab comments which are floating as their own paragrpah, unconnected to a node
-  # they'll just be left floating where they were, then mangled with the re-ordered comments..
   def order_line_meta_and_comments(nodes, comments, first_line) do
     {nodes, shifted_comments, comments, _line} =
       Enum.reduce(nodes, {[], [], comments, first_line}, fn node, {n_acc, c_acc, comments, move_to_line} ->

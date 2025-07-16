@@ -11,9 +11,9 @@ You can learn more about the history, purpose and implementation of Styler from 
 
 ## Features
 
-Styler fixes a plethora of elixir style and optimization issues automatically as part of mix format.
+Styler fixes a plethora of Elixir style and optimization issues automatically as part of mix format.
 
-[See Styler's documentation on Hex](https://hexdocs.pm/styler/styles.html) for the comprehensive list of its features.
+[See Styler's documentation on Hex](https://hexdocs.pm/styler/index.html) for the comprehensive list of its features.
 
 The fastest way to see what all it can do you for you is to just try it out in your codebase... but here's a list of a few features to help you decide if you're interested in Styler:
 
@@ -26,9 +26,13 @@ The fastest way to see what all it can do you for you is to just try it out in y
 
 ## Who is Styler for?
 
-Styler was designed for a **large team (40+ engineers) working in a single codebase. It helps remove fiddly code review comments and removes failed linter CI slowdowns, helping teams get things done faster. Teams in similar situations might appreciate Styler.
+> I'm just excited to be on a team that uses Styler and moves on
+>
+>\- [Amos King](https://github.com/adkron)
 
-Its automations are also extremely valuable for taming legacy elixir codebases or just refactoring in general. Some of its rewrites have inspired code actions in elixir language servers.
+Styler was designed for a large team working in a single codebase (140+ contributors). It helps remove fiddly code review comments and linter CI slowdowns, helping our team get things done faster. Teams in similar situations might appreciate Styler.
+
+Styler has also been extremely valuable for taming legacy Elixir codebases and general refactoring. Some of its rewrites have inspired code actions in Elixir language servers.
 
 Conversely, Styler probably _isn't_ a good match for:
 
@@ -57,7 +61,7 @@ Then add `Styler` as a plugin to your `.formatter.exs` file
 
 And that's it! Now when you run `mix format` you'll also get the benefits of Styler's Stylish Stylings.
 
-**Speed**: Expect the first run to take some time as `Styler` rewrites violations of styles and bottlenecks on disk I/O. Subsequent formats formats won't take noticeably more time.
+**Speed**: Expect the first run to take some time as `Styler` rewrites violations of styles and bottlenecks on disk I/O. Subsequent formats won't take noticeably more time.
 
 ### Configuration
 
@@ -74,7 +78,7 @@ Styler can be configured in your `.formatter.exs` file
 ```
 
 * `alias_lifting_exclude`: a list of module names to _not_ lift. See the [Module Directive documentation](docs/module_directives.md#alias-lifting) for more.
-* `minimum_supported_elixir_version`: intended for library authors; overrides the Elixir version Styler relies on with respect to some deprecation rewrites. See [Deprecations documentation](docs/deprecations.md#version-configuration) for more.
+* `minimum_supported_elixir_version`: intended for library authors; overrides the Elixir version Styler relies on with respect to some deprecation rewrites. See [Deprecations documentation](docs/deprecations.md#configuration) for more.
 
 #### No Credo-Style Enable/Disable
 

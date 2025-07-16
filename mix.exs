@@ -59,12 +59,13 @@ defmodule Styler.MixProject do
       source_ref: "v#{@version}",
       source_url: @url,
       groups_for_extras: [
-        Rewrites: ~r/docs/
+        Features: ~r/docs/
       ],
       extra_section: "Docs",
       extras: [
         "CHANGELOG.md": [title: "Changelog"],
-        "docs/styles.md": [title: "Basic Styles"],
+        "docs/styles.md": [title: "Styles/Features Table of Contents"],
+        "docs/general_styles.md": [title: "General Styles"],
         "docs/deprecations.md": [title: "Deprecated Elixirisms"],
         "docs/pipes.md": [title: "Pipe Chains"],
         "docs/control_flow_macros.md": [title: "Control Flow Macros (if, case, ...)"],

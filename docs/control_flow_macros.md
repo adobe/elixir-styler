@@ -46,7 +46,9 @@ case some_http_call() do
 end
 ```
 
-## `if` and `unless`
+---------------------------------
+
+## `if`/`unless`
 
 Styler removes `else: nil` clauses:
 

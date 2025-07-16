@@ -1,10 +1,8 @@
-## Elixir Deprecation Rewrites
-
 Elixir's built-in formatter now does its own rewrites via the `--migrate` flag, but doesn't quite cover every possible automated rewrite on the hard deprecations list. Styler tries to cover the rest!
 
 Styler will rewrite deprecations so long as their alternative is available on the given elixir version. In other words, Styler doesn't care what version of Elixir you're using when it applies the ex-1.18 rewrites - all it cares about is that the alternative is valid in your version of elixir.
 
-### Version Configuration
+## Configuration
 
 While most deprecation rewrites rely on the system's Elixir version, that version can be overridden for some rewrites with the `minimum_supported_elixir_version` configuration. For example, to keep Styler from using rewrites that would be incompatible with Elixir 1.15:
 
@@ -39,13 +37,13 @@ elixir_minor_version = Regex.run(~r/([\d\.]+)/, Mix.Project.config()[:elixir])
 ]
 ```
 
-### 1.20
+## 1.20
 
 [1.20 Deprecations](https://github.com/elixir-lang/elixir/blob/main/CHANGELOG.md#4-hard-deprecations)
 
 No deprecation rewrites have been added to Styler for 1.20
 
-### `1.19`
+## 1.19
 
 [1.19 Deprecations](https://github.com/elixir-lang/elixir/blob/v1.19/CHANGELOG.md#4-hard-deprecations)
 
@@ -62,9 +60,9 @@ No deprecation rewrites have been added to Styler for 1.20
 
 **WARNING** Double check your diffs to make sure your variable is pattern matching against the same struct if you want to harness 1.19's type checking features.
 
-### 1.18
+## 1.18
 
-#### `List.zip/1`
+### `List.zip/1`
 
 ```elixir
 # Before
@@ -73,19 +71,19 @@ List.zip(list)
 Enum.zip(list)
 ```
 
-#### `unless`
+### `unless`
 
 This is covered by the Elixir Formatter with the `--migrate` flag, but Styler brings the same transformation to codebases on earlier versions of Elixir, and insures future uses are automatically rewritten without relying on the flag.
 
 Rewrite `unless x` to `if !x`
 
-### 1.17
+## 1.17
 
 [1.17 Deprecations](https://hexdocs.pm/elixir/1.17.0/changelog.html#4-hard-deprecations)
 
 - Replace `:timer.units(x)` with the new `to_timeout(unit: x)` for `hours|minutes|seconds` (relies on `minimum_supported_elixir_version`)
 
-#### Range Matching Without Step
+### Range Matching Without Step
 
 ```elixir
 # Before
@@ -99,11 +97,11 @@ def foo(x..y), do: :ok
 def foo(x..y//_), do: :ok
 ```
 
-### 1.16
+## 1.16
 
 [1.16 Deprecations](https://hexdocs.pm/elixir/1.16.0/changelog.html#4-hard-deprecations)
 
-#### `File.stream!/3` `:line` and `:bytes` deprecation
+### `File.stream!/3` `:line` and `:bytes` deprecation
 
 ```elixir
 # Before
@@ -128,7 +126,7 @@ Date.range(~D[2000-01-01], ~D[1999-01-01])
 Date.range(~D[2000-01-01], ~D[1999-01-01], -1)
 ```
 
-### 1.15
+## 1.15
 
 [1.15 Deprecations](https://hexdocs.pm/elixir/1.15.0/changelog.html#4-hard-deprecations)
 

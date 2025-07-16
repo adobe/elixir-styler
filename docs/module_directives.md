@@ -1,38 +1,3 @@
-## Adds Moduledoc
-
-Adds `@moduledoc false` to modules without a moduledoc unless the module's name ends with one of the following:
-
-* `Test`
-* `Mixfile`
-* `MixProject`
-* `Controller`
-* `Endpoint`
-* `Repo`
-* `Router`
-* `Socket`
-* `View`
-* `HTML`
-* `JSON`
-
-## Directive Expansion
-
-Expands `Module.{SubmoduleA, SubmoduleB}` to their explicit forms for ease of searching.
-
-```elixir
-# Before
-import Foo.{Bar, Baz, Bop}
-alias Foo.{Bar, Baz.A, Bop}
-
-# After
-import Foo.Bar
-import Foo.Baz
-import Foo.Bop
-
-alias Foo.Bar
-alias Foo.Baz.A
-alias Foo.Bop
-```
-
 ## Directive Organization
 
 Modules directives are sorted into the following order:
@@ -142,6 +107,25 @@ import Foo.Bar
 alias Foo.Bar
 ```
 
+## Directive Expansion
+
+Expands `Module.{SubmoduleA, SubmoduleB}` to their explicit forms for ease of searching.
+
+```elixir
+# Before
+import Foo.{Bar, Baz, Bop}
+alias Foo.{Bar, Baz.A, Bop}
+
+# After
+import Foo.Bar
+import Foo.Baz
+import Foo.Bop
+
+alias Foo.Bar
+alias Foo.Baz.A
+alias Foo.Bop
+```
+
 ## Alias Lifting
 
 When a module with three parts is referenced two or more times, styler creates a new alias for that module and uses it.
@@ -215,3 +199,21 @@ C.foo()
 X.woo()
 X.woo()
 ```
+
+## Adds Moduledoc false
+
+Adds `@moduledoc false` to modules without a moduledoc. This can be a helpful callout to developers doing self review or code review that they failed to provide a moduledoc, something that's otherwise easily forgotten.
+
+This Style is not applied if the module's name ends with one of the following (this list was inherited from Credo):
+
+* `Test`
+* `Mixfile`
+* `MixProject`
+* `Controller`
+* `Endpoint`
+* `Repo`
+* `Router`
+* `Socket`
+* `View`
+* `HTML`
+* `JSON`
