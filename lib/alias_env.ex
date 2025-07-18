@@ -89,7 +89,6 @@ defmodule Styler.AliasEnv do
       # alias A.B.C, as: Bar
       # alias A.B.C, as: Foo
       # we'll choose the one that comes last lexically, which will be the alpha-sorted last entry that isn't the default as
-      # "bug": if the last happens to be `alias A.B.C, as: C`, well, they shouldn't've written such crazy code
       {modules, multiple_as} ->
         default_as = List.last(modules)
         # being clever - rather than rejecting the default up front and doing an extra list-traversal,
