@@ -78,8 +78,12 @@ defmodule Styler.Style.ModuleDirectives do
     else
       # there's no defmodules or aliasy things - see if we can do some alias lifting?
       case lift_aliases(%{@env | nondirectives: Zipper.children(zipper)}) do
-        %{alias: []} -> {:halt, zipper, ctx}
-        %{alias: lifts, nondirectives: children} -> {:halt, Zipper.replace_children(zipper, lifts ++ children), ctx}
+        %{alias: []} ->
+          {:halt, zipper, ctx}
+
+        %{alias: lifts, nondirectives: children} ->
+          {nodes, comments} = Style.order_line_meta_and_comments(lifts ++ children, ctx.comments, 1)
+          {:halt, Zipper.replace_children(zipper, nodes), %{ctx | comments: comments}}
       end
     end
   end

@@ -16,12 +16,14 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
     assert_style(
       """
       A.B.C
+      # z
       A.B.C
       """,
       """
       alias A.B.C
 
       C
+      # z
       C
       """
     )
