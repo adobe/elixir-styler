@@ -536,6 +536,21 @@ defmodule Styler.Style.ModuleDirectivesTest do
     )
 
     assert_style "@derive Inspect"
+
+    assert_style("""
+    defstruct [:a]
+    # comment for foo
+    def foo, do: :ok
+    @derive Inspect
+    @derive {Foo, bar: :baz}
+    """,
+    """
+    @derive Inspect
+    @derive {Foo, bar: :baz}
+    defstruct [:a]
+    # comment for foo
+    def foo, do: :ok
+    """)
   end
 
   test "expands use/behaviour/import/moduledoc aliases" do

@@ -84,7 +84,7 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  defp interesting?({x, _, _}) when x in [:defmodule, :a | @directives], do: true
+  defp interesting?({x, _, _}) when x in [:defmodule, :@ | @directives], do: true
   defp interesting?(_), do: false
 
   defp do_run({{:defmodule, _, children}, _} = zipper, ctx) do
