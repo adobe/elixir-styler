@@ -5,9 +5,11 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.5.1
+
 ### Fixes
 
-- handle comments when lifting aliases in snippets with no prior directives (#239, h/t @kerryb)
+- alias lifting: handle comments in snippets with no existing directives (#239, h/t @kerryb)
 
 ## 1.5.0
 
