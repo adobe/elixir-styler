@@ -29,6 +29,53 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
     )
   end
 
+  test "snippet with a single node" do
+    assert_style(
+      """
+      # 0
+      {
+        # 1
+        A.B.C,
+        # 2
+        A.B.C,
+        # 3
+
+        # 4
+        "something so long that we keep this silly tuple split across multiple lines to recreate the issue at hand"
+      }
+      """,
+      """
+      alias A.B.C
+
+      # 0
+      {
+        # 1
+        C,
+        # 2
+        C,
+        # 3
+
+        # 4
+        "something so long that we keep this silly tuple split across multiple lines to recreate the issue at hand"
+      }
+      """
+    )
+
+    assert_style(
+      """
+      {
+        A.B.C,
+        A.B.C,
+      }
+      """,
+      """
+      alias A.B.C
+
+      {C, C}
+      """
+    )
+  end
+
   test "lifts aliases repeated >=2 times from 3 deep" do
     assert_style(
       """

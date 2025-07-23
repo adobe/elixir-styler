@@ -5,6 +5,10 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Fixes
+
+- alias lifting: fix bug lifting in snippets with a single ast node at the root level (like a credo config file) (#240, h/t @defndaines)
+
 ## 1.5.1
 
 ### Fixes

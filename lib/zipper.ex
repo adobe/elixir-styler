@@ -206,15 +206,16 @@ defmodule Styler.Zipper do
   def insert_siblings({node, nil}, siblings), do: {:__block__, [], [node | siblings]} |> zip() |> down()
   def insert_siblings({tree, meta}, siblings), do: {tree, %{meta | r: siblings ++ meta.r}}
 
-  @doc """
-  Inserts the item as the leftmost child of the node at this zipper,
-  without moving.
-  """
+  @doc "Inserts the item as the leftmost child of the node at this zipper."
   def insert_child({tree, meta}, child), do: {do_insert_child(tree, child), meta}
 
   defp do_insert_child({form, meta, args}, child) when is_list(args), do: {form, meta, [child | args]}
   defp do_insert_child(list, child) when is_list(list), do: [child | list]
   defp do_insert_child({left, right}, child), do: {:{}, [], [child, left, right]}
+
+  @doc "Inserts many children, prepending the new list to the existing children of this node"
+  def insert_children({tree, meta}, children) when is_list(children),
+    do: replace_children({tree, meta}, children ++ children({tree, meta}))
 
   @doc """
   Inserts the item as the rightmost child of the node at this zipper,

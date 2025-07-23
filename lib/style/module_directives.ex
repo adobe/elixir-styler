@@ -72,18 +72,33 @@ defmodule Styler.Style.ModuleDirectives do
   #   in that case, all that's left is to apply alias lifting and halt.
   def run(zipper, %{__MODULE__ => true} = ctx), do: do_run(zipper, ctx)
 
-  def run(zipper, ctx) do
+  def run({node, nil} = zipper, ctx) do
     if interesting_zipper = Zipper.find(zipper, &interesting?/1) do
       do_run(interesting_zipper, Map.put(ctx, __MODULE__, true))
     else
       # there's no defmodules or aliasy things - see if we can do some alias lifting?
-      case lift_aliases(%{@env | nondirectives: Zipper.children(zipper)}) do
+      case lift_aliases(%{@env | nondirectives: [node]}) do
         %{alias: []} ->
           {:halt, zipper, ctx}
 
-        %{alias: lifts, nondirectives: children} ->
-          {nodes, comments} = Style.order_line_meta_and_comments(lifts ++ children, ctx.comments, 1)
-          {:halt, Zipper.replace_children(zipper, nodes), %{ctx | comments: comments}}
+        %{alias: aliases, nondirectives: [node]} ->
+          # This is a line handler unique to this situation.
+          # Nowhere else do we create nodes that we know will go before all existing code in the document.
+          # All we need to do is set those aliases to have the appropriate lines,
+          # then bump the line of everything else in the document by the number of aliases + 1!
+          aliases = Enum.with_index(aliases, fn node, i -> Style.set_line(node, i + 1) end)
+          shift = Enum.count(aliases) + 1
+          comments = Enum.map(ctx.comments, &%{&1 | line: &1.line + shift})
+          node = Style.shift_line(node, shift)
+
+          zipper =
+            case Zipper.replace(zipper, node) do
+              {{:__block__, _, _}, _} = block_zipper -> Zipper.insert_children(block_zipper, aliases)
+              # this snippet was a single element, eg just one big map in a credo config file.
+              non_block_zipper -> Zipper.prepend_siblings(non_block_zipper, aliases)
+            end
+
+          {:halt, zipper, %{ctx | comments: comments}}
       end
     end
   end
