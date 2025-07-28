@@ -37,6 +37,13 @@ defmodule Styler.Style.SingleNode do
 
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 
+  # reverse negated assert/refute
+  defp style({:assert, meta, [{:!=, _, [x, {:__block__, _, [nil]}]}]}), do: {:assert, meta, [x]}
+  defp style({:assert, meta, [{:!=, _, [{:__block__, _, [nil]}, y]}]}), do: {:assert, meta, [y]}
+  defp style({:assert, meta, [{n, _, [x]}]}) when n in [:!, :not], do: style({:refute, meta, [x]})
+  defp style({:refute, meta, [{n, _, [x]}]}) when n in [:!, :not], do: style({:assert, meta, [x]})
+  defp style({:refute, meta, [{:is_nil, _, [x]}]}), do: style({:assert, meta, [x]})
+
   # rewrite double-quote strings with >= 4 escaped double-quotes as sigils
   defp style({:__block__, [{:delimiter, ~s|"|} | meta], [string]} = node) when is_binary(string) do
     # running a regex against every double-quote delimited string literal in a codebase doesn't have too much impact

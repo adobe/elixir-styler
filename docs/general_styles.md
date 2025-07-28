@@ -241,3 +241,22 @@ def save(
 # Params comment
 def save(%Socket{assigns: %{user: user, live_action: :new}} = initial_socket, params), do: :ok
 ```
+
+## Negated Assert/Refute
+
+Notably there are three ways to write "assert the thing is nil", but Styler doesn't yet feel like coercing codebases to a single style there.
+
+| before              | styled          |
+|---------------------|-----------------|
+| `assert x != nil`   | `assert x`      |
+| `assert !!x`        | `assert x`      |
+| `assert !x`         | `refute x`      |
+| `assert not x`      | `refute x`      |
+| `assert !is_nil(x)` | `assert x`      |
+| `assert x not in y` | `refute x in y` |
+| `refute !x`         | `assert x`      |
+| `refute not x`      | `assert x`      |
+| `refute x not in y` | `assert x in y` |
+| `assert x == nil`   | _no change_     |
+| `assert is_nil(x)`  | _no change_     |
+| `refute x`          | _no change_     |

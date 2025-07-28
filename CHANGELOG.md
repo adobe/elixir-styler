@@ -5,6 +5,26 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Improvements
+
+- rewrite some negated asserts and refutes
+
+| before              | styled          |
+|---------------------|-----------------|
+| `assert x != nil`   | `assert x`      |
+| `assert !!x`        | `assert x`      |
+| `assert !x`         | `refute x`      |
+| `assert not x`      | `refute x`      |
+| `assert !is_nil(x)` | `assert x`      |
+| `assert x not in y` | `refute x in y` |
+| `refute !x`         | `assert x`      |
+| `refute not x`      | `assert x`      |
+| `refute x not in y` | `assert x in y` |
+| `assert x == nil`   | _no change_     |
+| `assert is_nil(x)`  | _no change_     |
+| `refute x`          | _no change_     |
+
+
 ### Fixes
 
 - alias lifting: fix bug lifting in snippets with a single ast node at the root level (like a credo config file) (#240, h/t @defndaines)

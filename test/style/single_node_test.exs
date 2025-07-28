@@ -11,6 +11,19 @@
 defmodule Styler.Style.SingleNodeTest do
   use Styler.StyleCase, async: true
 
+  test "assert/refute negation" do
+    assert_style "assert x != nil", "assert x"
+    assert_style "assert !!x", "assert x"
+    assert_style "assert !x", "refute x"
+    assert_style "assert not x", "refute x"
+    assert_style "assert !is_nil(x)", "assert x"
+    assert_style "assert x not in y", "refute x in y"
+
+    assert_style "refute !x", "assert x"
+    assert_style "refute not x", "assert x"
+    assert_style "refute x not in y", "assert x in y"
+  end
+
   test "string sigil rewrites" do
     assert_style ~s|""|
     assert_style ~s|"\\""|
