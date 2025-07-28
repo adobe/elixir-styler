@@ -65,13 +65,13 @@ defmodule Styler.MixProject do
       extras: [
         "CHANGELOG.md": [title: "Changelog"],
         "docs/styles.md": [title: "Styles/Features Table of Contents"],
-        "docs/general_styles.md": [title: "General Styles"],
-        "docs/deprecations.md": [title: "Deprecated Elixirisms"],
-        "docs/pipes.md": [title: "Pipe Chains"],
+        "docs/comment_directives.md": [title: "Comment Directives (# styler:sort)"],
         "docs/control_flow_macros.md": [title: "Control Flow Macros (if, case, ...)"],
+        "docs/deprecations.md": [title: "Deprecated Elixirisms"],
+        "docs/general_styles.md": [title: "General Styles"],
         "docs/mix_configs.md": [title: "Mix Configs (config/*.exs)"],
         "docs/module_directives.md": [title: "Module Directives (use, alias, ...)"],
-        "docs/comment_directives.md": [title: "Comment Directives (# styler:sort)"],
+        "docs/pipes.md": [title: "Pipe Chains"],
         "docs/credo.md": [title: "Styler & Credo"],
         "README.md": [title: "Styler"]
       ]
