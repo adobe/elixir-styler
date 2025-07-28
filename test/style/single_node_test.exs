@@ -11,17 +11,62 @@
 defmodule Styler.Style.SingleNodeTest do
   use Styler.StyleCase, async: true
 
-  test "assert/refute negation" do
-    assert_style "assert x != nil", "assert x"
-    assert_style "assert !!x", "assert x"
-    assert_style "assert !x", "refute x"
-    assert_style "assert not x", "refute x"
-    assert_style "assert !is_nil(x)", "assert x"
-    assert_style "assert x not in y", "refute x in y"
+  describe "assert/refute" do
+    test "negation" do
+      assert_style "assert x != nil", "assert x"
+      assert_style "assert !!x", "assert x"
+      assert_style "assert !x", "refute x"
+      assert_style "assert not x", "refute x"
+      assert_style "assert !is_nil(x)", "assert x"
+      assert_style "assert x not in y", "refute x in y"
 
-    assert_style "refute !x", "assert x"
-    assert_style "refute not x", "assert x"
-    assert_style "refute x not in y", "assert x in y"
+      assert_style "assert nil == nil", "assert nil == nil"
+      assert_style "assert nil != nil", "assert nil"
+
+      assert_style "refute x != y", "assert x == y"
+      assert_style "refute x !== y", "assert x === y"
+      assert_style "refute x != nil", "assert x == nil"
+      assert_style "refute !x", "assert x"
+      assert_style "refute not x", "assert x"
+      assert_style "refute x not in y", "assert x in y"
+
+      assert_style "assert x == nil"
+      assert_style "assert is_nil(x)"
+      assert_style "refute x"
+    end
+
+    test "Enum.member? -> in" do
+      assert_style "assert Enum.member?(enum, x)", "assert x in enum"
+      assert_style "refute Enum.member?(enum, x)", "refute x in enum"
+      assert_style "assert not Enum.member?(enum, x)", "refute x in enum"
+      assert_style "refute not Enum.member?(enum, x)", "assert x in enum"
+    end
+
+    test "Enum.find -> any?" do
+      assert_style "assert Enum.find(x, y)", "assert Enum.any?(x, y)"
+      assert_style "refute Enum.find(x, y)", "refute Enum.any?(x, y)"
+    end
+
+    test "Enum.any?(x, & &1 == y) -> y in x" do
+      assert_style "assert Enum.any?(x, y)"
+      assert_style "assert Enum.any?(x, &(&1.x == y))"
+      assert_style "assert Enum.any?(x, &(&1 != y))"
+      assert_style "assert Enum.any?(y, & &1 == x)", "assert x in y"
+      assert_style "assert Enum.any?(y, fn q -> q == x end)", "assert x in y"
+      assert_style "assert Enum.find(y, & &1 == x)", "assert x in y"
+      assert_style "assert Enum.find(y, fn q -> q == x end)", "assert x in y"
+    end
+
+    test "boolean comparisons" do
+      assert_style "assert x < y"
+      assert_style "assert x <= y"
+      assert_style "assert x > y"
+      assert_style "assert x >= y"
+      assert_style "refute x < y", "assert x >= y"
+      assert_style "refute x <= y", "assert x > y"
+      assert_style "refute x > y", "assert x <= y"
+      assert_style "refute x >= y", "assert x < y"
+    end
   end
 
   test "string sigil rewrites" do

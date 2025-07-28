@@ -242,21 +242,39 @@ def save(
 def save(%Socket{assigns: %{user: user, live_action: :new}} = initial_socket, params), do: :ok
 ```
 
-## Negated Assert/Refute
+## Assert/Refute Rewrites
 
-Notably there are three ways to write "assert the thing is nil", but Styler doesn't yet feel like coercing codebases to a single style there.
+Styler rewrites negated asserts, assertions that things are not nil (that's the same as just asserting the thing!) and refute with binary operators (refute's hard to reason about with anything other than `==` and predicates).
 
-| before              | styled          |
-|---------------------|-----------------|
-| `assert x != nil`   | `assert x`      |
-| `assert !!x`        | `assert x`      |
-| `assert !x`         | `refute x`      |
-| `assert not x`      | `refute x`      |
-| `assert !is_nil(x)` | `assert x`      |
-| `assert x not in y` | `refute x in y` |
-| `refute !x`         | `assert x`      |
-| `refute not x`      | `assert x`      |
-| `refute x not in y` | `assert x in y` |
-| `assert x == nil`   | _no change_     |
-| `assert is_nil(x)`  | _no change_     |
-| `refute x`          | _no change_     |
+| before              | styled            |
+|---------------------|-------------------|
+| `assert !x`         | `refute x`        |
+| `assert not x`      | `refute x`        |
+| `assert !!x`        | `assert x`        |
+| `assert x != nil`   | `assert x`        |
+| `assert x == nil`   | _no change_       |
+| `assert is_nil(x)`  | _no change_       |
+| `assert !is_nil(x)` | `assert x`        |
+| `assert x not in y` | `refute x in y`   |
+| **refute negated**  |                   |
+| `refute x`          | _no change_       |
+| `refute !x`         | `assert x`        |
+| `refute not x`      | `assert x`        |
+| `refute x != y`     | `assert x == y`   |
+| `refute x !== y`    | `assert x === y`  |
+| `refute x != nil`   | `assert x == nil` |
+| `refute x not in y` | `assert x in y`   |
+| **refute comparison** |                   |
+| `refute x < y`      | `assert x >= y`   |
+| `refute x <= y`     | `assert x > y`    |
+| `refute x > y`      | `assert x <= y`   |
+| `refute x >= y`     | `assert x < y`    |
+
+Additionally, styler rewrites some `Enum` functions inside `assert`
+
+| before                                        | styled                              |
+|-----------------------------------------------|-------------------------------------|
+| `assert Enum.find(x, y)`                      | `assert Enum.any?(x, y)`            |
+| `assert Enum.member?(y, x)`                   | `assert x in y`                     |
+| `assert Enum.any?(y, & &1 == x)`              | `assert x in y`                     |
+| `assert Enum.any?(y, fn var -> var == x end)` | `assert x in y`                     |

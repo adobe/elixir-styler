@@ -5,25 +5,48 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.6.0
+
 ### Improvements
 
-- rewrite some negated asserts and refutes
+This version of Styler adds many readability improvements around ExUnit `assert` and `refute`, specifically when working with 1. negations or 2. some `Enum` stdlib functions.
 
-| before              | styled          |
-|---------------------|-----------------|
-| `assert x != nil`   | `assert x`      |
-| `assert !!x`        | `assert x`      |
-| `assert !x`         | `refute x`      |
-| `assert not x`      | `refute x`      |
-| `assert !is_nil(x)` | `assert x`      |
-| `assert x not in y` | `refute x in y` |
-| `refute !x`         | `assert x`      |
-| `refute not x`      | `assert x`      |
-| `refute x not in y` | `assert x in y` |
-| `assert x == nil`   | _no change_     |
-| `assert is_nil(x)`  | _no change_     |
-| `refute x`          | _no change_     |
+Some of these rewrites are not semantically equivalent due to `refute` passing for both `nil` and `false`.
 
+#### ExUnit assert/refute rewrites
+
+Styler now inverts negated (`!, not`) assert/refute (eg `assert !x` => `refute x`) statements, and further inverts `refute` with boolean comparison operators (`refute x < y` => `assert x >= y`) because non-trivial refutes are harder to reason about \[ _citation needed_ ]. Asserting something is not nil is the same as just asserting that something, so that's gone too now.
+
+These changes are best summarized by the following table:
+
+| before              | styled            |
+|---------------------|-------------------|
+| `assert !x`         | `refute x`        |
+| `assert not x`      | `refute x`        |
+| `assert !!x`        | `assert x`        |
+| `assert x != nil`   | `assert x`        |
+| `assert x == nil`   | _no change_       |
+| `assert is_nil(x)`  | _no change_       |
+| `assert !is_nil(x)` | `assert x`        |
+| `assert x not in y` | `refute x in y`   |
+| refute negated      |                   |
+| `refute x`          | _no change_       |
+| `refute !x`         | `assert x`        |
+| `refute not x`      | `assert x`        |
+| `refute x != y`     | `assert x == y`   |
+| `refute x !== y`    | `assert x === y`  |
+| `refute x != nil`   | `assert x == nil` |
+| `refute x not in y` | `assert x in y`   |
+| refute comparison   |                   |
+| `refute x < y`      | `assert x >= y`   |
+| `refute x <= y`     | `assert x > y`    |
+| `refute x > y`      | `assert x <= y`   |
+| `refute x >= y`     | `assert x < y`    |
+
+- `assert Enum.member?(y, x)` -> `assert x in y`
+- `assert Enum.find(x, y)` -> `assert Enum.any?(x, y)` (nb. not semantically equivalent in theory, but equivalent in practice)
+- `assert Enum.any?(y, & &1 == x)` -> `assert x in y`
+- `assert Enum.any?(y, fn var -> var == x end)` -> `assert x in y`
 
 ### Fixes
 

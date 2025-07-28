@@ -37,12 +37,46 @@ defmodule Styler.Style.SingleNode do
 
   def run({node, meta}, ctx), do: {:cont, {style(node), meta}, ctx}
 
-  # reverse negated assert/refute
-  defp style({:assert, meta, [{:!=, _, [x, {:__block__, _, [nil]}]}]}), do: {:assert, meta, [x]}
-  defp style({:assert, meta, [{:!=, _, [{:__block__, _, [nil]}, y]}]}), do: {:assert, meta, [y]}
-  defp style({:assert, meta, [{n, _, [x]}]}) when n in [:!, :not], do: style({:refute, meta, [x]})
-  defp style({:refute, meta, [{n, _, [x]}]}) when n in [:!, :not], do: style({:assert, meta, [x]})
+  defp style({:assert, meta, [{:!=, _, [x, {:__block__, _, [nil]}]}]}), do: style({:assert, meta, [x]})
+  # refute nilly -> assert
   defp style({:refute, meta, [{:is_nil, _, [x]}]}), do: style({:assert, meta, [x]})
+  defp style({:refute, meta, [{:==, _, [x, {:__block__, _, [nil]}]}]}), do: style({:assert, meta, [x]})
+  # boolean ops and assert hurt my brain.
+  # the lone exception is `==` (... for now) ((uh, and the exception to the exception is when it's `== nil`, above))
+  defp style({:refute, meta, [{:!=, m, xy}]}), do: style({:assert, meta, [{:==, m, xy}]})
+  defp style({:refute, meta, [{:!==, m, xy}]}), do: style({:assert, meta, [{:===, m, xy}]})
+  defp style({:refute, meta, [{:<, m, xy}]}), do: style({:assert, meta, [{:>=, m, xy}]})
+  defp style({:refute, meta, [{:<=, m, xy}]}), do: style({:assert, meta, [{:>, m, xy}]})
+  defp style({:refute, meta, [{:>, m, xy}]}), do: style({:assert, meta, [{:<=, m, xy}]})
+  defp style({:refute, meta, [{:>=, m, xy}]}), do: style({:assert, meta, [{:<, m, xy}]})
+
+  for {a, inverted} <- [{:assert, :refute}, {:refute, :assert}] do
+    # invert negations
+    defp style({unquote(a), meta, [{n, _, [x]}]}) when n in [:!, :not], do: style({unquote(inverted), meta, [x]})
+
+    # assert Enum.member? -> assert in
+    defp style({unquote(a), meta, [{{:., _, [{:__aliases__, _, [:Enum]}, :member?]}, _, [enum, elem]}]}),
+      do: {unquote(a), meta, [{:in, [line: meta[:line]], [elem, enum]}]}
+
+    # assert Enum.find -> assert Enum.any?
+    defp style({unquote(a), meta, [{{:., a, [{:__aliases__, b, [:Enum]}, :find]}, c, [enum, fun]}]}),
+      do: style({unquote(a), meta, [{{:., a, [{:__aliases__, b, [:Enum]}, :any?]}, c, [enum, fun]}]})
+
+    # Enum.any?(x, & &1 == y) => y in x
+    defp style({unquote(a) = a, m, [{{:., _, [{:__aliases__, _, [:Enum]}, :any?]}, _, [y, fun]}]} = node) do
+      case fun do
+        # & &1 == x
+        {:&, _, [{:==, _, [{:&, _, [1]}, x]}]} -> {a, m, [{:in, [line: m[:line]], [x, y]}]}
+        # & x == &1
+        {:&, _, [{:==, _, [x, {:&, _, [1]}]}]} -> {a, m, [{:in, [line: m[:line]], [x, y]}]}
+        # fn var -> var == x
+        {:fn, _, [{:->, _, [[{var, _, nil}], {:==, _, [{var, _, nil}, x]}]}]} -> {a, m, [{:in, [line: m[:line]], [x, y]}]}
+        # fn var -> x == var
+        {:fn, _, [{:->, _, [[{var, _, nil}], {:==, _, [x, {var, _, nil}]}]}]} -> {a, m, [{:in, [line: m[:line]], [x, y]}]}
+        _ -> node
+      end
+    end
+  end
 
   # rewrite double-quote strings with >= 4 escaped double-quotes as sigils
   defp style({:__block__, [{:delimiter, ~s|"|} | meta], [string]} = node) when is_binary(string) do
