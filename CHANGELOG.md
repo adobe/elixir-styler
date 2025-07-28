@@ -7,6 +7,8 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## 1.6.0
 
+That's right, a feature release again so soon!
+
 ### Improvements
 
 This version of Styler adds many readability improvements around ExUnit `assert` and `refute`, specifically when working with 1. negations or 2. some `Enum` stdlib functions.
