@@ -43,10 +43,28 @@ defmodule Styler.Style.Blocks do
     end
   end
 
-  # Credo.Check.Refactor.CondStatements
-  def run({{:cond, _, [[{_, [{:->, _, [[head], a]}, {:->, _, [[{:__block__, _, [truthy]}], b]}]}]]}, _} = zipper, ctx)
-      when is_atom(truthy) and truthy not in [nil, false],
-      do: if_ast(zipper, head, a, b, ctx)
+  def run({{:cond, _, [[{do_, clauses}]]}, _} = zipper, ctx) do
+    # ensure all final `atom -> final_clause` use `true` for consistency.
+    # `:else` is cute but consistency is all.
+    rewrite_literal_to_true = fn
+      {:->, am, [[{:__block__, bm, [truthy]}], body]} when truthy not in [nil, false] ->
+        {:->, am, [[{:__block__, bm, [true]}], body]}
+
+      # Surely this never happens buuuuut?
+      # %{} ->; {} ->
+      {:->, am, [[{literal, bm, _}], body]} when literal in [:{}, :%{}] ->
+        {:->, am, [[{:__block__, bm, [true]}], body]}
+
+      other ->
+        other
+    end
+
+    case List.update_at(clauses, -1, rewrite_literal_to_true) do
+      # # Credo.Check.Refactor.CondStatements
+      [{:->, _, [[head], a]}, {:->, _, [[{:__block__, _, [true]}], b]}] -> if_ast(zipper, head, a, b, ctx)
+      clauses -> {:cont, Zipper.replace_children(zipper, [[{do_, clauses}]]), ctx}
+    end
+  end
 
   # Credo.Check.Readability.WithSingleClause
   # rewrite `with success <- single_statement do body else ...elses end`

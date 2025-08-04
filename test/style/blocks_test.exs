@@ -805,41 +805,98 @@ defmodule Styler.Style.BlocksTest do
     end
   end
 
-  test "Credo.Check.Refactor.CondStatements" do
-    for truthy <- ~w(true :atom :else) do
-      assert_style(
-        """
+  describe "cond" do
+    test "rewrite some two-clause conds as an if statement" do
+      for truthy <- ~w(true :atom :else) do
+        assert_style(
+          """
+          cond do
+            a -> b
+            #{truthy} -> c
+          end
+          """,
+          """
+          if a do
+            b
+          else
+            c
+          end
+          """
+        )
+      end
+
+      for falsey <- ~w(false nil) do
+        assert_style("""
         cond do
           a -> b
-          #{truthy} -> c
+          #{falsey} -> c
         end
-        """,
-        """
-        if a do
-          b
-        else
-          c
+        """)
+      end
+
+      for ignored <- ["x == y", "foo", "foo()", "foo(b)", "Module.foo(x)"] do
+        assert_style("""
+        cond do
+          a -> b
+          #{ignored} -> c
         end
-        """
-      )
+        """)
+      end
     end
 
-    for falsey <- ~w(false nil) do
-      assert_style("""
+    test "if final clause is an atom or truthy value, change the clause to `true`" do
+      assert_style """
       cond do
         a -> b
-        #{falsey} -> c
+        c -> d
+        true -> woo
       end
-      """)
-    end
+      """
 
-    for ignored <- ["x == y", "foo", "foo()", "foo(b)", "Module.foo(x)", ~s("else"), "%{}", "{}"] do
-      assert_style("""
+      assert_style """
       cond do
         a -> b
-        #{ignored} -> c
+        c -> d
+        call() -> woo
       end
-      """)
+      """
+
+      for truthy <- [~s("else"), ":else", "%{}", "{}"] do
+        assert_style(
+          """
+          cond do
+            a -> b
+            c -> d
+            #{truthy} -> woo
+          end
+          """,
+          """
+          cond do
+            a -> b
+            c -> d
+            true -> woo
+          end
+          """
+        )
+      end
+
+      for truthy <- [~s("else"), ":else", "%{}", "{}"] do
+        assert_style(
+          """
+          cond do
+            a -> b
+            #{truthy} -> woo
+          end
+          """,
+          """
+          if a do
+            b
+          else
+            woo
+          end
+          """
+        )
+      end
     end
   end
 

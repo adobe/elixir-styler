@@ -5,6 +5,45 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Improvements
+
+#### `cond`
+
+If the last clause's left-hand-side is a truthy atom, map literal, or tuple, rewrite it to be `true`
+
+```elixir
+# before
+cond do
+  a -> b
+  c -> d
+  :else -> e
+end
+
+# styled
+cond do
+  a -> b
+  c -> d
+  true -> e
+end
+```
+
+This also helps Styler identify 2-clause conds that can be rewritten to `if/else` more readily, like the following:
+
+```elixir
+# before
+cond do
+  a -> b
+  :else -> c
+end
+
+# styled
+if a do
+  b
+else
+  c
+end
+```
+
 ## 1.6.0
 
 That's right, a feature release again so soon!
