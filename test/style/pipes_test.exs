@@ -168,6 +168,72 @@ defmodule Styler.Style.PipesTest do
       )
     end
 
+    test "block extraction: optimize the pipe!" do
+      assert_style("""
+      foo
+      |> case do
+        nil -> nil
+      end
+      """,
+      """
+      case foo do
+        nil -> nil
+      end
+      """)
+
+      assert_style("""
+      foo
+      |> bar(baz)
+      |> case do
+        nil -> nil
+      end
+      """,
+      """
+      case bar(foo, baz) do
+        nil -> nil
+      end
+      """)
+
+      assert_style("""
+      foo
+      |> bar(baz)
+      |> if do
+        :horay
+      else
+        :boo
+      end
+      """,
+      """
+      if bar(foo, baz) do
+        :horay
+      else
+        :boo
+      end
+      """)
+    end
+
+    test "do block in the middle of a chain" do
+      assert_style("""
+      foo
+      |> bar(baz)
+      |> case(do
+        nil -> nil
+      end)
+      |> bop()
+      |> nooo()
+      """,
+      """
+      case_result =
+        case bar(foo, baz) do
+          nil -> nil
+        end
+
+      case_result
+      |> bop()
+      |> nooo()
+      """)
+    end
+
     test "macro with arg and do block" do
       assert_style("""
       "baz"
