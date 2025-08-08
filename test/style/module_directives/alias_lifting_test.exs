@@ -147,6 +147,7 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       """
       defmodule A do
         @moduledoc false
+
         alias A.B.C
 
         defmodule B do
@@ -174,6 +175,7 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       """
       defmodule Timely do
         @moduledoc false
+
         use A.B.C
 
         import A.B.C
@@ -231,6 +233,7 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       """
       defmodule A do
         @moduledoc false
+
         alias A.B.C
 
         def lift_me do
@@ -255,6 +258,7 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
       """
       defmodule A do
         @moduledoc false
+
         alias A.B.C
 
         require B

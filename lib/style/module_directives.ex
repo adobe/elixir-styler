@@ -138,7 +138,7 @@ defmodule Styler.Style.ModuleDirectives do
             zipper =
               body_zipper
               |> Zipper.replace({:__block__, [], [moduledoc, only_child]})
-              |> organize_directives()
+              |> organize_directives(moduledoc)
 
             {:skip, zipper, ctx}
           else
@@ -223,6 +223,69 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
+  defp should_add_moduledoc_newline?(acc, moduledoc) do
+    # Always add newlines after moduledoc when there's any content following it
+    moduledoc != nil and has_any_content_after_moduledoc?(acc)
+  end
+
+  defp has_any_content_after_moduledoc?(%{behaviour: b, use: u, import: i, alias: a, require: r, nondirectives: n} = acc) do
+    # Add newlines if there are directives (use, import, alias, require, behaviour)
+    has_directives = Enum.any?([b, u, i, a, r], &(&1 != []))
+    
+    # Also add newlines if there are other module attributes 
+    has_relevant_attributes = Enum.any?(n, fn
+      {:@, _, [{attr, _, _}]} when attr != :moduledoc -> true  # Other attributes like @derive, @spec warrant newlines
+      {:defmodule, _, _} -> false  # Nested modules don't warrant newlines after moduledoc
+      _ -> false  # Function definitions, calls, standalone atoms, etc. don't warrant newlines
+    end)
+    
+    # Check if alias lifting will add new aliases
+    will_have_lifted_aliases = will_lift_aliases?(acc)
+    
+    has_directives or has_relevant_attributes or will_have_lifted_aliases
+  end
+  defp has_any_content_after_moduledoc?(_), do: false
+
+  defp will_lift_aliases?(%{require: requires, nondirectives: nondirectives, alias_env: alias_env}) do
+    liftable = find_liftable_aliases(requires ++ nondirectives, alias_env)
+    Enum.any?(liftable)
+  end
+
+  defp process_directive_group({key, value}, acc, moduledoc) do
+    case key do
+      :moduledoc -> process_moduledoc_group(value, acc, moduledoc)
+      :use -> {:use, value |> Enum.reverse() |> Style.reset_newlines()}
+      directive when directive in ~w(behaviour import alias require)a -> {directive, sort(value)}
+      :alias_env -> {:alias_env, value}
+      _ -> {key, Enum.reverse(value)}
+    end
+  end
+
+  defp process_moduledoc_group([], acc, moduledoc) do
+    moduledoc_list = List.wrap(moduledoc)
+    should_add_newlines = should_add_moduledoc_newline?(acc, moduledoc)
+    
+    moduledoc_with_newlines = 
+      if should_add_newlines and length(moduledoc_list) > 0,
+        do: Style.reset_newlines(moduledoc_list),
+        else: moduledoc_list
+    
+    {:moduledoc, moduledoc_with_newlines}
+  end
+
+  defp process_moduledoc_group(moduledocs, acc, _moduledoc) do
+    # For existing moduledocs, check if there are directives following to determine if newlines should be added
+    should_add_newlines = length(moduledocs) > 0 and has_any_content_after_moduledoc?(acc)
+    
+    moduledoc_with_newlines = 
+      if should_add_newlines,
+        do: Style.reset_newlines(moduledocs),
+        else: moduledocs
+    
+    {:moduledoc, moduledoc_with_newlines}
+  end
+  
+
   defp organize_directives(parent, moduledoc \\ nil) do
     acc =
       parent
@@ -249,14 +312,11 @@ defmodule Styler.Style.ModuleDirectives do
         ast, acc ->
           %{acc | nondirectives: [ast | acc.nondirectives]}
       end)
+
+    acc =
+      acc
       # Reversing once we're done accumulating since `reduce`ing into list accs means you're reversed!
-      |> Map.new(fn
-        {:moduledoc, []} -> {:moduledoc, List.wrap(moduledoc)}
-        {:use, uses} -> {:use, uses |> Enum.reverse() |> Style.reset_newlines()}
-        {directive, to_sort} when directive in ~w(behaviour import alias require)a -> {directive, sort(to_sort)}
-        {:alias_env, d} -> {:alias_env, d}
-        {k, v} -> {k, Enum.reverse(v)}
-      end)
+      |> Map.new(&process_directive_group(&1, acc, moduledoc))
       |> redefine_alias_env()
       |> lift_aliases()
       |> apply_aliases()

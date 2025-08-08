@@ -87,6 +87,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         """
         defmodule Bar do
           @moduledoc false
+
           alias Bop.Bop
 
           :ok
@@ -116,6 +117,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         """
         defmodule Foo do
           @moduledoc false
+
           use Bar
         end
         """
@@ -130,6 +132,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
         """
         defmodule Foo do
           @moduledoc false
+
           alias Foo.Bar
           alias Foo.Baz
         end
@@ -220,6 +223,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
                      |> File.read!()
                      |> String.split("<!-- MDOC !-->")
                      |> Enum.fetch!(1)
+
           @behaviour Chaotic
           @behaviour Lawful
 
@@ -262,6 +266,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
       assert_style("""
       defmodule Foo do
         @moduledoc false
+
         @spec import(any(), any(), any()) :: any()
         def import(a, b, c), do: nil
       end
@@ -574,6 +579,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
       """
       defmodule MyModule do
         @moduledoc "Implements \#{A.B.C.foo()}!"
+
         @behaviour G.H.C
 
         use SomeMacro, with: Z.X.C
@@ -606,6 +612,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
 
         defmodule MyGreatLibrary do
           @moduledoc make_pretty_docs(library_options)
+
           use OptionsMagic, my_opts: unquote(library_options)
 
           @library_options library_options
@@ -628,6 +635,7 @@ defmodule Styler.Style.ModuleDirectivesTest do
 
         quote do
           @moduledoc make_pretty_docs(library_options)
+
           use OptionsMagic, my_opts: unquote(library_options)
 
           @library_options library_options

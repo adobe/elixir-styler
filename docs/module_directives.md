@@ -63,6 +63,7 @@ defmodule Foo do
              |> File.read!()
              |> String.split("<!-- MDOC !-->")
              |> Enum.fetch!(1)
+
   @behaviour Chaotic
   @behaviour Lawful
 
@@ -217,3 +218,47 @@ This Style is not applied if the module's name ends with one of the following (t
 * `View`
 * `HTML`
 * `JSON`
+
+## Moduledoc Spacing
+
+Styler ensures consistent spacing after `@moduledoc` by adding a blank line when the moduledoc is followed by directives or attributes. This improves code readability and consistency with common Elixir formatting patterns.
+
+### Before
+
+```elixir
+defmodule MyModule do
+  @moduledoc "This module does something useful"
+  @behaviour GenServer
+  use OtherModule
+  alias SomeModule
+  
+  def start_link(opts) do
+    # ...
+  end
+end
+```
+
+### After
+
+```elixir
+defmodule MyModule do
+  @moduledoc "This module does something useful"
+
+  @behaviour GenServer
+
+  use OtherModule
+
+  alias SomeModule
+
+  def start_link(opts) do
+    # ...
+  end
+end
+```
+
+The blank line is added after `@moduledoc` when it's followed by:
+- Other module attributes like `@behaviour`, `@derive`, `@spec`, etc.
+- Directives like `use`, `import`, `alias`, `require`
+- Functions and other module content
+
+No blank line is added when `@moduledoc` is only followed by nested `defmodule` statements, as this would create unnecessary spacing in namespace modules.
