@@ -7,6 +7,8 @@ they can and will change without that change being reflected in Styler's semanti
 
 ### Improvements
 
+- `|> Enum.filter(fun) |> List.first([default])` => `|> Enum.find([default], fun)` (#242, h/t @janpieper)
+
 #### `cond`
 
 If the last clause's left-hand-side is a truthy atom, map literal, or tuple, rewrite it to be `true`
