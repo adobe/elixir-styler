@@ -44,7 +44,17 @@ a |> b |> c |> d
 a |> b() |> c() |> d()
 ```
 
-## Remove Unnecessary `then/2`
+## `then/2` improvements
+
+### Add `then/2` when defining and calling anonymous functions in pipes
+
+```elixir
+a |> (fn x -> x end).() |> c()
+# Styled:
+a |> then(fn x -> x end) |> c()
+```
+
+### Remove Redundant `then/2`
 
 When the piped argument is being passed as the first argument to the inner function, there's no need for `then/2`.
 
@@ -55,14 +65,6 @@ a |> f(...) |> b()
 ```
 
 - add parens to function calls `|> fun |>` => `|> fun() |>`
-
-## Add `then/2` when defining and calling anonymous functions in pipes
-
-```elixir
-a |> (fn x -> x end).() |> c()
-# Styled:
-a |> then(fn x -> x end) |> c()
-```
 
 ## Piped function optimizations
 
@@ -103,6 +105,13 @@ a |> b() |> Stream.map(fun) |> Stream.run()
 # Styled:
 a |> b() |> Enum.each(fun)
 a |> b() |> Enum.each(fun)
+
+# Given:
+a |> Enum.filter(fun) |> List.first() |> ...
+a |> Enum.filter(fun) |> List.first(default) |> ...
+# Styled:
+a |> Enum.find(fun) |> ...
+a |> Enum.find(default, fun) |> ...
 ```
 
 ## Unpiping Single Pipes
@@ -127,4 +136,11 @@ If the first argument to a function call is a pipe, Styler makes the function ca
 d(a |> b |> c)
 # Styled
 a |> b() |> c() |> d()
+```
+
+Styler does not pipe-ify nested function calls if there are no pipes:
+
+```elixir
+# Styler does not change this
+d(c(b(a())))
 ```
