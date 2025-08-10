@@ -64,8 +64,6 @@ a |> then(&f(&1, ...)) |> b()
 a |> f(...) |> b()
 ```
 
-- add parens to function calls `|> fun |>` => `|> fun() |>`
-
 ## Piped function optimizations
 
 Two function calls into one! Fewer steps is always nice.
@@ -142,5 +140,16 @@ Styler does not pipe-ify nested function calls if there are no pipes:
 
 ```elixir
 # Styler does not change this
-d(c(b(a())))
+d(c(b(a))
+```
+
+If you want Styler to do the work of transforming nested function calls into a pipe for you, change the innermost function call to a pipe, then format. Styler will take care of the rest.
+
+```elixir
+# To have Styler change this to pipes
+d(c(b(a))
+# You will have to add a single pipe to the innermost function call, like so:
+d(c(a |> b))
+# At which point Styler will pipe-ify the entire chain
+a |> b() |> c() |> d()
 ```
