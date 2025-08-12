@@ -5,6 +5,12 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.7.0
+
+Surprising how fast numbers go up when you're following semver.
+
+Two new features, one being a pipe optimization and the other a style-consistency-enforcer in `cond` statements.
+
 ### Improvements
 
 - `|> Enum.filter(fun) |> List.first([default])` => `|> Enum.find([default], fun)` (#242, h/t @janpieper)
