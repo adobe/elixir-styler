@@ -500,7 +500,7 @@ defmodule Styler.Style.PipesTest do
     end
   end
 
-  describe "simple rewrites" do
+  describe "optimizations & readability improvements" do
     test "rewrites anonymous function invocations to use then" do
       assert_style("a |> (& &1).()", "then(a, & &1)")
       assert_style("a |> (& {&1, &2}).(b)", "(&{&1, &2}).(a, b)")
@@ -540,6 +540,39 @@ defmodule Styler.Style.PipesTest do
 
     test "adds parens to 1-arity pipes" do
       assert_style("a |> b |> c", "a |> b() |> c()")
+    end
+
+    test "filter/first => find" do
+      assert_style "a |> Enum.filter(fun) |> List.first()", "Enum.find(a, fun)"
+      assert_style "a |> Enum.filter(fun) |> List.first(default)", "Enum.find(a, default, fun)"
+
+      assert_style(
+        """
+        a
+        |> Enum.filter(fun)
+        |> List.first()
+        |> foo()
+        """,
+        """
+        a
+        |> Enum.find(fun)
+        |> foo()
+        """
+      )
+
+      assert_style(
+        """
+        a
+        |> Enum.filter(fun)
+        |> List.first(default)
+        |> foo()
+        """,
+        """
+        a
+        |> Enum.find(default, fun)
+        |> foo()
+        """
+      )
     end
 
     test "reverse/concat" do

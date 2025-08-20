@@ -132,7 +132,7 @@ end
 
 ## `cond`
 
-Styler ensures that if the final clause of a `cond` statement uses a literal as its lefthandside, that that literal is the atom `true`.
+Styler enforces the use of `true` as the final clause of a cond statement when it's equivalent.
 
 ```elixir
 # before
@@ -141,12 +141,18 @@ cond do
   c -> d
   :else -> e
 end
-
 # styled
 cond do
   a -> b
   c -> d
   true -> e
+end
+
+# This is left unchanged
+cond do
+  a -> b
+  c -> d
+  foo -> e
 end
 ```
 

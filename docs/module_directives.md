@@ -201,11 +201,18 @@ X.woo()
 X.woo()
 ```
 
-## Adds Moduledoc false
+## Adds `@moduledoc false`
 
-Adds `@moduledoc false` to modules without a moduledoc. This can be a helpful callout to developers doing self review or code review that they failed to provide a moduledoc, something that's otherwise easily forgotten.
+Adds `@moduledoc false` to modules without a moduledoc.
 
-This Style is not applied if the module's name ends with one of the following (this list was inherited from Credo):
+Styler does this for two reasons:
+
+1. Its appearance during code review is a reminder to the author and reviewer that they may want to document the module. This can otherwise be easily forgotten.
+2. To normalize the use of `@moduledoc false`, because it's preferable to docstrings which convey no actual information.
+
+    For example: `@moduledoc "The module for functions for interacting with Widgets"` in the `Widget` module is crueler code to have written than just `@moduledoc false`, because including a string gave the reader hope that the author was going to help them comprehend the module. That false hope causes more harm than just saying "Sorry, you're on your own." (aka `@moduledoc false`)
+
+In conformance with the precedent set by Credo, this `@moduledoc` is not added if the module's name ends with any of the following:
 
 * `Test`
 * `Mixfile`
