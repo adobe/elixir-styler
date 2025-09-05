@@ -184,6 +184,7 @@ defmodule Styler.Style.PipesTest do
         x =
           case y do
             :ok -> :ok |> IO.puts()
+            :error -> :error
           end
           |> bar()
           |> baz()
@@ -192,6 +193,7 @@ defmodule Styler.Style.PipesTest do
         case_result =
           case y do
             :ok -> IO.puts(:ok)
+            :error -> :error
           end
 
         x =
@@ -286,11 +288,8 @@ defmodule Styler.Style.PipesTest do
         |> foo()
         """,
         """
-        case_result =
-          case x do
-            x -> x
-          end
-
+        case_result = x = x
+        x
         foo(case_result)
         """
       )
@@ -300,6 +299,7 @@ defmodule Styler.Style.PipesTest do
         def foo do
           case x do
             x -> x
+            y -> y
           end
           |> foo()
         end
@@ -309,6 +309,7 @@ defmodule Styler.Style.PipesTest do
           case_result =
             case x do
               x -> x
+              y -> y
             end
 
           foo(case_result)

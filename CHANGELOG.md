@@ -5,6 +5,24 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Improvements
+
+Rewrite single-clause case statements to be assignments (h/t 🤖)
+
+```elixir
+# before
+case foo |> Bar.baz() |> Bop.boop() do
+  {:ok, widget} ->
+    x = y
+    wodget(widget)
+end
+
+# after
+{:ok, widget} = foo |> Bar.baz() |> Bop.boop()
+x = y
+wodget(widget)
+```
+
 ## 1.7.0
 
 Surprising how fast numbers go up when you're following semver.

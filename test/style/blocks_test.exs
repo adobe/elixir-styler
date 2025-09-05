@@ -11,6 +11,110 @@
 defmodule Styler.Style.BlocksTest do
   use Styler.StyleCase, async: true
 
+  describe "case statements with a single clause" do
+    test "noop for when" do
+      assert_style """
+      case foo do
+        bar when is_binary(bar) -> baz(bar)
+      end
+      """
+    end
+
+    test "changes to assignment" do
+      assert_style(
+        """
+        case foo do
+          bar -> baz(bar)
+        end
+        """,
+        """
+        bar = foo
+        baz(bar)
+        """
+      )
+
+      assert_style(
+        """
+        case foo |> Bar.baz() |> Bop.boop() do
+          {:ok, widget} ->
+            x = y
+            wodget(widget)
+        end
+        """,
+        """
+        {:ok, widget} = foo |> Bar.baz() |> Bop.boop()
+        x = y
+        wodget(widget)
+        """
+      )
+    end
+
+    test "with comments" do
+      assert_style(
+        """
+        # bar
+        bar
+
+        # head
+        case foo |> Bar.baz() |> Bop.boop() do
+          # clause
+          {:ok, widget} ->
+            # body
+            x = y
+            wodget(widget)
+        end
+        """,
+        """
+        # bar
+        bar
+
+        # head
+        # clause
+        {:ok, widget} = foo |> Bar.baz() |> Bop.boop()
+        # body
+        x = y
+        wodget(widget)
+        """
+      )
+    end
+
+    test "singleton parent" do
+      assert_style """
+      if foo do
+        case complex |> head() |> stuff() do
+          {:ok, whatever} ->
+            some_body(whatever)
+        end
+      end
+      """,
+      """
+      if foo do
+        {:ok, whatever} = complex |> head() |> stuff()
+        some_body(whatever)
+      end
+      """
+    end
+
+    test "when already an assignment" do
+      assert_style(
+        """
+        m
+
+        x =
+          case a do
+            b -> c
+          end
+        """,
+        """
+        m
+
+        x = b = a
+        c
+        """
+      )
+    end
+  end
+
   describe "case to if" do
     test "rewrites case true false to if else" do
       assert_style(

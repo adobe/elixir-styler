@@ -279,11 +279,13 @@ defmodule Styler.Style.SingleNodeTest do
         """
         case foo do
           bar = _ -> :ok
+          _ -> :error
         end
         """,
         """
         case foo do
           bar -> :ok
+          _ -> :error
         end
         """
       )
@@ -292,11 +294,13 @@ defmodule Styler.Style.SingleNodeTest do
         """
         case foo do
           _ = bar -> :ok
+          _ = second_clause_to_maintain_case -> :ok
         end
         """,
         """
         case foo do
           bar -> :ok
+          second_clause_to_maintain_case -> :ok
         end
         """
       )

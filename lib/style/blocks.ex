@@ -43,6 +43,34 @@ defmodule Styler.Style.Blocks do
     end
   end
 
+  # case statements with 1 clause: thanks 🤖!
+  #
+  # ideally rewrite to use `=`, but can't do that when there's a `when` clause
+  def run({{:case, _, [_, [{_, [{:->, _, [[{:when, _, _} | _] | _]}]}]]}, _} = zipper, ctx), do: {:cont, zipper, ctx}
+  #
+  def run({{:case, m, [head, [{_, [{:->, _, [[lhs], rhs]}]}]]}, _} = zipper, ctx) do
+    rhs =
+      case rhs do
+        {:__block__, _, children} -> children
+        node -> [node]
+      end
+
+    zipper =
+      case Zipper.up(zipper) do
+        {{:=, am, [parent_lhs, _single_clause_case]}, _} = zipper ->
+          # this was a `x = case head, do: (lhs -> rhs)`. make it `x = lhs = head; rhs`
+          meta = [line: am[:line]]
+          Zipper.replace(zipper, {:=, meta, [parent_lhs, {:=, meta, [lhs, head]}]})
+
+        _ ->
+          zipper
+          |> Style.find_nearest_block()
+          |> Zipper.replace({:=, [line: m[:line]], [lhs, head]})
+      end
+
+    {:cont, Zipper.insert_siblings(zipper, rhs), ctx}
+  end
+
   def run({{:cond, _, [[{do_, clauses}]]}, _} = zipper, ctx) do
     # ensure all final `atom -> final_clause` use `true` for consistency.
     # `:else` is cute but consistency is all.
