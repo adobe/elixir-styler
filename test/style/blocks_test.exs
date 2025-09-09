@@ -79,20 +79,22 @@ defmodule Styler.Style.BlocksTest do
     end
 
     test "singleton parent" do
-      assert_style """
-      if foo do
-        case complex |> head() |> stuff() do
-          {:ok, whatever} ->
-            some_body(whatever)
+      assert_style(
+        """
+        if foo do
+          case complex |> head() |> stuff() do
+            {:ok, whatever} ->
+              some_body(whatever)
+          end
         end
-      end
-      """,
-      """
-      if foo do
-        {:ok, whatever} = complex |> head() |> stuff()
-        some_body(whatever)
-      end
-      """
+        """,
+        """
+        if foo do
+          {:ok, whatever} = complex |> head() |> stuff()
+          some_body(whatever)
+        end
+        """
+      )
     end
 
     test "when already an assignment" do

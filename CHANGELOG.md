@@ -5,6 +5,8 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.8.0
+
 ### Improvements
 
 Rewrite single-clause case statements to be assignments (h/t 🤖)
