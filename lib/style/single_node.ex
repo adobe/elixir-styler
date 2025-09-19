@@ -245,44 +245,31 @@ defmodule Styler.Style.SingleNode do
         unit -> unit
       end
 
+    {step, next_unit} =
+      case unit do
+        :day -> {7, :week}
+        :hour -> {24, :day}
+        :minute -> {60, :hour}
+        :second -> {60, :minute}
+        :millisecond -> {1000, :second}
+        _ -> {:"$no_next_step", nil}
+      end
+
     {unit, value} =
       case value do
         # minute: 60 -> hours: 1
-        {:__block__, tm, [n]} ->
-          one = {:__block__, [token: "1", line: tm[:line]], [1]}
+        {:__block__, tm, [^step]} ->
+          {next_unit, {:__block__, [token: "1", line: tm[:line]], [1]}}
 
-          case {unit, n} do
-            {:day, 7} -> {:week, one}
-            {:hour, 24} -> {:day, one}
-            {:minute, 60} -> {:hour, one}
-            {:second, 60} -> {:minute, one}
-            {:millisecond, 1000} -> {:second, one}
-            _ -> {unit, value}
-          end
+        # minute: 60 * rhs -> hours: rhs
+        {:*, _, [{_, _, [^step]}, rhs]} ->
+          {{_, _, [next_unit]}, value} = style_to_timeout_arg({{:__block__, m, [next_unit]}, rhs})
+          {next_unit, value}
 
-        # minute: 5 * 60 -> hours: 5
-        {:*, _, [left, right]} when unit in ~w(day hour minute second millisecond)a ->
-          {step, next_unit} =
-            case unit do
-              :day -> {7, :week}
-              :hour -> {24, :day}
-              :minute -> {60, :hour}
-              :second -> {60, :minute}
-              :millisecond -> {1000, :second}
-            end
-
-          cond do
-            match?({_, _, [^step]}, left) ->
-              {{_, _, [unit]}, value} = style_to_timeout_arg({{:__block__, m, [next_unit]}, right})
-              {unit, value}
-
-            match?({_, _, [^step]}, right) ->
-              {{_, _, [unit]}, value} = style_to_timeout_arg({{:__block__, m, [next_unit]}, left})
-              {unit, value}
-
-            true ->
-              {unit, value}
-          end
+        # minute: lhs * 60 -> hours: lhs
+        {:*, _, [lhs, {_, _, [^step]}]} ->
+          {{_, _, [next_unit]}, value} = style_to_timeout_arg({{:__block__, m, [next_unit]}, lhs})
+          {next_unit, value}
 
         value ->
           {unit, value}
