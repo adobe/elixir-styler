@@ -227,50 +227,71 @@ defmodule Styler.Style.SingleNode do
   defp style({:case, cm, [head, [{do_, arrows}]]}), do: {:case, cm, [head, [{do_, rewrite_arrows(arrows)}]]}
   defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
 
-  defp style({:to_timeout, meta, [[{{:__block__, um, [unit]}, {:*, _, [left, right]}}]]} = node)
-       when unit in ~w(day hour minute second millisecond)a do
-    [l, r] =
-      Enum.map([left, right], fn
-        {_, _, [x]} -> x
-        _ -> nil
-      end)
-
-    {step, next_unit} =
-      case unit do
-        :day -> {7, :week}
-        :hour -> {24, :day}
-        :minute -> {60, :hour}
-        :second -> {60, :minute}
-        :millisecond -> {1000, :second}
-      end
-
-    if step in [l, r] do
-      n = if l == step, do: right, else: left
-      style({:to_timeout, meta, [[{{:__block__, um, [next_unit]}, n}]]})
-    else
-      node
-    end
-  end
-
-  defp style({:to_timeout, meta, [[{{:__block__, um, [unit]}, {:__block__, tm, [n]}}]]} = node) do
-    step_up =
-      case {unit, n} do
-        {:day, 7} -> :week
-        {:hour, 24} -> :day
-        {:minute, 60} -> :hour
-        {:second, 60} -> :minute
-        {:millisecond, 1000} -> :second
-        _ -> nil
-      end
-
-    if step_up do
-      {:to_timeout, meta, [[{{:__block__, um, [step_up]}, {:__block__, [token: "1", line: tm[:line]], [1]}}]]}
-    else
-      node
-    end
-  end
+  defp style({:to_timeout, m, [[_ | _] = args]}), do: {:to_timeout, m, [Enum.map(args, &style_to_timeout_arg/1)]}
 
   defp style(node), do: node
+
+  # 1. convert plurals to singulars (`minutes` -> `minute`)
+  # 2. upgrade values, eg `minute: 5 * 60` -> `hour: 5` and `minute: 60` -> `hour: 1`
+  defp style_to_timeout_arg({{:__block__, m, [unit]}, value}) do
+    unit =
+      case unit do
+        :days -> :day
+        :hours -> :hour
+        :milliseconds -> :millisecond
+        :minutes -> :minute
+        :seconds -> :second
+        :weeks -> :week
+        unit -> unit
+      end
+
+    {unit, value} =
+      case value do
+        # minute: 60 -> hours: 1
+        {:__block__, tm, [n]} ->
+          one = {:__block__, [token: "1", line: tm[:line]], [1]}
+
+          case {unit, n} do
+            {:day, 7} -> {:week, one}
+            {:hour, 24} -> {:day, one}
+            {:minute, 60} -> {:hour, one}
+            {:second, 60} -> {:minute, one}
+            {:millisecond, 1000} -> {:second, one}
+            _ -> {unit, value}
+          end
+
+        # minute: 5 * 60 -> hours: 5
+        {:*, _, [left, right]} when unit in ~w(day hour minute second millisecond)a ->
+          {step, next_unit} =
+            case unit do
+              :day -> {7, :week}
+              :hour -> {24, :day}
+              :minute -> {60, :hour}
+              :second -> {60, :minute}
+              :millisecond -> {1000, :second}
+            end
+
+          cond do
+            match?({_, _, [^step]}, left) ->
+              {{_, _, [unit]}, value} = style_to_timeout_arg({{:__block__, m, [next_unit]}, right})
+              {unit, value}
+
+            match?({_, _, [^step]}, right) ->
+              {{_, _, [unit]}, value} = style_to_timeout_arg({{:__block__, m, [next_unit]}, left})
+              {unit, value}
+
+            true ->
+              {unit, value}
+          end
+
+        value ->
+          {unit, value}
+      end
+
+    {{:__block__, m, [unit]}, value}
+  end
+
+  defp style_to_timeout_arg(other), do: other
 
   defp replace_into({:., dm, [{_, am, _} = enum, _]}, collectable, rest) do
     case collectable do

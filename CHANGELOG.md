@@ -5,6 +5,13 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Improvements
+
+`to_timeout` improvements:
+
+- translate plural units to singular `to_timeout(hours: 1)` -> `to_timeout(hour: 1)` (plurals raise runtime errors)
+- run transformations even when there are multiple args `to_timeout(hours: 24 * 1, seconds: 60 * 4)` -> `to_timeout(day: 1, minute: 4)`. this can result in a runtime error due to duplicate keys, as in the following scenario: `to_timeout(minute: 60, hours: 3)` -> `to_timeout(hour: 1, hour: 3)`
+
 ## 1.8.0
 
 ### Improvements

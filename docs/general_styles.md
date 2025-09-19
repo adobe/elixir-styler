@@ -278,3 +278,24 @@ Additionally, styler rewrites some `Enum` functions inside `assert`
 | `assert Enum.member?(y, x)`                   | `assert x in y`                     |
 | `assert Enum.any?(y, & &1 == x)`              | `assert x in y`                     |
 | `assert Enum.any?(y, fn var -> var == x end)` | `assert x in y`                     |
+
+## `to_timeout/1`
+
+- rewrites plural units to singular (plurals are invalid values and runtime errors, but they're oh-so-natural to write)
+- steps units up to the next level
+
+```elixir
+# before
+to_timeout(second: 60 * m)
+# styled
+to_timeout(minute: m)
+# before
+to_timeout(second: 60)
+# styled
+to_timeout(minute: 1)
+
+# before
+to_timeout(hours: 24 * 1, seconds: 60 * 4)
+# styled
+to_timeout(day: 1, minute: 4)
+```

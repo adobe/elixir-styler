@@ -423,10 +423,15 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style "to_timeout(second: 60 * 60)", "to_timeout(hour: 1)"
     end
 
-    test "doesnt mess with" do
+    test "plurals and multiples oh my" do
+      assert_style "to_timeout(hours: 24 * 1, seconds: 60 * 4)", "to_timeout(day: 1, minute: 4)"
+      # nb: this'll raise an argument error after styling.
+      assert_style "to_timeout(minute: 60, hours: 3)", "to_timeout(hour: 1, hour: 3)"
+    end
+
+    test "doesnt mess with non-integers" do
       assert_style "to_timeout(hour: n * m)"
       assert_style "to_timeout(whatever)"
-      assert_style "to_timeout(hour: 24 * 1, second: 60 * 4)"
     end
   end
 end
