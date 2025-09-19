@@ -234,25 +234,21 @@ defmodule Styler.Style.SingleNode do
   # 1. convert plurals to singulars (`minutes` -> `minute`)
   # 2. upgrade values, eg `minute: 5 * 60` -> `hour: 5` and `minute: 60` -> `hour: 1`
   defp style_to_timeout_arg({{:__block__, m, [unit]}, value}) do
-    unit =
+    {unit, step, next_unit} =
       case unit do
-        :days -> :day
-        :hours -> :hour
-        :milliseconds -> :millisecond
-        :minutes -> :minute
-        :seconds -> :second
-        :weeks -> :week
-        unit -> unit
-      end
-
-    {step, next_unit} =
-      case unit do
-        :day -> {7, :week}
-        :hour -> {24, :day}
-        :minute -> {60, :hour}
-        :second -> {60, :minute}
-        :millisecond -> {1000, :second}
-        _ -> {:"$no_next_step", nil}
+        :day -> {:day, 7, :week}
+        :days -> {:day, 7, :week}
+        :hour -> {:hour, 24, :day}
+        :hours -> {:hour, 24, :day}
+        :millisecond -> {:millisecond, 1000, :second}
+        :milliseconds -> {:millisecond, 1000, :second}
+        :minute -> {:minute, 60, :hour}
+        :minutes -> {:minute, 60, :hour}
+        :second -> {:second, 60, :minute}
+        :seconds -> {:second, 60, :minute}
+        :week -> {:week, :"$no_next_step", nil}
+        :weeks -> {:week, :"$no_next_step", nil}
+        unit -> {unit, :"$no_next_step", nil}
       end
 
     {unit, value} =
