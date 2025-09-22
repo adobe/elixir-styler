@@ -60,11 +60,13 @@ defmodule Styler.Style.Deprecations do
 
   if Version.match?(System.version(), ">= 1.17.0-dev") do
     @to_timeout_vsn Version.parse!("1.17.0-dev")
-    # `unit` is plural for erlang, but single_node style rewrites plural to_timeouts into singulars
     defp style({{:., _, [{:__block__, _, [:timer]}, unit]}, fm, [x]} = node) when unit in ~w(hours minutes seconds)a do
-      if Styler.Config.version_compatible?(@to_timeout_vsn),
-        do: {:to_timeout, fm, [[{{:__block__, [format: :keyword, line: fm[:line]], [unit]}, x}]]},
-        else: node
+      if Styler.Config.version_compatible?(@to_timeout_vsn) do
+        unit = unit |> Atom.to_string() |> String.trim_trailing("s") |> String.to_atom()
+        {:to_timeout, fm, [[{{:__block__, [format: :keyword, line: fm[:line]], [unit]}, x}]]}
+      else
+        node
+      end
     end
   end
 
