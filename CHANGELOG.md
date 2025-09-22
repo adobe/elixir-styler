@@ -5,12 +5,18 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.9.0
+
+This was a weird one, but I found myself often writing `to_timeout` with plural units and then having to go back and fix
+the code to be singular units instead. Polling a few colleagues, it seemed I wasn't alone in that mistake. So for the first time,
+Styler will correct code that would otherwise produce a runtime error, saving you from flow-breaking backtracking.
+
 ### Improvements
 
 `to_timeout` improvements:
 
-- translate plural units to singular `to_timeout(hours: 1)` -> `to_timeout(hour: 1)` (plurals raise runtime errors)
-- run transformations even when there are multiple args `to_timeout(hours: 24 * 1, seconds: 60 * 4)` -> `to_timeout(day: 1, minute: 4)`. this can result in a runtime error due to duplicate keys, as in the following scenario: `to_timeout(minute: 60, hours: 3)` -> `to_timeout(hour: 1, hour: 3)`
+- translate plural units to singular `to_timeout(hours: 2)` -> `to_timeout(hour: 2)` (plurals are valid ast, but invalid arguments to this function)
+- transform when there are multiple keys: `to_timeout(hours: 24 * 1, seconds: 60 * 4)` -> `to_timeout(day: 1, minute: 4)`. **this can introduce runtime bugs** due to duplicate keys, as in the following scenario: `to_timeout(minute: 60, hours: 3)` -> `to_timeout(hour: 1, hour: 3)`
 
 ## 1.8.0
 
