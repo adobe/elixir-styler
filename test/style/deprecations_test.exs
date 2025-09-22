@@ -151,5 +151,10 @@ defmodule Styler.Style.DeprecationsTest do
     test "combined with to_timeout improvements" do
       assert_style ":timer.minutes(60 * 4)", "to_timeout(hour: 4)"
     end
+
+    test "regression: doesn't touch other timer functions" do
+      assert_style ":timer.sleep(1000)"
+      assert_style ":timer.tc(fn -> :ok end)"
+    end
   end
 end
