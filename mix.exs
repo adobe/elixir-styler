@@ -49,7 +49,7 @@ defmodule Styler.MixProject do
     [
       maintainers: ["Matt Enlow", "Greg Mefford"],
       licenses: ["Apache-2.0"],
-      links: %{"GitHub" => @url}
+      links: %{"GitHub" => @url, "Changelog" => "#{@url}/blob/main/CHANGELOG.md"}
     ]
   end
 
