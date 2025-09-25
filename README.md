@@ -4,8 +4,7 @@
 
 # Styler
 
-Styler is an Elixir formatter plugin that's a combination of `mix format` and `mix credo`, but instead of _telling_
-you what's wrong, it just fixes the code for you to fit its style rules.
+Styler is an Elixir formatter plugin that goes beyond formatting by rewriting your code for consistency, readability, and optimization.
 
 ## Features
 
@@ -86,11 +85,13 @@ However, Smartrent has a fork of Styler named [Quokka](https://github.com/smartr
 
 Ultimately Styler is @adobe's internal tool that we're happy to share with the world. We're delighted if you like it as is, and just as excited if it's a starting point for you to make something even better for yourself.
 
-## WARNING: Styler can change the behaviour of your program!
+## WARNING: Styler can change the behaviour of your program
 
-In some cases, this can introduce bugs. It goes without saying, but look over your changes before committing to main :)
+While Styler endeavors to never purposefully create bugs, some of its rewrites can introduce them in obscure cases.
 
-A simple example of a way Styler changes the behaviour of code is the following rewrite:
+It goes without saying, but look over any changes Styler writes before committing to main.
+
+A simple example of a way Styler rewrite can introduce a bug is the following case statement:
 
 ```elixir
 # Before: this case statement...
@@ -109,19 +110,9 @@ end
 
 These programs are not semantically equivalent. The former would raise if `foo` returned any value other than `true` or `false`, while the latter blissfully completes.
 
-However, Styler is about _style_, and the `if` statement is (in our opinion) of much better style. If the exception behaviour was intentional on the code author's part, they should have written the program like this:
+If issues like this bother you, Styler probably isn't the tool you're looking for.
 
-```elixir
-case foo do
-  true -> :ok
-  false -> :error
-  other -> raise "expected `true` or `false`, got: #{inspect other}"
-end
-```
-
-Also good style! But Styler assumes that most of the time people just meant the `if` equivalent of the code, and so makes that change. If issues like this bother you, Styler probably isn't the tool you're looking for.
-
-Other ways Styler can change your program:
+Other ways Styler _could_ introduce runtime bugs:
 
 - [`with` statement rewrites](https://github.com/adobe/elixir-styler/issues/186)
 - [config file sorting](https://hexdocs.pm/styler/mix_configs.html#this-can-break-your-program)
