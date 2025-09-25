@@ -4,10 +4,8 @@
 
 # Styler
 
-Styler is an Elixir formatter plugin that's combination of `mix format` and `mix credo`, except instead of telling
-you what's wrong, it just rewrites the code for you to fit its style rules.
-
-You can learn more about the history, purpose and implementation of Styler from our talk: [Styler: Elixir Style-Guide Enforcer @ GigCity Elixir 2023](https://www.youtube.com/watch?v=6pF8Hl5EuD4)
+Styler is an Elixir formatter plugin that's a combination of `mix format` and `mix credo`, but instead of _telling_
+you what's wrong, it just fixes the code for you to fit its style rules.
 
 ## Features
 
