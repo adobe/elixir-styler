@@ -283,13 +283,13 @@ defmodule Styler.Style.PipesTest do
       assert_style(
         """
         case x do
-          x -> x
+          y -> z
         end
         |> foo()
         """,
         """
-        case_result = x = x
-        x
+        y = x
+        case_result = z
         foo(case_result)
         """
       )

@@ -57,18 +57,25 @@ defmodule Styler.Style.Blocks do
 
     zipper =
       case Zipper.up(zipper) do
-        {{:=, am, [parent_lhs, _single_clause_case]}, _} = zipper ->
-          # this was a `x = case head, do: (lhs -> rhs)`. make it `x = lhs = head; rhs`
+        {{:=, am, [parent_lhs, _case_statement_rhs]}, _} = zipper ->
+          # this was a `x = case head, do: (lhs -> rhs)`. make it `x = lhs = head; x = rhs`
           meta = [line: am[:line]]
-          Zipper.replace(zipper, {:=, meta, [parent_lhs, {:=, meta, [lhs, head]}]})
+          # change the if there are multiple clauses in the case, have the final one be the new rhs of parent_lhs
+          # the meta for the final equality has an incorrect line, but it shouldn't mess with comments so leaving it be
+          siblings = List.update_at(rhs, -1, &{:=, meta, [parent_lhs, &1]})
+
+          zipper
+          |> Zipper.replace({:=, meta, [lhs, head]})
+          |> Zipper.insert_siblings(siblings)
 
         _ ->
           zipper
           |> Style.find_nearest_block()
           |> Zipper.replace({:=, [line: m[:line]], [lhs, head]})
+          |> Zipper.insert_siblings(rhs)
       end
 
-    {:cont, Zipper.insert_siblings(zipper, rhs), ctx}
+    {:cont, zipper, ctx}
   end
 
   def run({{:cond, _, [[{do_, clauses}]]}, _} = zipper, ctx) do

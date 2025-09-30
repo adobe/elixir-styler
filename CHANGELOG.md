@@ -5,6 +5,12 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.9.1
+
+### Fix
+
+- fixes rewrites of single-clause case statement with assignment parent (Closes #247, h/t @vasspilka)
+
 ## 1.9.0
 
 This was a weird one, but I found myself often writing `to_timeout` with plural units and then having to go back and fix

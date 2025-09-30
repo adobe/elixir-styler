@@ -100,18 +100,54 @@ defmodule Styler.Style.BlocksTest do
     test "when already an assignment" do
       assert_style(
         """
-        m
+        preroll
 
-        x =
-          case a do
-            b -> c
+        assignment =
+          case head do
+            lhs -> body
           end
         """,
         """
-        m
+        preroll
 
-        x = b = a
-        c
+        lhs = head
+        assignment = body
+        """
+      )
+
+      assert_style(
+        """
+        # assignmet
+        assignment =
+          # case head
+          case head do
+            # lhs
+            lhs ->
+              # body
+              body
+              # clauses
+              fn ->
+                look
+                im(a)
+                # big function
+                big function
+              end
+          end
+        """,
+        """
+        # assignmet
+        # case head
+        # lhs
+        lhs = head
+        # body
+        body
+        # clauses
+        assignment = fn ->
+          look
+          im(a)
+          # big function
+          big(function)
+        end
         """
       )
     end
