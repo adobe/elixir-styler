@@ -413,6 +413,30 @@ defmodule Styler.Style.Pipes do
     {:|>, pm, [lhs, {Style.set_line(new, em[:line]), em, [mapper]}]}
   end
 
+  @req2 for fun <- ~w(delete get head patch post put request run), bang <- ["", "!"], fun = :"#{fun}#{bang}", do: fun
+
+  # rewrite `Keyword.merge(opt) |> Req.fun1()` to `Req.fun2(opt)` for 2 arity functions that take `opts` as a second arg
+  defp fix_pipe(
+         pipe_chain(
+           pm,
+           lhs,
+           {{:., _, [{_, _, [req_or_kw]}, :merge]}, m, [kw]},
+           {{:., _, [{_, _, [:Req]}, fun]} = req, _, []}
+         )
+       )
+       when req_or_kw in [:Req, :Keyword] and fun in @req2 do
+    fix_pipe({:|>, pm, [lhs, {req, m, [kw]}]})
+  end
+
+  # Req.new |> Req.fun1,2 -> Req.fun1,2
+  # all `fun` options take the same args as `Req.new`, so it's redundant to call Req.new before them
+  defp fix_pipe(
+         pipe_chain(pm, lhs, {{:., _, [{_, _, [:Req]}, :new]}, m, []}, {{:., _, [{_, _, [:Req]}, fun]} = req, _, args})
+       )
+       when fun in @req2 do
+    {:|>, pm, [lhs, {req, m, args}]}
+  end
+
   defp fix_pipe(node), do: node
 
   defp valid_pipe_start?({op, _, _}) when op in @special_ops, do: true

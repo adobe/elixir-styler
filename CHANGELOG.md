@@ -5,6 +5,23 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Improvements
+
+#### Req pipe optimizations
+
+[Req](https://github.com/wojtekmach/req) is a popular HTTP Client. If you aren't using it, you can just ignore this whole section!
+
+Reqs 1-arity "execute the request" functions (`delete get head patch post put request run`) have a 2-arity version that takes a superset of the arguments `Req.new/1` does as its first argument, and the typical `options` keyword list as its second argument. And so, many places developers are calling a 1-arity function can be replaced with a 2-arity function.
+
+More succinctly, these two statements are equivalent:
+
+- `foo |> Req.new() |> Req.merge(bar) |> Req.post!()`
+- `Req.post!(foo, bar)`
+
+Styler now rewrites the former to the latter, since "less is more" or "code is a liability".
+
+It also rewrites `|> Keyword.merge(bar) |> Req.foo()` to `|> Req.foo(bar)`. **This changes the program's behaviour**, since `Keyword.merge` would overwrite existing values in all cases, whereas `Req` 2-arity functions intelligently deep-merge values for some keys, like `:headers`.
+
 ## 1.9.1
 
 ### Fix

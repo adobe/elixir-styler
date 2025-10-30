@@ -1004,4 +1004,31 @@ defmodule Styler.Style.PipesTest do
       )
     end
   end
+
+  describe "Req pipes" do
+    @req2 for fun <- ~w(delete get head patch post put request run), bang <- ["", "!"], fun = :"#{fun}#{bang}", do: fun
+
+    test "X.merge |> Req.foo/1 -> Req.foo/2" do
+      for fun <- @req2, merger <- ~w(Req Keyword) do
+        assert_style "foo |> #{merger}.merge(opts) |> Req.#{fun}()", "Req.#{fun}(foo, opts)"
+        assert_style "a |> b |> #{merger}.merge(opts) |> Req.#{fun}()", "a |> b() |> Req.#{fun}(opts)"
+      end
+    end
+
+    test "Req.new |> Req.foo/1 -> Req.foo/2" do
+      for fun <- @req2 do
+        assert_style "foo |> Req.new() |> Req.#{fun}()", "Req.#{fun}(foo)"
+        assert_style "a |> b |> Req.new() |> Req.#{fun}()", "a |> b() |> Req.#{fun}()"
+        assert_style "foo |> Req.new() |> Req.#{fun}(c)", "Req.#{fun}(foo, c)"
+        assert_style "a |> b |> Req.new() |> Req.#{fun}(c)", "a |> b() |> Req.#{fun}(c)"
+      end
+    end
+
+    test "new |> merge |> foo" do
+      for fun <- @req2 do
+        assert_style "foo |> Req.new() |> Req.merge(bar) |> Req.#{fun}()", "Req.#{fun}(foo, bar)"
+        assert_style "a |> b() |> Req.new() |> Req.merge(bar) |> Req.#{fun}()", "a |> b() |> Req.#{fun}(bar)"
+      end
+    end
+  end
 end
