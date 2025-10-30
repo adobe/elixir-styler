@@ -413,7 +413,7 @@ defmodule Styler.Style.Pipes do
     {:|>, pm, [lhs, {Style.set_line(new, em[:line]), em, [mapper]}]}
   end
 
-  @req2 for fun <- ~w(delete get head patch post put request run), bang <- ["", "!"], fun = :"#{fun}#{bang}", do: fun
+  @req2 for fun <- ~w(delete get head patch post put request run), bang <- ["", "!"], do: :"#{fun}#{bang}"
 
   # rewrite `Keyword.merge(opt) |> Req.fun1()` to `Req.fun2(opt)` for 2 arity functions that take `opts` as a second arg
   defp fix_pipe(

@@ -1006,7 +1006,7 @@ defmodule Styler.Style.PipesTest do
   end
 
   describe "Req pipes" do
-    @req2 for fun <- ~w(delete get head patch post put request run), bang <- ["", "!"], fun = :"#{fun}#{bang}", do: fun
+    @req2 for fun <- ~w(delete get head patch post put request run), bang <- ["", "!"], do: :"#{fun}#{bang}"
 
     test "X.merge |> Req.foo/1 -> Req.foo/2" do
       for fun <- @req2, merger <- ~w(Req Keyword) do
