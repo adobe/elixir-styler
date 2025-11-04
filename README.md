@@ -4,7 +4,7 @@
 
 # Styler
 
-Styler is an Elixir formatter plugin that goes beyond formatting by rewriting your code for consistency, readability, and optimization.
+Styler is an Elixir formatter plugin that goes beyond formatting by rewriting your code to optimize for consistency, readability, and performance.
 
 ## Features
 
