@@ -71,17 +71,17 @@ defmodule Styler.Style.SingleNodeTest do
 
   test "string sigil rewrites" do
     assert_style ~s|""|
-    assert_style ~s|"\\""|
-    assert_style ~s|"\\"\\""|
-    assert_style ~s|"\\"\\"\\""|
-    assert_style ~s|"\\"\\"\\"\\""|, ~s|~s("""")|
+    assert_style ~S|"\""|
+    assert_style ~S|"\"\""|
+    assert_style ~S|"\"\"\""|
+    assert_style ~S|"\"\"\"\""|, ~s|~s("""")|
     # choose closing delimiter wisely, based on what has the least conflicts, in the styliest order
-    assert_style ~s/"\\"\\"\\"\\" )"/, ~s/~s{"""" )}/
-    assert_style ~s/"\\"\\"\\"\\" })"/, ~s/~s|"""" })|/
-    assert_style ~s/"\\"\\"\\"\\" |})"/, ~s/~s["""" |})]/
-    assert_style ~s/"\\"\\"\\"\\" ]|})"/, ~s/~s'"""" ]|})'/
-    assert_style ~s/"\\"\\"\\"\\" ']|})"/, ~s/~s<"""" ']|})>/
-    assert_style ~s/"\\"\\"\\"\\" >']|})"/, ~s|~s/"""" >']\|})/|
+    assert_style ~S/"\"\"\"\" )"/, ~s/~s{"""" )}/
+    assert_style ~S/"\"\"\"\" })"/, ~s/~s|"""" })|/
+    assert_style ~S/"\"\"\"\" |})"/, ~s/~s["""" |})]/
+    assert_style ~S/"\"\"\"\" ]|})"/, ~s/~s'"""" ]|})'/
+    assert_style ~S/"\"\"\"\" ']|})"/, ~s/~s<"""" ']|})>/
+    assert_style ~S/"\"\"\"\" >']|})"/, ~s|~s/"""" >']\|})/|
     assert_style ~s/"\\"\\"\\"\\" \/>']|})"/, ~s|~s("""" />']\|}\\))|
   end
 

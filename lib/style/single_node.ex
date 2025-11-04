@@ -92,7 +92,7 @@ defmodule Styler.Style.SingleNode do
         |> Stream.concat(@closing_delimiters)
         |> Enum.frequencies()
         |> Enum.min_by(fn
-          {~s|"|, count} -> {count, 1}
+          {"\"", count} -> {count, 1}
           {")", count} -> {count, 2}
           {"}", count} -> {count, 3}
           {"|", count} -> {count, 4}
