@@ -576,6 +576,13 @@ defmodule Styler.Style.PipesTest do
       )
     end
 
+    test "Enum.sort/Enum.reverse" do
+      assert_style("a |> Enum.sort(direction) |> Enum.reverse()")
+      assert_style("a |> Enum.sort(:asc) |> Enum.reverse()", "Enum.sort(a, :desc)")
+      assert_style("a |> Enum.sort(:desc) |> Enum.reverse()", "Enum.sort(a, :asc)")
+      assert_style("a |> Enum.sort() |> Enum.reverse()", "Enum.sort(a, :desc)")
+    end
+
     test "reverse/concat" do
       assert_style("a |> Enum.reverse() |> Enum.concat()")
       assert_style("a |> Enum.reverse(bar) |> Enum.concat()")

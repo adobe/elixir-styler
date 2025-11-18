@@ -7,6 +7,9 @@ they can and will change without that change being reflected in Styler's semanti
 
 ### Improvements
 
+- `enum |> Enum.sort() |> Enum.reverse()` => `Enum.sort(enum, :desc)`
+- Req pipe optimizations (see below!)
+
 #### Req pipe optimizations
 
 [Req](https://github.com/wojtekmach/req) is a popular HTTP Client. If you aren't using it, you can just ignore this whole section!
