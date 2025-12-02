@@ -5,6 +5,8 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.10.0
+
 ### Improvements
 
 Two new standard-library pipe optimizations
