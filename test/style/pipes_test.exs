@@ -11,7 +11,7 @@
 defmodule Styler.Style.PipesTest do
   use Styler.StyleCase, async: true
 
-  describe "big picture" do
+  describe "big picture / readability" do
     test "unnests multiple steps" do
       assert_style("f(g(h(x))) |> j()", "x |> h() |> g() |> f() |> j()")
     end
@@ -77,6 +77,16 @@ defmodule Styler.Style.PipesTest do
         |> c()
         """
       )
+    end
+
+    test "rewrites anonymous function invocations to use then" do
+      assert_style("a |> (& &1).()", "then(a, & &1)")
+      assert_style("a |> (& {&1, &2}).(b)", "(&{&1, &2}).(a, b)")
+      assert_style("a |> (& &1).() |> c", "a |> then(& &1) |> c()")
+
+      assert_style("a |> (fn x, y -> {x, y} end).() |> c", "a |> then(fn x, y -> {x, y} end) |> c()")
+      assert_style("a |> (fn x -> x end).()", "then(a, fn x -> x end)")
+      assert_style("a |> (fn x -> x end).() |> c", "a |> then(fn x -> x end) |> c()")
     end
   end
 
@@ -501,17 +511,7 @@ defmodule Styler.Style.PipesTest do
     end
   end
 
-  describe "optimizations & readability improvements" do
-    test "rewrites anonymous function invocations to use then" do
-      assert_style("a |> (& &1).()", "then(a, & &1)")
-      assert_style("a |> (& {&1, &2}).(b)", "(&{&1, &2}).(a, b)")
-      assert_style("a |> (& &1).() |> c", "a |> then(& &1) |> c()")
-
-      assert_style("a |> (fn x, y -> {x, y} end).() |> c", "a |> then(fn x, y -> {x, y} end) |> c()")
-      assert_style("a |> (fn x -> x end).()", "then(a, fn x -> x end)")
-      assert_style("a |> (fn x -> x end).() |> c", "a |> then(fn x -> x end) |> c()")
-    end
-
+  describe "readability" do
     test "rewrites then/2 when the passed function is a named function reference" do
       assert_style "a |> then(&fun/1) |> c", "a |> fun() |> c()"
       assert_style "a |> then(&(&1 / 1)) |> c", "a |> Kernel./(1) |> c()"
@@ -541,6 +541,26 @@ defmodule Styler.Style.PipesTest do
 
     test "adds parens to 1-arity pipes" do
       assert_style("a |> b |> c", "a |> b() |> c()")
+    end
+  end
+
+  describe "optimizations for stdlib functions" do
+    test "map/intersperse => map_intersperse" do
+      assert_style "a |> Enum.map(fun) |> Enum.intersperse(sep)", "Enum.map_intersperse(a, sep, fun)"
+
+      assert_style(
+        """
+        a
+        |> Enum.map(fun)
+        |> Enum.intersperse(sep)
+        |> foo()
+        """,
+        """
+        a
+        |> Enum.map_intersperse(sep, fun)
+        |> foo()
+        """
+      )
     end
 
     test "filter/first => find" do

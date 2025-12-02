@@ -7,8 +7,12 @@ they can and will change without that change being reflected in Styler's semanti
 
 ### Improvements
 
+Two new standard-library pipe optimizations
+
+- `enum |> Enum.map(fun) |> Enum.intersperse(separator)` => `Enum.map_intersperse(enum, separator, fun)`
 - `enum |> Enum.sort() |> Enum.reverse()` => `Enum.sort(enum, :desc)`
-- Req pipe optimizations (see below!)
+
+And Req (the http client library) pipe optimizations, as detailed below
 
 #### Req pipe optimizations
 

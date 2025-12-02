@@ -75,7 +75,7 @@ defmodule Styler do
     ast_to_string(ast, comments, formatter_opts)
   end
 
- @doc "Just `Code.string_to_quoted_with_comments/2` with the necessary options"
+  @doc "Just `Code.string_to_quoted_with_comments/2` with the necessary options"
   def string_to_ast(code, file \\ "nofile") when is_binary(code) do
     Code.string_to_quoted_with_comments!(code,
       literal_encoder: &__MODULE__.literal_encoder/2,
