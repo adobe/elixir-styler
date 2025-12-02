@@ -43,7 +43,7 @@ Add `:styler` as a dependency to your project's `mix.exs`:
 ```elixir
 def deps do
   [
-    {:styler, "~> 1.9", only: [:dev, :test], runtime: false},
+    {:styler, "~> 1.10", only: [:dev, :test], runtime: false},
   ]
 end
 ```
