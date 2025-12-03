@@ -8,6 +8,6 @@ Styler performs myriad rewrites, logically broken apart into the following group
 - [General Styles](./general_styles.md): general simple 1-1 rewrites that require a minimum amount of awareness of the AST
 - [Mix Configs](./mix_configs.md): Styler applies order to chaos by organizing mix `config ...` stanzas
 - [Module Directives](./module_directives.md): Styles for `alias`, `use`, `import`, `require`, as well as alias lifting and alias application.
-- [Pipes](./pipes.md) styles for the famous Elixir pipe `|>`, including optimizations for piping standard library functions
+- [Pipes](./pipes.md): Styles for the famous Elixir pipe `|>`, including optimizations for piping standard library functions
 
 Finally, if you're using Credo [see our documentation](./credo.md) about rules that can be disabled in Credo because Styler automatically enforces them for you, saving a modicum of CI time.

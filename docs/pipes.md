@@ -64,7 +64,7 @@ a |> then(&f(&1, ...)) |> b()
 a |> f(...) |> b()
 ```
 
-## Piped function optimizations
+## Optimizations
 
 Two function calls into one! Fewer steps is always nice.
 
@@ -120,7 +120,29 @@ a |> Enum.map(fun) |> Enum.intersperse(separator) |> ...
 a |> Enum.map_intersperse(separator, fun) |> ...
 ```
 
-## Unpiping Single Pipes
+### Req Optimizations
+
+[Req](https://github.com/wojtekmach/req) is a popular HTTP Client. If you aren't using it, you can just ignore this whole section!
+
+Styler ensures a minimal number of functions are being called when using any Req 1-arity execution functions (`delete get head patch post put request run` and their bangified versions).
+
+```elixir
+# before
+keyword |> Req.new() |> Req.merge(opts) |> Req.post!()
+# Styled:
+Req.post!(keyword, opts)
+
+# before
+foo |> Keyword.merge(opts) |> Req.head()
+# Styled:
+Req.head(foo, opts)
+```
+
+**This changes the program's behaviour**, since `Keyword.merge` would overwrite existing values in all cases, whereas `Req` 2-arity functions intelligently deep-merge values for some keys, like `:headers`.
+
+## Adding & Removing Pipes
+
+### Unpiping Single Pipes
 
 Styler rewrites pipechains with a single pipe to be function calls. Notably, this rule combined with the optimizations rewrites above means some chains with more than one pipe will also become function calls.
 
@@ -134,7 +156,7 @@ map = a |> Enum.map(mapper) |> Map.new()
 map = Map.new(a, mapper)
 ```
 
-## Pipe-ify
+### Pipe-ify
 
 If the first argument to a function call is a pipe, Styler makes the function call the final pipe of the chain.
 
@@ -161,23 +183,3 @@ d(c(a |> b))
 # At which point Styler will pipe-ify the entire chain
 a |> b() |> c() |> d()
 ```
-
-## Req
-
-[Req](https://github.com/wojtekmach/req) is a popular HTTP Client. If you aren't using it, you can just ignore this whole section!
-
-Styler ensures a minimal number of functions are being called when using any Req 1-arity execution functions (`delete get head patch post put request run` and their bangified versions).
-
-```elixir
-# before
-keyword |> Req.new() |> Req.merge(opts) |> Req.post!()
-# Styled:
-Req.post!(keyword, opts)
-
-# before
-foo |> Keyword.merge(opts) |> Req.head()
-# Styled:
-Req.head(foo, opts)
-```
-
-**This changes the program's behaviour**, since `Keyword.merge` would overwrite existing values in all cases, whereas `Req` 2-arity functions intelligently deep-merge values for some keys, like `:headers`.
