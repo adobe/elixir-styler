@@ -5,6 +5,50 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.10.1
+
+### Improvements
+
+Adds two experimental refactoring features as mix tasks.
+
+#### `mix styler.remove_unused`
+
+With Elixir 1.20 on the horizon, many projects are about to discover that they have _a lot_ of unnecessary `require Logger` lines throughout their codebase.
+
+`mix styler.remove_unused` will automate the removal of those `unused require:` statements, alongside any `unused import:` and `unused alias:` warnings.
+
+This has long been an internal script useful for running after a bigger refactor that resulted in many superfluous aliases, but with 1.20 coming it seems it might be useful for others as well.
+
+This will never be an integrated part of `Styler`'s format plugin features, as it would _not_ be correct to remove unused nodes whenever running format. It's typical to have unused warnings while in the midst of an implementation, and deleting that code would be obnoxious.
+
+#### `mix styler.inline_attrs <file>`
+
+Inlines one-off module attributes that define literal values.
+
+This is something that sometimes is good, and sometimes is bad. In general, defining a module attribute when you could've just written an atom is bad, so inlining is good!
+
+It would probably be most useful as a refactor ability for a language server, but CLIs are a nice second place.
+
+An example of a situation where it results in an improvement:
+
+```elixir
+# Unnecessary indirection with single-use literal-value module attributes
+defmodule A do
+  @http_client_key :http_key
+  @default_client MyHTTPClient
+
+  def http_client, do: Application.get_env(:my_app, @http_client_key, @default_client)
+end
+# Much better! styler.inline_attrs will perform this refactor
+defmodule A do
+  def http_client, do: Application.get_env(:my_app, :http_key, MyHTTPClient)
+end
+```
+
+It's worthwhile to run this on some suspicious files, then followup with manual intervention when it went too far. This style is not aware of quote boundaries, and so might do some broken things. (Hence "EXPERIMENTAL")
+
+You've been warned =)
+
 ## 1.10.0
 
 ### Improvements
