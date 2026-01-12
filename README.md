@@ -21,6 +21,12 @@ The fastest way to see what all it can do you for you is to just try it out in y
 - rewrites deprecated Elixir standard library code, speeding adoption of new releases
 - auto-fixes many credo rules, meaning you can spend less time fighting with CI
 
+### Refactoring Mix Tasks
+
+Styler also includes two experimental refactoring tasks:
+- `mix styler.remove_unused`: deletes unused `import|alias|require` nodes that generate compiler warnings
+- `mix styler.inline_attrs <file>`: inlines module attributes that have a literal value and are only referenced once, removing unnecessary indirection
+
 ## Who is Styler for?
 
 > I'm just excited to be on a team that uses Styler and moves on

@@ -126,6 +126,10 @@ alias Foo.Baz.A
 alias Foo.Bop
 ```
 
+## Remove Unnecessary / Basic Aliases
+
+Styler removes root node or single aliases like `alias Foo`, as they accomplish nothing.
+
 ## Alias Lifting
 
 When a module with three parts is referenced two or more times, styler creates a new alias for that module and uses it.

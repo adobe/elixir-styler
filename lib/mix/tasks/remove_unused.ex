@@ -11,9 +11,7 @@
 defmodule Mix.Tasks.Styler.RemoveUnused do
   @shortdoc "EXPERIMENTAL: uses unused import/alias/require compiler warnings to remove those lines"
   @moduledoc """
-  WARNING: EXPERIMENTAL
-
-  Removes unused import/alias/require statements by compiling the app and parsing warnings, then deleting the specified lines.
+  WARNING: EXPERIMENTAL | Removes unused import/alias/require statements by compiling the app and parsing warnings, then deleting the specified lines.
 
   Usage:
 

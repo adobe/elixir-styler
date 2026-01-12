@@ -11,9 +11,7 @@
 defmodule Mix.Tasks.Styler.InlineAttrs do
   @shortdoc "EXPERIMENTAL: inlines module attributes with literal values that are only referenced once"
   @moduledoc """
-  WARNING: EXPERIMENTAL
-
-  Inlines module attributes that are only referenced once in their module.
+  WARNING: EXPERIMENTAL | Inlines module attributes that are only referenced once in their module.
 
   **This is known to create invalid code.** It's far from perfect.
   It can still be a helpful first step in refactoring though.
