@@ -5,6 +5,10 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Improvements
+
+- `mix styler.inline_attrs`: Allow multiple file paths to be specified: `mix styler.inline_attrs <file1> [... additional files]`
+
 ## 1.10.1
 
 ### Improvements

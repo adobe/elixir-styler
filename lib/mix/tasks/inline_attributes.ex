@@ -16,11 +16,13 @@ defmodule Mix.Tasks.Styler.InlineAttrs do
   **This is known to create invalid code.** It's far from perfect.
   It can still be a helpful first step in refactoring though.
 
-  Formats the file with a currently hard-coded length of 122.
+  Formats files with a currently hard-coded length of 122.
 
   **Usage**:
 
-      mix styler.inline_attrs path/to/my/file.ex
+      mix styler.inline_attrs <file_path> [... additional file paths]
+
+      mix styler.inline_attrs path/to/my/file.ex path/to/another_file.ex
 
   ## Example:
 
@@ -44,9 +46,11 @@ defmodule Mix.Tasks.Styler.InlineAttrs do
   alias Styler.Zipper
 
   @impl Mix.Task
-  def run([file]) do
-    {ast, comments} = file |> File.read!() |> Styler.string_to_ast(file)
-    {{ast, _}, _} = ast |> Zipper.zip() |> Zipper.traverse_while(nil, &Styler.Style.InlineAttrs.run/2)
-    File.write!(file, Styler.ast_to_string(ast, comments))
+  def run(files) do
+    for file <- files do
+      {ast, comments} = file |> File.read!() |> Styler.string_to_ast(file)
+      {{ast, _}, _} = ast |> Zipper.zip() |> Zipper.traverse_while(nil, &Styler.Style.InlineAttrs.run/2)
+      File.write!(file, Styler.ast_to_string(ast, comments))
+    end
   end
 end
