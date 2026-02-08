@@ -26,20 +26,20 @@ defmodule Mix.Tasks.Styler.InlineAttrs do
 
   ## Example:
 
-    # This ...
-    defmodule A do
-      @non_literal_attr Application.compile_env(...)
-      @literal_value_one_time_use :my_key
+      # This ...
+      defmodule A do
+        @non_literal_attr Application.compile_env(...)
+        @literal_value_with_only_one_reference :my_key
 
-      def foo(), do: Application.get_env(:my_app, @literal_value_one_time_use)
-    end
+        def foo(), do: Application.get_env(:my_app, @literal_value_with_only_one_reference)
+      end
 
-    # Becomes this
-    defmodule A do
-      @non_literal_attr Application.compile_env(...)
+      # Becomes this
+      defmodule A do
+        @non_literal_attr Application.compile_env(...)
 
-      def foo(), do: Application.get_env(:my_app, :my_key)
-    end
+        def foo(), do: Application.get_env(:my_app, :my_key)
+      end
   """
   use Mix.Task
 
