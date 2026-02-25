@@ -57,6 +57,7 @@ defmodule Styler.Style.InlineAttrs do
       {:halt, zipper, ctx}
     end
   end
+
   # Can't rely on `Macro.quoted_literal?` up front because we wrapped our literals :/
   # This function is not complete, but it's good enough for the needs here.
   defp quoted_literal?(value) when is_list(value) or is_map(value) do

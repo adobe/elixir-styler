@@ -5,6 +5,22 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+### Improvements
+
+#### Module Directive References Improvement
+
+Module directives got smarter. Styler will no longer move module attributes below their references in `use` or `@moduledoc`s.
+
+In other words, Styler will leave the following code untouched:
+
+```elixir
+defmodule MyGreatLibrary do
+  @library_options [...]
+  @moduledoc make_pretty_docs(@library_options)
+  use OptionsMagic, my_opts: @library_options
+end
+```
+
 ## 1.10.1
 
 ### Improvements

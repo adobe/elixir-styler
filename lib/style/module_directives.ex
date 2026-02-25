@@ -60,8 +60,7 @@ defmodule Styler.Style.ModuleDirectives do
     require: [],
     nondirectives: [],
     alias_env: %{},
-    attrs: MapSet.new(),
-    attr_lifts: []
+    attrs: MapSet.new()
   }
 
   # module directives typically doesn't do anything until it sees a module (typical .ex file) or a directive (like a snippet)
@@ -73,7 +72,7 @@ defmodule Styler.Style.ModuleDirectives do
   def run(zipper, %{__MODULE__ => true} = ctx), do: do_run(zipper, ctx)
 
   def run({node, nil} = zipper, ctx) do
-    if interesting_zipper = Zipper.find(zipper, &interesting?/1) do
+    if interesting_zipper = Zipper.find(zipper, &match?({x, _, _} when x in [:defmodule, :@ | @directives], &1)) do
       do_run(interesting_zipper, Map.put(ctx, __MODULE__, true))
     else
       # there's no defmodules or aliasy things - see if we can do some alias lifting?
@@ -102,9 +101,6 @@ defmodule Styler.Style.ModuleDirectives do
       end
     end
   end
-
-  defp interesting?({x, _, _}) when x in [:defmodule, :@ | @directives], do: true
-  defp interesting?(_), do: false
 
   defp do_run({{:defmodule, _, children}, _} = zipper, ctx) do
     [name, [{{:__block__, do_meta, [:do]}, _body}]] = children
@@ -198,28 +194,37 @@ defmodule Styler.Style.ModuleDirectives do
   # a dynamic module name, like `defmodule my_variable do ... end`
   defp moduledoc(_), do: nil
 
-  defp lift_module_attrs({node, _, _} = ast, %{attrs: attrs} = acc) do
+  # pops module attributes this directive depends on out of `nondirectives`,
+  # returning their definitions in a list alongside the updated accumulator
+  #
+  # naively grouping module attributes in nondirectives can break a common pattern where an attribute is referenced by
+  # `use` or `@moduledoc` clauses, which then get moved above the attributes they reference.
+  defp split_depended_attributes({_, _, _} = directive, %{attrs: attrs, nondirectives: nondirectives} = acc) do
     if MapSet.size(attrs) == 0 do
-      {ast, acc}
+      {[], acc}
     else
-      use? = node == :use
-
-      Macro.prewalk(ast, acc, fn
-        {:@, m, [{attr, _, _} = var]} = ast, acc ->
+      directive
+      |> Macro.prewalk({[], acc}, fn
+        {:@, _, [{attr, _, _}]} = ast, {prepends, acc} ->
           if attr in attrs do
-            replacement =
-              if use?,
-                do: {:unquote, [closing: [line: m[:line]], line: m[:line]], [var]},
-                else: var
+            {definitions, nondirectives} = Enum.split_with(nondirectives, &match?({:@, _, [{^attr, _, _}]}, &1))
+            acc = %{acc | nondirectives: nondirectives}
 
-            {replacement, %{acc | attr_lifts: [attr | acc.attr_lifts]}}
+            recursed =
+              Enum.reduce(definitions, {definitions ++ prepends, acc}, fn ast, {prepends, acc} ->
+                {definitions, acc} = split_depended_attributes(ast, acc)
+                {prepends ++ definitions, acc}
+              end)
+
+            {ast, recursed}
           else
-            {ast, acc}
+            {ast, {prepends, acc}}
           end
 
         ast, acc ->
           {ast, acc}
       end)
+      |> elem(1)
     end
   end
 
@@ -230,21 +235,22 @@ defmodule Styler.Style.ModuleDirectives do
       |> Enum.reduce(@env, fn
         {:@, _, [{attr_directive, _, _}]} = ast, acc when attr_directive in @attr_directives ->
           # attr_directives are moved above aliases, so we need to expand them
-          {ast, acc} = acc.alias_env |> AliasEnv.expand_ast(ast) |> lift_module_attrs(acc)
-          %{acc | attr_directive => [ast | acc[attr_directive]]}
+          ast = AliasEnv.expand_ast(acc.alias_env, ast)
+          {prepends, acc} = split_depended_attributes(ast, acc)
+          %{acc | attr_directive => [ast | prepends ++ acc[attr_directive]]}
 
         {:@, _, [{attr, _, _}]} = ast, acc ->
           %{acc | nondirectives: [ast | acc.nondirectives], attrs: MapSet.put(acc.attrs, attr)}
 
         {directive, _, _} = ast, acc when directive in @directives ->
-          {ast, acc} = lift_module_attrs(ast, acc)
+          {prepends, acc} = split_depended_attributes(ast, acc)
           ast = expand(ast)
-          # import and used get hoisted above aliases, so need to expand them
+          # import and use get hoisted above aliases, so need to expand them
           ast = if directive in ~w(import use)a, do: AliasEnv.expand_ast(acc.alias_env, ast), else: ast
           alias_env = if directive == :alias, do: AliasEnv.define(acc.alias_env, ast), else: acc.alias_env
 
           # the reverse accounts for `expand` putting things in reading order, whereas we're accumulating in reverse
-          %{acc | directive => Enum.reverse(ast, acc[directive]), alias_env: alias_env}
+          %{acc | directive => Enum.reverse(ast, prepends ++ acc[directive]), alias_env: alias_env}
 
         ast, acc ->
           %{acc | nondirectives: [ast | acc.nondirectives]}
@@ -260,38 +266,6 @@ defmodule Styler.Style.ModuleDirectives do
       |> redefine_alias_env()
       |> lift_aliases()
       |> apply_aliases()
-
-    # Not happy with it, but this does the work to move module attribute assignments above the module or quote or whatever
-    # Given that it'll only be run once and not again, i'm okay with it being inefficient
-    {acc, parent} =
-      if Enum.any?(acc.attr_lifts) do
-        lifts = acc.attr_lifts
-
-        nondirectives =
-          Enum.map(acc.nondirectives, fn
-            {:@, m, [{attr, am, _}]} = ast -> if attr in lifts, do: {:@, m, [{attr, am, [{attr, am, nil}]}]}, else: ast
-            ast -> ast
-          end)
-
-        assignments =
-          Enum.flat_map(acc.nondirectives, fn
-            {:@, m, [{attr, am, [val]}]} -> if attr in lifts, do: [{:=, m, [{attr, am, nil}, val]}], else: []
-            _ -> []
-          end)
-
-        {past, _} = parent
-
-        parent =
-          parent
-          |> Zipper.up()
-          |> Style.find_nearest_block()
-          |> Zipper.prepend_siblings(assignments)
-          |> Zipper.find(&(&1 == past))
-
-        {%{acc | nondirectives: nondirectives}, parent}
-      else
-        {acc, parent}
-      end
 
     nondirectives = acc.nondirectives
 
