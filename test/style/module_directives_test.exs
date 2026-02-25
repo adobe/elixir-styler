@@ -592,48 +592,48 @@ defmodule Styler.Style.ModuleDirectivesTest do
   end
 
   describe "module attribute lifting" do
-    test "replaces uses in other attributes and `use` correctly" do
+    test "maintains location when used in other spots" do
+      assert_style("""
+      defmodule MyGreatLibrary do
+        @library_options [...]
+        @moduledoc make_pretty_docs(@library_options)
+        use OptionsMagic, my_opts: @library_options
+      end
+      """)
+    end
+
+    test "interdepedent module attrs" do
       assert_style(
         """
         defmodule MyGreatLibrary do
-          @library_options [...]
+          @foo :bar
+          import Meow
+          @library_options @foo
           @moduledoc make_pretty_docs(@library_options)
           use OptionsMagic, my_opts: @library_options
         end
         """,
         """
-        library_options = [...]
-
         defmodule MyGreatLibrary do
-          @moduledoc make_pretty_docs(library_options)
-          use OptionsMagic, my_opts: unquote(library_options)
+          @foo :bar
+          @library_options @foo
+          @moduledoc make_pretty_docs(@library_options)
+          use OptionsMagic, my_opts: @library_options
 
-          @library_options library_options
+          import Meow
         end
         """
       )
     end
 
     test "works with `quote`" do
-      assert_style(
-        """
-        quote do
-          @library_options [...]
-          @moduledoc make_pretty_docs(@library_options)
-          use OptionsMagic, my_opts: @library_options
-        end
-        """,
-        """
-        library_options = [...]
-
-        quote do
-          @moduledoc make_pretty_docs(library_options)
-          use OptionsMagic, my_opts: unquote(library_options)
-
-          @library_options library_options
-        end
-        """
-      )
+      assert_style("""
+      quote do
+        @library_options [...]
+        @moduledoc make_pretty_docs(@library_options)
+        use OptionsMagic, my_opts: @library_options
+      end
+      """)
     end
   end
 
