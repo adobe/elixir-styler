@@ -5,9 +5,11 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.11.0
+
 ### Improvements
 
-- `mix styler.inline_attrs`: Allow multiple file paths to be specified: `mix styler.inline_attrs <file1> [... additional files]`
+- `mix styler.inline_attrs`: Allow multiple file paths to be specified: `mix styler.inline_attrs <file1> [<file2> ...]`
 
 #### Module Directive References
 
