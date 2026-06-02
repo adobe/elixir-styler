@@ -67,6 +67,12 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style "refute x > y", "assert x <= y"
       assert_style "refute x >= y", "assert x < y"
     end
+
+    test "negated comparisons" do
+      assert_style "not (x == y)", "x != y"
+      assert_style "!(x == y)", "x != y"
+      assert_style "x != y"
+    end
   end
 
   test "string sigil rewrites" do

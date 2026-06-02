@@ -41,6 +41,11 @@ defmodule Styler.Style.SingleNode do
   # refute nilly -> assert
   defp style({:refute, meta, [{:is_nil, _, [x]}]}), do: style({:assert, meta, [x]})
   defp style({:refute, meta, [{:==, _, [x, {:__block__, _, [nil]}]}]}), do: style({:assert, meta, [x]})
+
+  # negated comparisons
+  defp style({:not, _, [{:==, m, xy}]}), do: {:!=, m, xy}
+  defp style({:!, _, [{:==, m, xy}]}), do: {:!=, m, xy}
+
   # boolean ops and assert hurt my brain.
   # the lone exception is `==` (... for now) ((uh, and the exception to the exception is when it's `== nil`, above))
   defp style({:refute, meta, [{:!=, m, xy}]}), do: style({:assert, meta, [{:==, m, xy}]})
