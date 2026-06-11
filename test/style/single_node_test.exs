@@ -151,6 +151,22 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
+  test "DateTime.add/3 => DateTime.shift/2" do
+    units = [:day, :hour, :minute]
+
+    for unit <- units do
+      assert_style(
+        "DateTime.add(dt, 5, #{inspect(unit)})",
+        "DateTime.shift(dt, #{unit}: 5)"
+      )
+
+      assert_style(
+        "dt |> DateTime.add(1, #{inspect(unit)}) |> bop()",
+        "dt |> DateTime.shift(#{unit}: 1) |> bop()"
+      )
+    end
+  end
+
   test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.before?" do
     assert_style("DateTime.compare(foo, bar) == :lt", "DateTime.before?(foo, bar)")
     assert_style("NaiveDateTime.compare(foo, bar) == :lt", "NaiveDateTime.before?(foo, bar)")

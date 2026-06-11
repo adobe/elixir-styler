@@ -199,6 +199,22 @@ defmodule Styler.Style.SingleNode do
   defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, []}),
     do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :utc_now]}, funm, []}
 
+  # DateTime.add(dt, 1, :hour) => DateTime.shift(dt, hour: 1)
+  defp style({{:., dm, [{:__aliases__, am, [:DateTime]}, :add]}, funm, [datetime, amount, {:__block__, _, [unit]}]}) do
+    {{:., dm, [{:__aliases__, am, [:DateTime]}, :shift]}, funm, [datetime, [{unit, amount}]]}
+  end
+
+  # dt |> DateTime.add(1, :hour) => dt |> DateTime.shift(hour: 1)
+  defp style(
+         {:|>, pm, [lhs, {{:., dm, [{:__aliases__, am, [:DateTime]}, :add]}, funm, [amount, {:__block__, _, [unit]}]}]}
+       ) do
+    {:|>, pm,
+     [
+       lhs,
+       {{:., dm, [{:__aliases__, am, [:DateTime]}, :shift]}, funm, [[{unit, amount}]]}
+     ]}
+  end
+
   # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :lt => {DateTime,NaiveDateTime,Time,Date}.before?(a, b)
   # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :gt => {DateTime,NaiveDateTime,Time,Date}.after?(a, b)
   defp style({:==, _, [{{:., dm, [{:__aliases__, am, [mod]}, :compare]}, funm, args}, {:__block__, _, [result]}]})
