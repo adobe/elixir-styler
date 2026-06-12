@@ -186,13 +186,11 @@ defmodule Styler.Style.SingleNode do
 
     # (lhs |>) Map.drop([key]) => Map.delete(key)
     defp style({{:., dm, [{_, _, [unquote(m)]} = module, :drop]}, m, [{:__block__, _, [[{op, _, _} = key]]}]})
-         when op != :|,
-         do: {{:., dm, [module, :delete]}, m, [key]}
+         when op != :|, do: {{:., dm, [module, :delete]}, m, [key]}
 
     # Map.drop(foo, [one_key]) => Map.delete(foo, one_key)
     defp style({{:., dm, [{_, _, [unquote(m)]} = module, :drop]}, m, [lhs, {:__block__, _, [[{op, _, _} = key]]}]})
-         when op != :|,
-         do: {{:., dm, [module, :delete]}, m, [lhs, key]}
+         when op != :|, do: {{:., dm, [module, :delete]}, m, [lhs, key]}
   end
 
   # Timex.now() => DateTime.utc_now()
