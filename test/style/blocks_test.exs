@@ -1284,4 +1284,33 @@ defmodule Styler.Style.BlocksTest do
       )
     end
   end
+
+  describe "comment movement regressions" do
+    test "comments survive swap when do body is multiple lines (negated if)" do
+      assert_style(
+        """
+        if !a do
+          # b1
+          b1
+          # b2
+          b2
+        else
+          # c
+          c
+        end
+        """,
+        """
+        if a do
+          # c
+          c
+        else
+          # b1
+          b1
+          # b2
+          b2
+        end
+        """
+      )
+    end
+  end
 end

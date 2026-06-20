@@ -50,16 +50,6 @@ defmodule Styler.Style.Configs do
   def run({{:config, cfm, [_, _ | _]} = config, zm}, %{mix_config?: true, comments: comments} = ctx) do
     # all of these list are reversed due to the reduce
     {configs, assignments, rest} = accumulate(zm.r, [], [])
-    # @TODO
-    # okay so comments between nodes that we moved.......
-    # lets just push them out of the way (???). so
-    # 1. figure out first/last possible lines we're talking about here
-    # 2. only pass comments in that range off
-    # 3. split those comments into "moved, didn't move"
-    # 4. for any "didn't move" comments... move them to the top?
-    #
-    # also, should i just do a scan of the configs ++ assignments, and see if any of them have lines out of order,
-    # and decide from there whether or not i want to do set_lines
 
     configs =
       [config | configs]
@@ -80,16 +70,30 @@ defmodule Styler.Style.Configs do
       |> Style.reset_newlines()
       |> Enum.concat(configs)
 
-    {nodes, comments} =
+    {nodes, comments, rest} =
       if changed?(nodes) do
-        # after running, this block should take up the same # of lines that it did before
-        # the first node of `rest` is greater than the highest line in configs, assignments
         # config line is the first line to be used as part of this block
         {node_comments, _} = Style.comments_for_node(config, comments)
         first_line = min(List.first(node_comments)[:line] || cfm[:line], cfm[:line])
-        Style.order_line_meta_and_comments(nodes, comments, first_line)
+
+        # Sorting and re-spacing can make the block taller (config groups gain blank lines between them).
+        # `order_line_meta_and_comments` only moves the sorted nodes and their comments, so `rest` nodes and any
+        # trailing comments keep their original lines - if the block grows past them, the formatter pulls those
+        # comments up into our configs. Measure the growth and shift the trailing region down to match.
+        # `configs`/`assignments` are reverse-ordered (`accumulate` prepends), so we can't just take the last node.
+        block_end = [config | configs ++ assignments] |> Enum.map(&Style.max_line/1) |> Enum.max()
+        {block_comments, tail_comments} = Enum.split_with(comments, &(&1.line <= block_end))
+
+        {nodes, block_comments} = Style.order_line_meta_and_comments(nodes, block_comments, first_line)
+
+        # order_line_meta_and_comments lays nodes out with increasing line numbers, so the block now ends at the last
+        delta = Style.max_line(nodes) - block_end
+        tail_comments = Enum.map(tail_comments, &%{&1 | line: &1.line + delta})
+        rest = Enum.map(rest, &Style.shift_line(&1, delta))
+
+        {nodes, Enum.sort_by(block_comments ++ tail_comments, & &1.line), rest}
       else
-        {nodes, comments}
+        {nodes, comments, rest}
       end
 
     [config | left_siblings] = Enum.reverse(nodes, zm.l)

@@ -729,4 +729,23 @@ defmodule Styler.Style.ModuleDirectivesTest do
       )
     end
   end
+
+  describe "comment movement regressions" do
+    test "comment on hoisted import is stranded when an attribute is reordered above it" do
+      assert_style(
+        """
+        @endpoint Foo
+
+        # this comment belongs to the import
+        import Plug.Conn
+        """,
+        """
+        # this comment belongs to the import
+        import Plug.Conn
+
+        @endpoint Foo
+        """
+      )
+    end
+  end
 end
