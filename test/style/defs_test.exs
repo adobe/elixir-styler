@@ -245,5 +245,4 @@ defmodule Styler.Style.DefsTest do
       assert_raise SyntaxError, fn -> assert_style("def foo(a) true") end
     end
   end
-
 end
