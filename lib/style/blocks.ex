@@ -204,7 +204,7 @@ defmodule Styler.Style.Blocks do
         if Style.max_line(do_) > Style.max_line(else_) do
           # we inverted the if/else blocks of this `if` statement in a previous pass (due to negators or unless)
           # shift comments etc to make it happy now
-          if_ast(zipper, head, do_, else_, ctx, false)
+          if_ast(zipper, head, do_, else_, ctx)
         else
           {:cont, zipper, ctx}
         end
@@ -366,56 +366,32 @@ defmodule Styler.Style.Blocks do
 
   defp nodes_equivalent?(a, b), do: Style.without_meta(a) == Style.without_meta(b)
 
+  defp ensure_line({tag, meta, children} = node) do
+    if meta[:line], do: node, else: {tag, Keyword.put(meta, :line, Style.meta(List.first(children))[:line]), children}
+  end
+
   defp if_ast(zipper, head, {_, _, _} = do_body, {_, _, _} = else_body, ctx) do
     do_ = {{:__block__, [line: nil], [:do]}, do_body}
     else_ = {{:__block__, [line: nil], [:else]}, else_body}
-    if_ast(zipper, head, do_, else_, ctx, true)
+    if_ast(zipper, head, do_, else_, ctx)
   end
 
-  defp if_ast(zipper, {_, meta, _} = head, {do_kw, do_body}, {else_kw, else_body}, ctx, conversion?) do
+  defp if_ast(zipper, {_, meta, _} = head, {do_kw, do_body}, {else_kw, else_body}, ctx) do
     line = meta[:line]
-    # `conversion?: true` means we're converting a non-if construct (case/cond) into an if for the first
-    # time - no `do`/`else` keyword line has ever been spent, so nothing needs to be reclaimed.
-    # `conversion?: false` means the node is already an if whose do/else content is sitting in the
-    # "wrong" slot (eg negated-if swapping do/else bodies in place) - the *other* keyword's line is
-    # being vacated and needs to be accounted for.
-
-    # ... why am i doing this again? hmm.
     do_body = Macro.update_meta(do_body, &Keyword.delete(&1, :end_of_expression))
     else_body = Macro.update_meta(else_body, &Keyword.delete(&1, :end_of_expression))
 
-    max_do_line = Style.max_line(do_body)
-    max_else_line = Style.max_line(else_body)
+    # lay `do_body` then `else_body` out one after the other starting right after the `if`'s own line,
+    # carrying each one's comments along with it - same mechanism `Configs`/`ModuleDirectives` use to
+    # reorder nodes without stranding their comments. `order_line_meta_and_comments` needs each node's
+    # own top-level `:line`, but a multi-statement body is a `__block__` with no line of its own -
+    # borrow its first child's line for that purpose.
+    {[do_body, else_body], comments} =
+      Style.order_line_meta_and_comments([ensure_line(do_body), ensure_line(else_body)], ctx.comments, line)
 
-    # Change ast meta and comment lines to fit the `if` ast
-    {do_, else_, comments, end_line} =
-      if max_do_line >= max_else_line do
-        # we're swapping the ordering of two blocks of code
-        # and so must swap the lines of the ast & comments to keep comments where they belong!
-        # the math is: move B up by the length of A, and move A down by the length of B plus one (for the else keyword)
-        else_size = max_else_line - line
-        else_size = if conversion?, do: else_size, else: else_size + 1
-        do_size = max_do_line - max_else_line
-
-        shifts = [
-          # move comments in the `else_body` down by the size of the `do_body`
-          {line..max_else_line, do_size},
-          # move comments in `do_body` up by the size of the `else_body`
-          {(max_else_line + 1)..max_do_line, -else_size}
-        ]
-
-        do_ = {Style.set_line(do_kw, line), Style.shift_line(do_body, -else_size)}
-        else_line = if conversion?, do: max_else_line, else: line + do_size
-        else_ = {Style.set_line(else_kw, else_line), Style.shift_line(else_body, do_size)}
-        end_line = if conversion?, do: max(max_do_line, max_else_line), else: max_do_line + 1
-        {do_, else_, Style.shift_comments(ctx.comments, shifts), end_line}
-      else
-        # much simpler case -- just scootch things in the else down by 1 for the `else` keyword.
-        do_ = {{:__block__, [line: line], [:do]}, do_body}
-        else_ = Style.shift_line({{:__block__, [line: max_do_line], [:else]}, else_body}, 1)
-        end_line = max(max_do_line, max_else_line)
-        {do_, else_, Style.shift_comments(ctx.comments, max_do_line..max_else_line, 1), end_line}
-      end
+    do_ = {Style.set_line(do_kw, line), do_body}
+    else_ = {Style.set_line(else_kw, Style.max_line(do_body)), else_body}
+    end_line = Style.max_line(else_body) + 1
 
     zipper
     |> Zipper.replace({:if, [do: [line: line], end: [line: end_line], line: line], [head, [do_, else_]]})
