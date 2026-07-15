@@ -314,6 +314,30 @@ defmodule Styler.Style.BlocksTest do
       )
     end
 
+    test "block swapping comments - comments modify the bodies" do
+      assert_style(
+        """
+        case foo do
+          false ->
+            # a
+            :error
+          true ->
+            # b
+            :ok
+        end
+        """,
+        """
+        if foo do
+          # b
+          :ok
+        else
+          # a
+          :error
+        end
+        """
+      )
+    end
+
     test "complex comments" do
       assert_style(
         """

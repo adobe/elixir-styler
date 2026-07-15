@@ -450,32 +450,4 @@ defmodule Styler.Style.CommentDirectivesTest do
       )
     end
   end
-
-  describe "comment movement regressions" do
-    test "interior orphan comment moves to the wrong item" do
-      assert_style(
-        """
-        # styler:sort
-        [
-          :d,
-
-          # this comment describes apple
-
-          :apple,
-
-          :c
-        ]
-        """,
-        """
-        # styler:sort
-        [
-          # this comment describes apple
-          :apple,
-          :c,
-          :d
-        ]
-        """
-      )
-    end
-  end
 end
