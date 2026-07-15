@@ -1337,4 +1337,351 @@ defmodule Styler.Style.BlocksTest do
       )
     end
   end
+
+  describe "block swap comment coverage" do
+    test "unless with multi-line do/else bodies" do
+      assert_style(
+        """
+        unless a do
+          # b1
+          b1
+          # b2
+          b2
+        else
+          # c
+          c
+        end
+        """,
+        """
+        if a do
+          # c
+          c
+        else
+          # b1
+          b1
+          # b2
+          b2
+        end
+        """
+      )
+    end
+
+    test "non-! negator (!=) with multi-line do/else bodies" do
+      assert_style(
+        """
+        if a != b do
+          # d1
+          d1
+          # d2
+          d2
+        else
+          # e
+          e
+        end
+        """,
+        """
+        if a == b do
+          # e
+          e
+        else
+          # d1
+          d1
+          # d2
+          d2
+        end
+        """
+      )
+    end
+
+    test "3-statement do body swaps below a 1-statement else" do
+      assert_style(
+        """
+        if !a do
+          # x1
+          x1
+          # x2
+          x2
+          # x3
+          x3
+        else
+          # y
+          y
+        end
+        """,
+        """
+        if a do
+          # y
+          y
+        else
+          # x1
+          x1
+          # x2
+          x2
+          # x3
+          x3
+        end
+        """
+      )
+    end
+
+    test "1-statement do body swaps above a 3-statement else" do
+      assert_style(
+        """
+        if !a do
+          # p
+          p
+        else
+          # q1
+          q1
+          # q2
+          q2
+          # q3
+          q3
+        end
+        """,
+        """
+        if a do
+          # q1
+          q1
+          # q2
+          q2
+          # q3
+          q3
+        else
+          # p
+          p
+        end
+        """
+      )
+    end
+
+    test "equal-size (2 statement) do/else bodies swap" do
+      assert_style(
+        """
+        if !a do
+          # m1
+          m1
+          # m2
+          m2
+        else
+          # n1
+          n1
+          # n2
+          n2
+        end
+        """,
+        """
+        if a do
+          # n1
+          n1
+          # n2
+          n2
+        else
+          # m1
+          m1
+          # m2
+          m2
+        end
+        """
+      )
+    end
+
+    test "dangling comment at the end of a swapped do body" do
+      assert_style(
+        """
+        if !a do
+          # b
+          b
+          # dangling
+        else
+          # c
+          c
+        end
+        """,
+        """
+        if a do
+          # c
+          c
+        else
+          # b
+          b
+          # dangling
+        end
+        """
+      )
+    end
+
+    test "blank line between statements survives the swap" do
+      assert_style(
+        """
+        if !a do
+          # b1
+          b1
+
+          # b2
+          b2
+        else
+          # c
+          c
+        end
+        """,
+        """
+        if a do
+          # c
+          c
+        else
+          # b1
+          b1
+
+          # b2
+          b2
+        end
+        """
+      )
+    end
+
+    test "leading comment on the if itself is untouched by the swap" do
+      assert_style(
+        """
+        # leading comment
+        if !a do
+          # b1
+          b1
+          # b2
+          b2
+        else
+          # c
+          c
+        end
+        """,
+        """
+        # leading comment
+        if a do
+          # c
+          c
+        else
+          # b1
+          b1
+          # b2
+          b2
+        end
+        """
+      )
+    end
+
+    test "double negator collapse leaves multi-line do/else bodies untouched" do
+      assert_style(
+        """
+        if !!a do
+          # b1
+          b1
+          # b2
+          b2
+        else
+          # c
+          c
+        end
+        """,
+        """
+        if a do
+          # b1
+          b1
+          # b2
+          b2
+        else
+          # c
+          c
+        end
+        """
+      )
+    end
+
+    test "case to if with multi-line do/else bodies (false first)" do
+      assert_style(
+        """
+        case foo do
+          false ->
+            # d1
+            d1
+            # d2
+            d2
+          true ->
+            # e
+            e
+        end
+        """,
+        """
+        if foo do
+          # e
+          e
+        else
+          # d1
+          d1
+          # d2
+          d2
+        end
+        """
+      )
+    end
+
+    test "case to if with equal-size (2 statement) do/else bodies (false first)" do
+      assert_style(
+        """
+        case foo do
+          false ->
+            # d1
+            d1
+            # d2
+            d2
+          true ->
+            # e1
+            e1
+            # e2
+            e2
+        end
+        """,
+        """
+        if foo do
+          # e1
+          e1
+          # e2
+          e2
+        else
+          # d1
+          d1
+          # d2
+          d2
+        end
+        """
+      )
+    end
+
+    test "cond to if with multi-line do body and 1-statement else" do
+      assert_style(
+        """
+        cond do
+          a ->
+            # f1
+            f1
+            # f2
+            f2
+          true ->
+            # g
+            g
+        end
+        """,
+        """
+        if a do
+          # f1
+          f1
+          # f2
+          f2
+        else
+          # g
+          g
+        end
+        """
+      )
+    end
+  end
 end
