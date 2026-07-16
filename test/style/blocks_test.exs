@@ -208,9 +208,8 @@ defmodule Styler.Style.BlocksTest do
         if foo do
           # a
           :ok
+          # b
         end
-
-        # b
         """
       )
 
