@@ -44,11 +44,12 @@ defmodule Styler.Style.Blocks do
 
     # whichever clause ends up as `else` trails right up to either the *other* clause's own line (if it's
     # first) or this `case`'s own `end` (if it's last) - use that real boundary so a dangling/trailing
-    # comment moves along with its content instead of getting stranded.
+    # comment moves along with its content instead of getting stranded. Same deal for `do_` when *it* ends
+    # up as the last clause (only the `false`/`true` ordering below flips do/else relative to source order).
     case {lhs_a, lhs_b} do
-      {{_, _, [true]}, {_, _, [false]}} -> if_ast(zipper, head, a, b, ctx, m[:end][:line])
-      {{_, _, [true]}, {:_, _, _}} -> if_ast(zipper, head, a, b, ctx, m[:end][:line])
-      {{_, _, [false]}, {_, _, [true]}} -> if_ast(zipper, head, b, a, ctx, bm[:line])
+      {{_, _, [true]}, {_, _, [false]}} -> if_ast(zipper, head, a, b, ctx, nil, m[:end][:line])
+      {{_, _, [true]}, {:_, _, _}} -> if_ast(zipper, head, a, b, ctx, nil, m[:end][:line])
+      {{_, _, [false]}, {_, _, [true]}} -> if_ast(zipper, head, b, a, ctx, m[:end][:line], bm[:line])
       _ -> {:cont, zipper, ctx}
     end
   end
@@ -114,7 +115,7 @@ defmodule Styler.Style.Blocks do
           |> pull_leading_comment(am[:line], body_start_line(a))
           |> pull_leading_comment(bm[:line], body_start_line(b))
 
-        if_ast(zipper, head, a, b, %{ctx | comments: comments}, m[:end][:line])
+        if_ast(zipper, head, a, b, %{ctx | comments: comments}, nil, m[:end][:line])
 
       clauses ->
         {:cont, Zipper.replace_children(zipper, [[{do_, clauses}]]), ctx}
@@ -223,10 +224,12 @@ defmodule Styler.Style.Blocks do
       [head, [do_, {else_kw, _} = else_]] ->
         if Style.max_line(do_) > Style.max_line(else_) do
           # we inverted the if/else blocks of this `if` statement in a previous pass (due to negators or unless)
-          # shift comments etc to make it happy now. `else_`'s content used to be paired with `do_kw`, and
+          # shift comments etc to make it happy now. `do_`'s content used to be paired with `else_kw` and always
+          # trailed right up to this `if`'s own `end`; `else_`'s content used to be paired with `do_kw`, and
           # `else_kw`'s real (unmodified) line still marks exactly where that content used to trail off to -
-          # use it so a dangling/trailing comment moves along with its content instead of getting stranded.
-          if_ast(zipper, head, do_, else_, ctx, Style.meta(else_kw)[:line])
+          # use those real boundaries so a dangling/trailing comment moves along with its content instead of
+          # getting stranded.
+          if_ast(zipper, head, do_, else_, ctx, m[:end][:line], Style.meta(else_kw)[:line])
         else
           {:cont, zipper, ctx}
         end
@@ -406,29 +409,31 @@ defmodule Styler.Style.Blocks do
     if delta == 0, do: comments, else: Enum.sort_by(rest ++ Enum.map(mine, &%{&1 | line: &1.line + delta}), & &1.line)
   end
 
-  # Widens `else_body`'s own trailing boundary out to `bound` (exclusive - the real line of whatever comes
-  # right after it, eg the `if`'s own `end` or the next `case`/`cond` clause) by faking an `end_of_expression`,
-  # so a dangling/trailing comment after its last statement gets claimed by it instead of getting stranded.
-  # `do_body` never needs this: it's always the first of the two laid out below, so any trailing comment of
-  # its own that's genuinely adjacent to `else_body` gets claimed by `else_body`'s own (unwidened) leading-
-  # comment check anyway. `nil` bound means there's nothing real to bound it by - leave the body untouched.
+  # Widens a body's own trailing boundary out to `bound` (exclusive - the real line of whatever comes right
+  # after it, eg the `if`'s own `end` or the next `case`/`cond` clause) by faking an `end_of_expression`, so
+  # a dangling/trailing comment after its last statement gets claimed by it instead of getting stranded. Only
+  # relevant for whichever of `do_body`/`else_body` is genuinely the *last* real clause/keyword before that
+  # boundary - widening the other one risks reaching into territory that rightfully belongs to its neighbor's
+  # own leading-comment claim (that neighbor still gets a natural, unwidened claim on anything truly adjacent
+  # to it). `nil` bound means this body isn't the last one - leave it untouched.
   defp bound_trailing(node, nil), do: node
 
   defp bound_trailing({tag, meta, children}, bound),
     do: {tag, Keyword.put(meta, :end_of_expression, newlines: 1, line: bound - 1), children}
 
-  defp if_ast(zipper, head, {_, _, _} = do_body, {_, _, _} = else_body, ctx, else_bound) do
+  defp if_ast(zipper, head, {_, _, _} = do_body, {_, _, _} = else_body, ctx, do_bound, else_bound) do
     do_ = {{:__block__, [line: nil], [:do]}, do_body}
     else_ = {{:__block__, [line: nil], [:else]}, else_body}
-    if_ast(zipper, head, do_, else_, ctx, else_bound)
+    if_ast(zipper, head, do_, else_, ctx, do_bound, else_bound)
   end
 
-  defp if_ast(zipper, {_, meta, _} = head, {do_kw, do_body}, {else_kw, else_body}, ctx, else_bound) do
+  defp if_ast(zipper, {_, meta, _} = head, {do_kw, do_body}, {else_kw, else_body}, ctx, do_bound, else_bound) do
     line = meta[:line]
 
     do_body =
       do_body
       |> Macro.update_meta(&Keyword.delete(&1, :end_of_expression))
+      |> bound_trailing(do_bound)
       |> ensure_line()
 
     else_body =
@@ -442,9 +447,12 @@ defmodule Styler.Style.Blocks do
     # reorder nodes without stranding their comments.
     {[do_body, else_body], comments} = Style.order_line_meta_and_comments([do_body, else_body], ctx.comments, line)
 
-    # `else_body`'s (still-widened) end reserves room past any dangling comment `bound_trailing` claimed for
-    # it, so `end` doesn't collide with that comment's line - compute positions from it before dropping it.
-    else_line = Style.max_line(do_body)
+    # a still-widened end reserves room past any dangling comment `bound_trailing` claimed - compute
+    # positions from it before dropping it. `end_line` can use it as-is (nothing follows `end`, so landing
+    # exactly on the reserved line is fine), but `else_kw` has `else_body` coming right after it, so it
+    # needs to land one line *past* the reservation instead of on top of it - but only when `do_body` was
+    # actually widened; otherwise this would just be an unnecessary (and possibly wrong) nudge forward.
+    else_line = Style.max_line(do_body) + if(do_bound, do: 1, else: 0)
     end_line = Style.max_line(else_body) + 1
 
     # the fake `end_of_expression` from `bound_trailing` did its job above (widening the comment search and
