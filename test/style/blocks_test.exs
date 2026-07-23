@@ -1844,10 +1844,12 @@ defmodule Styler.Style.BlocksTest do
         case foo do
           # a
           false ->
+            # foo
             d1
             d2
           # b
           true ->
+            # bar
             e
             # dangling
         end
@@ -1855,12 +1857,110 @@ defmodule Styler.Style.BlocksTest do
         """
         if foo do
           # b
+          # bar
           e
           # dangling
         else
           # a
+          # foo
           d1
           d2
+        end
+        """
+      )
+    end
+
+    test "cond do rewrite with dangler" do
+      assert_style(
+        """
+        cond do
+          # a
+          foo? ->
+            # foo
+            d1
+            d2
+          # b
+          true ->
+            # bar
+            e
+            # dangling
+        end
+        """,
+        """
+        if foo? do
+          # a
+          # foo
+          d1
+          d2
+        else
+          # b
+          # bar
+          e
+          # dangling
+        end
+        """
+      )
+    end
+
+    test "another" do
+      assert_style(
+        """
+        case foo do
+          # a
+          false ->
+            # foo
+            d1
+          # b
+          true ->
+            # bar
+            e
+            f
+            # dangling
+        end
+        """,
+        """
+        if foo do
+          # b
+          # bar
+          e
+          f
+          # dangling
+        else
+          # a
+          # foo
+          d1
+        end
+        """
+      )
+    end
+
+    test "yet another" do
+      assert_style(
+        """
+        case foo do
+          # a
+          true ->
+            # foo
+            d1
+          # b
+          false ->
+            # bar
+            e
+            f
+            # dangling
+        end
+        """,
+        """
+        if foo do
+          # a
+          # foo
+          d1
+        else
+          # b
+          # bar
+          e
+          f
+          # dangling
         end
         """
       )

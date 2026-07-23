@@ -35,17 +35,15 @@ defmodule Styler.Style.Blocks do
   # case statement with exactly 2 `->` cases
   # rewrite to `if` if it's any of 3 trivial cases
   def run({{:case, m, [head, [{_, [{:->, am, [[lhs_a], a]}, {:->, bm, [[lhs_b], b]}]}]]}, _} = zipper, ctx) do
-    end_line = m[:end][:line]
-
-    ctx =
-      ctx
-      |> Map.update!(:comments, &pull_leading_comment(&1, am[:line], body_start_line(a)))
-      |> Map.update!(:comments, &pull_leading_comment(&1, bm[:line], body_start_line(b)))
+    # @TODO shouldn't be shifting if we aren't doing if_ast rewrites.
+    # try to put shift into the if_ast header that matches transformations?
+    ctx = shift_arrow_comments_into_body(ctx, {am, a}, {bm, b})
+    b = Macro.update_meta(b, &Keyword.put(&1, :end_of_expression, [line: m[:end][:line], newlines: 1]))
 
     case {lhs_a, lhs_b} do
-      {{_, _, [true]}, {_, _, [false]}} -> if_ast(zipper, head, a, b, ctx, else: end_line)
-      {{_, _, [true]}, {:_, _, _}} -> if_ast(zipper, head, a, b, ctx, else: end_line)
-      {{_, _, [false]}, {_, _, [true]}} -> if_ast(zipper, head, b, a, ctx, do: end_line, else: bm[:line])
+      {{_, _, [true]}, {_, _, [false]}} -> if_ast(zipper, head, a, b, ctx)
+      {{_, _, [true]}, {:_, _, _}} -> if_ast(zipper, head, a, b, ctx)
+      {{_, _, [false]}, {_, _, [true]}} -> if_ast(zipper, head, b, a, ctx)
       _ -> {:cont, zipper, ctx}
     end
   end
@@ -106,12 +104,9 @@ defmodule Styler.Style.Blocks do
       # `b` (the final clause, going into `else`) trails right up to this `cond`'s own `end` - use that
       # real boundary so a dangling/trailing comment moves along with its content instead of getting stranded.
       [{:->, am, [[head], a]}, {:->, bm, [[{:__block__, _, [true]}], b]}] ->
-        comments =
-          ctx.comments
-          |> pull_leading_comment(am[:line], body_start_line(a))
-          |> pull_leading_comment(bm[:line], body_start_line(b))
-
-        if_ast(zipper, head, a, b, %{ctx | comments: comments}, else: m[:end][:line])
+        ctx = shift_arrow_comments_into_body(ctx, {am, a}, {bm, b})
+        b = Macro.update_meta(b, &Keyword.put(&1, :end_of_expression, [line: m[:end][:line], newlines: 1]))
+        if_ast(zipper, head, a, b, ctx)
 
       clauses ->
         {:cont, Zipper.replace_children(zipper, [[{do_, clauses}]]), ctx}
@@ -207,6 +202,11 @@ defmodule Styler.Style.Blocks do
       # Credo.Check.Refactor.NegatedConditionsWithElse
       # if !x, do: y, else: z => if x, do: z, else: y
       [negator, [{do_, do_body}, {else_, else_body}]] when is_negator(negator) ->
+        # end of expression hacks ensure that these bodies keep dangling comments in their blocks.
+        # someday we might find a better way!
+        # ohhhhhhh probably i need to fix the line numbers on the do and else to match the lines.... HMM
+        do_body = Macro.update_meta(do_body, &Keyword.put(&1, :end_of_expression, [line: Style.meta(else_)[:line], newlines: 1]))
+        else_body = Macro.update_meta(else_body, &Keyword.put(&1, :end_of_expression, [line: m[:end][:line], newlines: 1]))
         zipper |> Zipper.replace({:if, m, [invert(negator), [{do_, else_body}, {else_, do_body}]]}) |> run(ctx)
 
       # drop `else end`
@@ -217,15 +217,9 @@ defmodule Styler.Style.Blocks do
       [head, [do_block, {_, {:__block__, _, [nil]}}]] ->
         {:cont, Zipper.replace(zipper, {:if, m, [head, [do_block]]}), ctx}
 
-      [head, [do_, {else_kw, _} = else_]] ->
+      [head, [do_, else_]] ->
         if Style.max_line(do_) > Style.max_line(else_) do
-          # we inverted the if/else blocks of this `if` statement in a previous pass (due to negators or unless)
-          # shift comments etc to make it happy now. `do_`'s content used to be paired with `else_kw` and always
-          # trailed right up to this `if`'s own `end`; `else_`'s content used to be paired with `do_kw`, and
-          # `else_kw`'s real (unmodified) line still marks exactly where that content used to trail off to -
-          # use those real boundaries so a dangling/trailing comment moves along with its content instead of
-          # getting stranded.
-          if_ast(zipper, head, do_, else_, ctx, do: m[:end][:line], else: Style.meta(else_kw)[:line])
+          if_ast(zipper, head, do_, else_, ctx)
         else
           {:cont, zipper, ctx}
         end
@@ -387,52 +381,45 @@ defmodule Styler.Style.Blocks do
 
   defp nodes_equivalent?(a, b), do: Style.without_meta(a) == Style.without_meta(b)
 
-  defp body_start_line({:__block__, meta, [child | _]}), do: meta[:line] || Style.meta(child)[:line]
-  defp body_start_line({_, meta, _}), do: meta[:line]
+  # shifts comments sitting directly on arrows into the body.
+  # ideally this gets rolled into comment management, but because we're removing the arrows, we can't see the gaps
+  # in the bodies of these things.
+  # maybe an alternative is to hack the bodies to have a start line equal to the arrow's start line, thereby
+  # leaving all comment manip to our comment manip function
+  # yeah, the main problem seems to be that the body of an arrow can have a line number much higher than the arrow itself, and so we lose comments modifying the arrow.
+  # we need to encode that arrow line number somehow. essentially, that's the line number of our `do` keyword or whatever
+  defp shift_arrow_comments_into_body(ctx, {am, a}, {bm, b}) do
+    ctx
+    |> Map.update!(:comments, &do_shift_arrow_comments_into_body(&1, am, a))
+    |> Map.update!(:comments, &do_shift_arrow_comments_into_body(&1, bm, b))
+  end
 
-  # A leading comment on a `case`/`cond` clause's own `->` line (eg `# a` directly above `false ->`) can sit
-  # a line or more above the clause body's own content once that body is multi-line - too far for the
-  # (unwidened, on purpose - see `bound_trailing`) adjacency check in `order_line_meta_and_comments` to find.
-  # Pull any such leading comment down to sit directly adjacent to the body's real first line instead, so
-  # normal adjacency finds it. Leaves the body's own `:line` (and thus its rendered position) untouched.
-  defp pull_leading_comment(comments, header_line, body_line) do
-    {mine, rest} = Style.comments_for_lines(comments, header_line, header_line)
-    delta = body_line - header_line
-    if delta == 0, do: comments, else: Enum.sort_by(rest ++ Enum.map(mine, &%{&1 | line: &1.line + delta}), & &1.line)
+  defp do_shift_arrow_comments_into_body(comments, arrow_meta, body) do
+    arrow_line = arrow_meta[:line]
+    body_line = Style.first_line(body)
+
+    if body_line == arrow_line do
+      comments
+    else
+      {mine, rest} = Style.comments_for_lines(comments, arrow_line, arrow_line)
+      mine = Enum.map(mine, &%{&1 | line: &1.line + 1})
+      Enum.sort_by(rest ++ mine, & &1.line)
+    end
   end
 
   # When we're coming in from here, we know we're coming in for a transformation from a different block
-  defp if_ast(zipper, head, {_, _, _} = do_body, {_, _, _} = else_body, ctx, bounds) do
+  defp if_ast(zipper, head, {_, _, _} = do_body, {_, _, _} = else_body, ctx) do
     do_ = {{:__block__, [line: nil], [:do]}, do_body}
     else_ = {{:__block__, [line: nil], [:else]}, else_body}
-    if_ast(zipper, head, do_, else_, ctx, bounds)
+    if_ast(zipper, head, do_, else_, ctx)
   end
 
-  defp if_ast(zipper, {_, meta, _} = head, {do_kw, do_body}, {else_kw, else_body}, ctx, bounds) do
+  defp if_ast(zipper, {_, meta, _} = head, {do_kw, do_body}, {else_kw, else_body}, ctx) do
     line = meta[:line]
-
-    # When converting different blocks to if statements, the comment algo can miss dangling comments for different shapes.
-    # Setting a fake end_of_expression helps clue it in to grab those comments.
-    # this is a dirty hack - the end_of_expression gets nixed before this function returns
-    [do_body, else_body] =
-      for {kw, {node, meta, children}} <- [do: do_body, else: else_body] do
-        meta =
-          if line = bounds[kw],
-            do: Keyword.put(meta, :end_of_expression, [newlines: 1, line: line - 1]),
-            else: Keyword.delete(meta, :end_of_expression)
-
-        meta =
-          if meta[:line],
-            do: meta,
-            else: Keyword.put(meta, :line, Style.meta(hd(children))[:line])
-
-        {node, meta, children}
-      end
 
     {[do_body, else_body], comments} = Style.order_line_meta_and_comments([do_body, else_body], ctx.comments, line)
 
-    # the lines for the else and end keywords. not sure why the bounds...
-    else_line = Style.max_line(do_body) + if(bounds[:do], do: 1, else: 0)
+    else_line = Style.max_line(do_body)
     end_line = Style.max_line(else_body) + 1
     # clean up the dangling comments hack
     do_body = Macro.update_meta(do_body, &Keyword.delete(&1, :end_of_expression))
