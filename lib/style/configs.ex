@@ -77,19 +77,17 @@ defmodule Styler.Style.Configs do
         first_line = min(List.first(node_comments)[:line] || cfm[:line], cfm[:line])
 
         # Sorting and re-spacing can make the block taller (config groups gain blank lines between them).
-        # `order_line_meta_and_comments` only moves the sorted nodes and their comments, so `rest` nodes and any
-        # trailing comments keep their original lines - if the block grows past them, the formatter pulls those
-        # comments up into our configs. Measure the growth and shift the trailing region down to match.
+        # reodering means the block can grow past `rest` and its comments, causing the comments for `rest` to get sucked up into our block.
+
         # `configs`/`assignments` are reverse-ordered (`accumulate` prepends), so we can't just take the last node.
-        block_end = [config | configs ++ assignments] |> Enum.map(&Style.max_line/1) |> Enum.max()
-        {block_comments, tail_comments} = Enum.split_with(comments, &(&1.line <= block_end))
+        max_before_ordering = [config | configs ++ assignments] |> Enum.map(&Style.max_line/1) |> Enum.max()
+        {block_comments, tail_comments} = Enum.split_while(comments, &(&1.line <= max_before_ordering))
 
         {nodes, block_comments} = Style.order_line_meta_and_comments(nodes, block_comments, first_line)
 
-        # order_line_meta_and_comments lays nodes out with increasing line numbers, so the block now ends at the last
-        delta = Style.max_line(nodes) - block_end
+        delta = Style.max_line(nodes) - max_before_ordering
         tail_comments = Enum.map(tail_comments, &%{&1 | line: &1.line + delta})
-        rest = Enum.map(rest, &Style.shift_line(&1, delta))
+        rest = Style.shift_line(rest, delta)
 
         {nodes, Enum.sort_by(block_comments ++ tail_comments, & &1.line), rest}
       else
