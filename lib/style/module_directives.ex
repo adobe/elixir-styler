@@ -121,8 +121,7 @@ defmodule Styler.Style.ModuleDirectives do
         # we want only-child literal block to be handled in the only-child catch-all. it means someone did a weird
         # (that would be a literal, so best case someone wrote a string and forgot to put `@moduledoc` before it)
         {:__block__, _, [_, _ | _]} ->
-          {zipper, comments} = organize_directives(body_zipper, ctx.comments, moduledoc)
-          {:skip, zipper, %{ctx | comments: comments}}
+          organize_directives(body_zipper, ctx, moduledoc)
 
         # a module whose only child is a moduledoc. nothing to do here!
         # seems weird at first blush but lots of projects/libraries do this with their root namespace module
@@ -132,12 +131,9 @@ defmodule Styler.Style.ModuleDirectives do
         # There's only one child, and it's not a moduledoc. Conditionally add a moduledoc, then style the only_child
         only_child ->
           if moduledoc do
-            {zipper, comments} =
-              body_zipper
-              |> Zipper.replace({:__block__, [], [moduledoc, only_child]})
-              |> organize_directives(ctx.comments)
-
-            {:skip, zipper, %{ctx | comments: comments}}
+            body_zipper
+            |> Zipper.replace({:__block__, [], [moduledoc, only_child]})
+            |> organize_directives(ctx)
           else
             do_run(body_zipper, ctx)
           end
@@ -149,13 +145,9 @@ defmodule Styler.Style.ModuleDirectives do
   defp do_run({{directive, _, children}, _} = zipper, ctx) when directive in @directives and is_list(children) do
     # Need to be careful that we aren't getting false positives on variables or fns like `def import(foo)` or `alias = 1`
     case Style.ensure_block_parent(zipper) do
-      {:ok, zipper} ->
-        {zipper, comments} = zipper |> Zipper.up() |> organize_directives(ctx.comments)
-        {:skip, zipper, %{ctx | comments: comments}}
-
+      {:ok, zipper} -> zipper |> Zipper.up() |> organize_directives(ctx)
       # not actually a directive! carry on.
-      :error ->
-        {:cont, zipper, ctx}
+      :error -> {:cont, zipper, ctx}
     end
   end
 
@@ -234,8 +226,9 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  defp organize_directives(parent, comments, moduledoc \\ nil) do
+  defp organize_directives(parent, ctx, moduledoc \\ nil) do
     original_children = Zipper.children(parent)
+    comments = ctx.comments
 
     acc =
       original_children
@@ -291,24 +284,20 @@ defmodule Styler.Style.ModuleDirectives do
 
     nodes = directives ++ nondirectives
 
-    # If we actually changed the ordering (sorted directives, hoisted them above nondirectives, expanded/added/removed
-    # one), re-lay the whole block via `order_line_meta_and_comments`. It moves each node *and the comments attached to
-    # it* together, so a directive's comment follows it when it changes position. When nothing moved (e.g. a config file
-    # whose `import Config` is already on top) we leave every line alone - other styles like Configs rely on that, and
-    # reflowing would only risk disturbing comments we have no reason to touch.
-    {nodes, comments} =
-      if nodes != [] and Style.without_meta(nodes) != Style.without_meta(original_children) do
-        first_line = nodes |> Enum.map(&Style.meta(&1)[:line]) |> Enum.min()
-        Style.order_line_meta_and_comments(nodes, comments, first_line)
+    {{directives, nondirectives}, comments} =
+      # not happy with the `without_meta` comparison but not sure what can be done.
+      if Enum.empty?(nodes) or Style.without_meta(nodes) == Style.without_meta(original_children) do
+        {{directives, nondirectives}, comments}
       else
-        {nodes, comments}
+        first_line = nodes |> Enum.map(&Style.meta(&1)[:line]) |> Enum.min()
+        {nodes, comments} = Style.order_line_meta_and_comments(nodes, comments, first_line)
+        # This is shameful. I'm sorry
+        {Enum.split(nodes, length(directives)), comments}
       end
-
-    {directives, nondirectives} = Enum.split(nodes, length(directives))
 
     # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
     zipper =
-      if directives == [] do
+      if Enum.empty?(directives) do
         Zipper.replace_children(parent, nondirectives)
       else
         # this ensures we continue the traversal _after_ any directives
@@ -319,7 +308,7 @@ defmodule Styler.Style.ModuleDirectives do
         |> Zipper.insert_siblings(nondirectives)
       end
 
-    {zipper, comments}
+    {:skip, zipper, %{ctx | comments: comments}}
   end
 
   # alias_env have to be recomputed after we've sorted our `alias` nodes

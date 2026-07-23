@@ -78,8 +78,6 @@ defmodule Styler.Style.Configs do
 
         # Sorting and re-spacing can make the block taller (config groups gain blank lines between them).
         # reodering means the block can grow past `rest` and its comments, causing the comments for `rest` to get sucked up into our block.
-
-        # `configs`/`assignments` are reverse-ordered (`accumulate` prepends), so we can't just take the last node.
         max_before_ordering = [config | configs ++ assignments] |> Enum.map(&Style.max_line/1) |> Enum.max()
         {block_comments, tail_comments} = Enum.split_while(comments, &(&1.line <= max_before_ordering))
 
