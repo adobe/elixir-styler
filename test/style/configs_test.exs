@@ -352,7 +352,7 @@ defmodule Styler.Style.ConfigsTest do
       )
     end
 
-    test "big block regression #230" do
+    test "big block regression" do
       # The nodes are in reverse order
       assert_style(
         """
@@ -390,7 +390,7 @@ defmodule Styler.Style.ConfigsTest do
       )
     end
 
-    test "phx config" do
+    test "phx.new config.exs" do
       assert_style(
         """
         import Config
@@ -431,7 +431,7 @@ defmodule Styler.Style.ConfigsTest do
     end
   end
 
-  test "issue #244: phx.new config.exs comments survive sorting" do
+  test "phx.new config.exs" do
     assert_style(
       """
       # This file is responsible for configuring your application
@@ -526,7 +526,7 @@ defmodule Styler.Style.ConfigsTest do
     )
   end
 
-  test "issue #244: phx.new prod.exs trailing/dangling comments survive sorting" do
+  test "phx.new prod.exs" do
     assert_style(
       """
       import Config
