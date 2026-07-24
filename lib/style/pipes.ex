@@ -110,17 +110,18 @@ defmodule Styler.Style.Pipes do
                   # 3   |> rhs(...args)
                   # =>
                   # 1 var = rhs(lhs, ...args)
+                  comments = Style.displace_comments(ctx.comments, vm[:line]..Style.max_line(rhs))
                   oneline_assignment = Style.set_line({:=, am, [var, {fun, rhs_meta, [lhs | args]}]}, vm[:line])
-                  # skip so we don't re-traverse
-                  {:cont, Zipper.replace(assignment_parent, oneline_assignment), ctx}
+                  {:cont, Zipper.replace(assignment_parent, oneline_assignment), %{ctx | comments: comments}}
 
                 _ ->
                   # lhs
                   # |> rhs(...args)
                   # =>
                   # rhs(lhs, ...)
+                  comments = Style.displace_comments(ctx.comments, lhs_line..Style.max_line(rhs))
                   oneline_function_call = Style.set_line({fun, rhs_meta, [lhs | args]}, lhs_line)
-                  {:cont, Zipper.replace(single_pipe_zipper, oneline_function_call), ctx}
+                  {:cont, Zipper.replace(single_pipe_zipper, oneline_function_call), %{ctx | comments: comments}}
               end
             end
         end

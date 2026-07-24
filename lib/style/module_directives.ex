@@ -121,7 +121,7 @@ defmodule Styler.Style.ModuleDirectives do
         # we want only-child literal block to be handled in the only-child catch-all. it means someone did a weird
         # (that would be a literal, so best case someone wrote a string and forgot to put `@moduledoc` before it)
         {:__block__, _, [_, _ | _]} ->
-          {:skip, organize_directives(body_zipper, moduledoc), ctx}
+          organize_directives(body_zipper, ctx, moduledoc)
 
         # a module whose only child is a moduledoc. nothing to do here!
         # seems weird at first blush but lots of projects/libraries do this with their root namespace module
@@ -131,12 +131,9 @@ defmodule Styler.Style.ModuleDirectives do
         # There's only one child, and it's not a moduledoc. Conditionally add a moduledoc, then style the only_child
         only_child ->
           if moduledoc do
-            zipper =
-              body_zipper
-              |> Zipper.replace({:__block__, [], [moduledoc, only_child]})
-              |> organize_directives()
-
-            {:skip, zipper, ctx}
+            body_zipper
+            |> Zipper.replace({:__block__, [], [moduledoc, only_child]})
+            |> organize_directives(ctx)
           else
             do_run(body_zipper, ctx)
           end
@@ -148,7 +145,7 @@ defmodule Styler.Style.ModuleDirectives do
   defp do_run({{directive, _, children}, _} = zipper, ctx) when directive in @directives and is_list(children) do
     # Need to be careful that we aren't getting false positives on variables or fns like `def import(foo)` or `alias = 1`
     case Style.ensure_block_parent(zipper) do
-      {:ok, zipper} -> {:skip, zipper |> Zipper.up() |> organize_directives(), ctx}
+      {:ok, zipper} -> zipper |> Zipper.up() |> organize_directives(ctx)
       # not actually a directive! carry on.
       :error -> {:cont, zipper, ctx}
     end
@@ -229,10 +226,12 @@ defmodule Styler.Style.ModuleDirectives do
     end
   end
 
-  defp organize_directives(parent, moduledoc \\ nil) do
+  defp organize_directives(parent, ctx, moduledoc \\ nil) do
+    original_children = Zipper.children(parent)
+    comments = ctx.comments
+
     acc =
-      parent
-      |> Zipper.children()
+      original_children
       |> Enum.reduce(@env, fn
         {:@, _, [{attr_directive, _, _}]} = ast, acc when attr_directive in @attr_directives ->
           # attr_directives are moved above aliases, so we need to expand them
@@ -281,19 +280,35 @@ defmodule Styler.Style.ModuleDirectives do
         acc.require
       ]
       |> Stream.concat()
-      |> fix_line_numbers(List.first(nondirectives))
+      |> Enum.to_list()
+
+    nodes = directives ++ nondirectives
+
+    # have to compare without meta due to newlines being reset while grouping directives
+    {{directives, nondirectives}, comments} =
+      if Enum.empty?(nodes) or Style.without_meta(nodes) == Style.without_meta(original_children) do
+        {{directives, nondirectives}, comments}
+      else
+        first_line = nodes |> Enum.map(&Style.meta(&1)[:line]) |> Enum.min()
+        {nodes, comments} = Style.order_line_meta_and_comments(nodes, comments, first_line)
+        # This is shameful. I'm sorry
+        {Enum.split(nodes, length(directives)), comments}
+      end
 
     # the # of aliases can be decreased during sorting - if there were any, we need to be sure to write the deletion
-    if Enum.empty?(directives) do
-      Zipper.replace_children(parent, nondirectives)
-    else
-      # this ensures we continue the traversal _after_ any directives
-      parent
-      |> Zipper.replace_children(directives)
-      |> Zipper.down()
-      |> Zipper.rightmost()
-      |> Zipper.insert_siblings(nondirectives)
-    end
+    zipper =
+      if Enum.empty?(directives) do
+        Zipper.replace_children(parent, nondirectives)
+      else
+        # this ensures we continue the traversal _after_ any directives
+        parent
+        |> Zipper.replace_children(directives)
+        |> Zipper.down()
+        |> Zipper.rightmost()
+        |> Zipper.insert_siblings(nondirectives)
+      end
+
+    {:skip, zipper, %{ctx | comments: comments}}
   end
 
   # alias_env have to be recomputed after we've sorted our `alias` nodes
@@ -547,66 +562,5 @@ defmodule Styler.Style.ModuleDirectives do
     |> List.keysort(1)
     |> Enum.map(&elem(&1, 0))
     |> Style.reset_newlines()
-  end
-
-  # "Fixes" the line numbers of nodes who have had their orders changed via sorting or other methods.
-  # This "fix" simply ensures that comments don't get wrecked as part of us moving AST nodes willy-nilly.
-  #
-  # The fix is rather naive, and simply enforces the following property on the code:
-  # A given node must have a line number less than the following node.
-  # Et voila! Comments behave much better.
-  #
-  # ## In Detail
-  #
-  # For example, given document
-  #
-  #   1: defmodule ...
-  #   2: alias B
-  #   3: # this is foo
-  #   4: def foo ...
-  #   5: alias A
-  #
-  # Sorting aliases the ast node for  would put `alias A` (line 5) before `alias B` (line 2).
-  #
-  #   1: defmodule ...
-  #   5: alias A
-  #   2: alias B
-  #   3: # this is foo
-  #   4: def foo ...
-  #
-  # Elixir's document algebra would then encounter `line: 5` and immediately dump all comments with `line <= 5`,
-  # meaning after running through the formatter we'd end up with
-  #
-  #   1: defmodule
-  #   2: # hi
-  #   3: # this is foo
-  #   4: alias A
-  #   5: alias B
-  #   6:
-  #   7: def foo ...
-  #
-  # This function fixes that by seeing that `alias A` has a higher line number than its following sibling `alias B` and so
-  # updates `alias A`'s line to be preceding `alias B`'s line.
-  #
-  # Running the results of this function through the formatter now no longer dumps the comments prematurely
-  #
-  #   1: defmodule ...
-  #   2: alias A
-  #   3: alias B
-  #   4: # this is foo
-  #   5: def foo ...
-  defp fix_line_numbers(nodes, nil), do: fix_line_numbers(nodes, 999_999)
-  defp fix_line_numbers(nodes, {_, meta, _}), do: fix_line_numbers(nodes, meta[:line])
-  defp fix_line_numbers(nodes, max), do: nodes |> Enum.reverse() |> do_fix_lines(max, [])
-
-  defp do_fix_lines([], _, acc), do: acc
-
-  defp do_fix_lines([{_, meta, _} = node | nodes], max, acc) do
-    line = meta[:line]
-
-    # the -2 is just an ugly hack to leave room for one-liner comments and not hijack them.
-    if line > max,
-      do: do_fix_lines(nodes, max, [Style.shift_line(node, max - line - 2) | acc]),
-      else: do_fix_lines(nodes, line, [node | acc])
   end
 end

@@ -1058,4 +1058,35 @@ defmodule Styler.Style.PipesTest do
       end
     end
   end
+
+  describe "comment movement regressions" do
+    test "unpiping a single pipe drops an interleaved comment below the expression" do
+      assert_style(
+        """
+        foo
+        # comment
+        |> bar()
+        """,
+        """
+        # comment
+        bar(foo)
+        """
+      )
+    end
+
+    test "unpiping a single pipe into an assignment hoists an interleaved comment above it" do
+      assert_style(
+        """
+        x =
+          foo
+          # comment
+          |> bar()
+        """,
+        """
+        # comment
+        x = bar(foo)
+        """
+      )
+    end
+  end
 end

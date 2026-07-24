@@ -170,6 +170,9 @@ defmodule Styler.Style do
     {directive, updated_meta, children}
   end
 
+  def first_line({:__block__, m, [{_, cm, _} | _]}), do: m[:line] || cm[:line]
+  def first_line(node), do: meta(node)[:line]
+
   def max_line([_ | _] = list), do: list |> List.last() |> max_line()
 
   def max_line(ast) do
@@ -198,7 +201,7 @@ defmodule Styler.Style do
     {nodes, shifted_comments, comments, _line} =
       Enum.reduce(nodes, {[], [], comments, first_line}, fn node, {n_acc, c_acc, comments, move_to_line} ->
         meta = meta(node)
-        line = meta[:line]
+        line = first_line(node)
         last_line = max_line(node)
         {mine, comments} = comments_for_lines(comments, line, last_line)
 
@@ -223,7 +226,7 @@ defmodule Styler.Style do
   @doc """
   Returns all comments "for" a node, including on the line before it. see `comments_for_lines` for more
   """
-  def comments_for_node({_, m, _} = node, comments), do: comments_for_lines(comments, m[:line], max_line(node))
+  def comments_for_node(node, comments), do: comments_for_lines(comments, first_line(node), max_line(node))
 
   @doc """
   Gets all comments in range start_line..last_line, and any comments immediately before start_line.s

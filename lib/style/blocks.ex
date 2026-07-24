@@ -34,11 +34,13 @@ defmodule Styler.Style.Blocks do
 
   # case statement with exactly 2 `->` cases
   # rewrite to `if` if it's any of 3 trivial cases
-  def run({{:case, _, [head, [{_, [{:->, _, [[lhs_a], a]}, {:->, _, [[lhs_b], b]}]}]]}, _} = zipper, ctx) do
+  def run({{:case, m, [head, [{_, [{:->, _, [[lhs_a], _]} = a, {:->, _, [[lhs_b], _]} = b]}]]}, _} = zipper, ctx) do
+    end_line = m[:end][:line]
+
     case {lhs_a, lhs_b} do
-      {{_, _, [true]}, {_, _, [false]}} -> if_ast(zipper, head, a, b, ctx)
-      {{_, _, [true]}, {:_, _, _}} -> if_ast(zipper, head, a, b, ctx)
-      {{_, _, [false]}, {_, _, [true]}} -> if_ast(zipper, head, b, a, ctx)
+      {{_, _, [true]}, {_, _, [false]}} -> arrows_to_if(zipper, head, a, b, end_line, ctx)
+      {{_, _, [true]}, {:_, _, _}} -> arrows_to_if(zipper, head, a, b, end_line, ctx)
+      {{_, _, [false]}, {_, _, [true]}} -> arrows_to_if(zipper, head, b, a, end_line, ctx)
       _ -> {:cont, zipper, ctx}
     end
   end
@@ -78,7 +80,7 @@ defmodule Styler.Style.Blocks do
     {:cont, zipper, ctx}
   end
 
-  def run({{:cond, _, [[{do_, clauses}]]}, _} = zipper, ctx) do
+  def run({{:cond, m, [[{do_, clauses}]]}, _} = zipper, ctx) do
     # ensure all final `atom -> final_clause` use `true` for consistency.
     # `:else` is cute but consistency is all.
     rewrite_literal_to_true = fn
@@ -95,9 +97,12 @@ defmodule Styler.Style.Blocks do
     end
 
     case List.update_at(clauses, -1, rewrite_literal_to_true) do
-      # # Credo.Check.Refactor.CondStatements
-      [{:->, _, [[head], a]}, {:->, _, [[{:__block__, _, [true]}], b]}] -> if_ast(zipper, head, a, b, ctx)
-      clauses -> {:cont, Zipper.replace_children(zipper, [[{do_, clauses}]]), ctx}
+      # Credo.Check.Refactor.CondStatements
+      [{:->, _, [[head], _]} = a, {:->, _, [[{:__block__, _, [true]}], _]} = b] ->
+        arrows_to_if(zipper, head, a, b, m[:end][:line], ctx)
+
+      clauses ->
+        {:cont, Zipper.replace_children(zipper, [[{do_, clauses}]]), ctx}
     end
   end
 
@@ -190,6 +195,10 @@ defmodule Styler.Style.Blocks do
       # Credo.Check.Refactor.NegatedConditionsWithElse
       # if !x, do: y, else: z => if x, do: z, else: y
       [negator, [{do_, do_body}, {else_, else_body}]] when is_negator(negator) ->
+        # end of expression hack ensure that the else body keeps dangling comments its block
+        else_line = Style.meta(else_)[:line]
+        do_body = Macro.update_meta(do_body, &Keyword.put(&1, :end_of_expression, line: else_line, newlines: 1))
+
         zipper |> Zipper.replace({:if, m, [invert(negator), [{do_, else_body}, {else_, do_body}]]}) |> run(ctx)
 
       # drop `else end`
@@ -202,9 +211,7 @@ defmodule Styler.Style.Blocks do
 
       [head, [do_, else_]] ->
         if Style.max_line(do_) > Style.max_line(else_) do
-          # we inverted the if/else blocks of this `if` statement in a previous pass (due to negators or unless)
-          # shift comments etc to make it happy now
-          if_ast(zipper, head, do_, else_, ctx)
+          organize_if(zipper, head, do_, else_, ctx)
         else
           {:cont, zipper, ctx}
         end
@@ -366,50 +373,59 @@ defmodule Styler.Style.Blocks do
 
   defp nodes_equivalent?(a, b), do: Style.without_meta(a) == Style.without_meta(b)
 
-  defp if_ast(zipper, head, {_, _, _} = do_body, {_, _, _} = else_body, ctx) do
-    do_ = {{:__block__, [line: nil], [:do]}, do_body}
-    else_ = {{:__block__, [line: nil], [:else]}, else_body}
-    if_ast(zipper, head, do_, else_, ctx)
+  # hacks comments above the arrows to have the same line number as the start of the body,
+  # and hacks the body of the last of a/b to have an end of expression equal to where the `end` keyword is to make sure
+  # dangling comments get caught
+  # would be lovely to not hack things so hard but c'est la vie for now
+  defp arrows_to_if(zipper, head, {:->, am, [_, a]}, {:->, bm, [_, b]}, end_line, ctx) do
+    ctx =
+      ctx
+      |> Map.update!(:comments, &lower_arrow_comments_to_body(&1, am, a))
+      |> Map.update!(:comments, &lower_arrow_comments_to_body(&1, bm, b))
+
+    # hacking the end_of_expression helps ensure that the (previously) last clause catches dangling comments
+    [a, b] =
+      if Style.first_line(a) < Style.first_line(b) do
+        b = Macro.update_meta(b, &Keyword.put(&1, :end_of_expression, line: end_line, newlines: 1))
+        [a, b]
+      else
+        a = Macro.update_meta(a, &Keyword.put(&1, :end_of_expression, line: end_line, newlines: 1))
+        [a, b]
+      end
+
+    do_ = {{:__block__, [line: nil], [:do]}, a}
+    else_ = {{:__block__, [line: nil], [:else]}, b}
+    organize_if(zipper, head, do_, else_, ctx)
   end
 
-  defp if_ast(zipper, {_, meta, _} = head, {do_kw, do_body}, {else_kw, else_body}, ctx) do
-    line = meta[:line]
-    # ... why am i doing this again? hmm.
+  defp lower_arrow_comments_to_body(comments, arrow_meta, body) do
+    arrow_line = arrow_meta[:line]
+
+    if Style.first_line(body) == arrow_line do
+      comments
+    else
+      {mine, rest} = Style.comments_for_lines(comments, arrow_line, arrow_line)
+      mine = Enum.map(mine, &%{&1 | line: &1.line + 1})
+      Enum.sort_by(rest ++ mine, & &1.line)
+    end
+  end
+
+  defp organize_if(zipper, {_, meta, _} = head, {do_kw, do_body}, {else_kw, else_body}, ctx) do
+    head_line = meta[:line]
+
+    {[do_body, else_body], comments} = Style.order_line_meta_and_comments([do_body, else_body], ctx.comments, head_line)
+
+    else_line = Style.max_line(do_body)
+    end_line = Style.max_line(else_body) + 1
+    # clean up the dangling comments hack if this was a conversion
     do_body = Macro.update_meta(do_body, &Keyword.delete(&1, :end_of_expression))
     else_body = Macro.update_meta(else_body, &Keyword.delete(&1, :end_of_expression))
 
-    max_do_line = Style.max_line(do_body)
-    max_else_line = Style.max_line(else_body)
-    end_line = max(max_do_line, max_else_line)
-
-    # Change ast meta and comment lines to fit the `if` ast
-    {do_, else_, comments} =
-      if max_do_line >= max_else_line do
-        # we're swapping the ordering of two blocks of code
-        # and so must swap the lines of the ast & comments to keep comments where they belong!
-        # the math is: move B up by the length of A, and move A down by the length of B plus one (for the else keyword)
-        else_size = max_else_line - line
-        do_size = max_do_line - max_else_line
-
-        shifts = [
-          # move comments in the `else_body` down by the size of the `do_body`
-          {line..max_else_line, do_size},
-          # move comments in `do_body` up by the size of the `else_body`
-          {(max_else_line + 1)..max_do_line, -else_size}
-        ]
-
-        do_ = {Style.set_line(do_kw, line), Style.shift_line(do_body, -else_size)}
-        else_ = {Style.set_line(else_kw, max_else_line), Style.shift_line(else_body, do_size)}
-        {do_, else_, Style.shift_comments(ctx.comments, shifts)}
-      else
-        # much simpler case -- just scootch things in the else down by 1 for the `else` keyword.
-        do_ = {{:__block__, [line: line], [:do]}, do_body}
-        else_ = Style.shift_line({{:__block__, [line: max_do_line], [:else]}, else_body}, 1)
-        {do_, else_, Style.shift_comments(ctx.comments, max_do_line..max_else_line, 1)}
-      end
+    do_ = {Style.set_line(do_kw, head_line), do_body}
+    else_ = {Style.set_line(else_kw, else_line), else_body}
 
     zipper
-    |> Zipper.replace({:if, [do: [line: line], end: [line: end_line], line: line], [head, [do_, else_]]})
+    |> Zipper.replace({:if, [do: [line: head_line], end: [line: end_line], line: head_line], [head, [do_, else_]]})
     |> run(%{ctx | comments: comments})
   end
 

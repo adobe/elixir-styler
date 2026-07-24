@@ -402,6 +402,7 @@ defmodule Styler.Style.ModuleDirectives.AliasLiftingTest do
         """,
         """
         alias A.B.C
+
         # Foo is my fave
         require Foo
 
