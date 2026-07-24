@@ -98,8 +98,11 @@ defmodule Styler.Style.Blocks do
 
     case List.update_at(clauses, -1, rewrite_literal_to_true) do
       # Credo.Check.Refactor.CondStatements
-      [{:->, _, [[head], _]} = a, {:->, _, [[{:__block__, _, [true]}], _]} = b] -> arrows_to_if(zipper, head, a, b, m[:end][:line], ctx)
-      clauses -> {:cont, Zipper.replace_children(zipper, [[{do_, clauses}]]), ctx}
+      [{:->, _, [[head], _]} = a, {:->, _, [[{:__block__, _, [true]}], _]} = b] ->
+        arrows_to_if(zipper, head, a, b, m[:end][:line], ctx)
+
+      clauses ->
+        {:cont, Zipper.replace_children(zipper, [[{do_, clauses}]]), ctx}
     end
   end
 
@@ -193,7 +196,9 @@ defmodule Styler.Style.Blocks do
       # if !x, do: y, else: z => if x, do: z, else: y
       [negator, [{do_, do_body}, {else_, else_body}]] when is_negator(negator) ->
         # end of expression hack ensure that the else body keeps dangling comments its block
-        do_body = Macro.update_meta(do_body, &Keyword.put(&1, :end_of_expression, [line: Style.meta(else_)[:line], newlines: 1]))
+        else_line = Style.meta(else_)[:line]
+        do_body = Macro.update_meta(do_body, &Keyword.put(&1, :end_of_expression, line: else_line, newlines: 1))
+
         zipper |> Zipper.replace({:if, m, [invert(negator), [{do_, else_body}, {else_, do_body}]]}) |> run(ctx)
 
       # drop `else end`
@@ -381,10 +386,10 @@ defmodule Styler.Style.Blocks do
     # hacking the end_of_expression helps ensure that the (previously) last clause catches dangling comments
     [a, b] =
       if Style.first_line(a) < Style.first_line(b) do
-        b = Macro.update_meta(b, &Keyword.put(&1, :end_of_expression, [line: end_line, newlines: 1]))
+        b = Macro.update_meta(b, &Keyword.put(&1, :end_of_expression, line: end_line, newlines: 1))
         [a, b]
       else
-        a = Macro.update_meta(a, &Keyword.put(&1, :end_of_expression, [line: end_line, newlines: 1]))
+        a = Macro.update_meta(a, &Keyword.put(&1, :end_of_expression, line: end_line, newlines: 1))
         [a, b]
       end
 

@@ -242,7 +242,6 @@ defmodule Styler.Style do
   here, comments_for_lines(comments, 4, 6) is "a", "b", "c", "d"
   """
   def comments_for_lines(comments, start_line, last_line) do
-    if !start_line, do: raise "nil"
     comments |> Enum.reverse() |> comments_for_lines(start_line, last_line, [], [])
   end
 

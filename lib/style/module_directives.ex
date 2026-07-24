@@ -284,8 +284,8 @@ defmodule Styler.Style.ModuleDirectives do
 
     nodes = directives ++ nondirectives
 
+    # have to compare without meta due to newlines being reset while grouping directives
     {{directives, nondirectives}, comments} =
-      # not happy with the `without_meta` comparison but not sure what can be done.
       if Enum.empty?(nodes) or Style.without_meta(nodes) == Style.without_meta(original_children) do
         {{directives, nondirectives}, comments}
       else

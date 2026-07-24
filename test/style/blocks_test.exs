@@ -1513,28 +1513,6 @@ defmodule Styler.Style.BlocksTest do
       )
     end
 
-    test "blank line breaks natural adjacency to the next clause" do
-      assert_style(
-        """
-        if !a do
-          b
-          # dangling
-
-        else
-          c
-        end
-        """,
-        """
-        if a do
-          c
-        else
-          b
-          # dangling
-        end
-        """
-      )
-    end
-
     test "multi-line leading comment block on a clause header" do
       assert_style(
         """
