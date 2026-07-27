@@ -157,6 +157,29 @@ defmodule Styler.Style.SingleNodeTest do
     end
   end
 
+  if Version.match?(System.version(), ">= 1.17.0") do
+    test "DateTime.add/3 => DateTime.shift/2" do
+      units = ~w(day hour minute second microsecond)a
+
+      for unit <- units do
+        assert_style(
+          "DateTime.add(dt, 5, #{inspect(unit)})",
+          "DateTime.shift(dt, #{unit}: 5)"
+        )
+
+        assert_style(
+          "dt |> DateTime.add(1, #{inspect(unit)}) |> bop()",
+          "dt |> DateTime.shift(#{unit}: 1) |> bop()"
+        )
+      end
+
+      assert_style "DateTime.add(dt, n, :nanosecond)"
+      assert_style "DateTime.add(dt, n, unit)"
+      # add allows integers as the unit
+      assert_style "DateTime.add(dt, n, 1000)"
+    end
+  end
+
   test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.before?" do
     assert_style("DateTime.compare(foo, bar) == :lt", "DateTime.before?(foo, bar)")
     assert_style("NaiveDateTime.compare(foo, bar) == :lt", "NaiveDateTime.before?(foo, bar)")

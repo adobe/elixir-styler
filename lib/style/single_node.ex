@@ -206,6 +206,19 @@ defmodule Styler.Style.SingleNode do
   defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, []}),
     do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :utc_now]}, funm, []}
 
+  # DateTime.shift was introduced in 1.17
+  if Version.match?(System.version(), ">= 1.17.0") do
+    @shiftable_add_units ~w(day hour minute second microsecond)a
+    # DateTime.add(dt, 1, :hour) => DateTime.shift(dt, hour: 1)
+    defp style({{:., dm, [{:__aliases__, am, [:DateTime]}, :add]}, funm, [dt, i, {:__block__, _, [u]}]})
+         when u in @shiftable_add_units, do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :shift]}, funm, [dt, [{u, i}]]}
+
+    # dt |> DateTime.add(1, :hour) => dt |> DateTime.shift(hour: 1)
+    defp style({:|>, pm, [lhs, {{:., dm, [{:__aliases__, am, [:DateTime]}, :add]}, funm, [i, {:__block__, _, [u]}]}]})
+         when u in @shiftable_add_units,
+         do: {:|>, pm, [lhs, {{:., dm, [{:__aliases__, am, [:DateTime]}, :shift]}, funm, [[{u, i}]]}]}
+  end
+
   # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :lt => {DateTime,NaiveDateTime,Time,Date}.before?(a, b)
   # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :gt => {DateTime,NaiveDateTime,Time,Date}.after?(a, b)
   defp style({:==, _, [{{:., dm, [{:__aliases__, am, [mod]}, :compare]}, funm, args}, {:__block__, _, [result]}]})
