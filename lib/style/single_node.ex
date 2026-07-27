@@ -208,15 +208,58 @@ defmodule Styler.Style.SingleNode do
 
   # DateTime.shift was introduced in 1.17
   if Version.match?(System.version(), ">= 1.17.0") do
-    @shiftable_add_units ~w(day hour minute second microsecond)a
-    # DateTime.add(dt, 1, :hour) => DateTime.shift(dt, hour: 1)
-    defp style({{:., dm, [{:__aliases__, am, [:DateTime]}, :add]}, funm, [dt, i, {:__block__, _, [u]}]})
-         when u in @shiftable_add_units, do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :shift]}, funm, [dt, [{u, i}]]}
-
     # dt |> DateTime.add(1, :hour) => dt |> DateTime.shift(hour: 1)
-    defp style({:|>, pm, [lhs, {{:., dm, [{:__aliases__, am, [:DateTime]}, :add]}, funm, [i, {:__block__, _, [u]}]}]})
-         when u in @shiftable_add_units,
-         do: {:|>, pm, [lhs, {{:., dm, [{:__aliases__, am, [:DateTime]}, :shift]}, funm, [[{u, i}]]}]}
+    # just relies on the non-pipe version to do the work by faking that it's not a pipe with the `:pad` first arg
+    defp style({:|>, pm, [lhs, {{:., _, [{:__aliases__, _, [:DateTime]}, :add]} = fun, funm, args}]}) do
+      {fun, funm, [:pad | args]} = style({fun, funm, [:pad | args]})
+      {:|>, pm, [lhs, {fun, funm, args}]}
+    end
+
+    # DateTime.add(dt, 1) => DateTime.shift(dt, second: 1)
+    # DateTime.add(dt, 1, :hour) => DateTime.shift(dt, hour: 1)
+    defp style({{:., dm, [{:__aliases__, am, [:DateTime]}, :add]}, funm, [dt, amount | rest]} = node) do
+      # add/2 defaults to seconds.
+      # add/4 includes a calendar param - likely this never happens?! but could
+      [unit | calendar] =
+        if Enum.empty?(rest),
+          do: [{:__block__, [line: funm[:line]], [:second]}],
+          else: rest
+
+      case unit do
+        {:__block__, um, [u]} when u in ~w(day hour minute second microsecond)a ->
+          keyword = [{{:__block__, Keyword.put(um, :format, :keyword), [u]}, amount}]
+
+          pairs =
+            if Enum.empty?(calendar) do
+              keyword
+            else
+              {:__block__, [line: um[:line], closing: [line: Styler.Style.max_line(keyword)]], [keyword]}
+            end
+
+          fun = {:., dm, [{:__aliases__, am, [:DateTime]}, :shift]}
+          args = [dt, pairs | calendar]
+          style({fun, funm, args})
+
+        _ ->
+          node
+      end
+    end
+  end
+
+  # DateTime.shift([dt, ]second: 24 * 60 * 60[, calendar]) => DateTime.shift([dt, ]day: 1[, calendar])
+  defp style({{:., dm, [{:__aliases__, am, [:DateTime]}, :shift]}, funm, args}) do
+    # rather than go through all the different args we can get due to pipes, not pipes, shift/2, shift/3
+    # we can just be cheap and look for a list of pairs to shrink.
+    args =
+      Enum.map(args, fn
+        # Keyword list args
+        [{_, _} | _] = pairs -> Enum.map(pairs, &shrink_duration/1)
+        # literal list args
+        {:__block__, m, [[{_, _} | _] = pairs]} -> {:__block__, m, [Enum.map(pairs, &shrink_duration/1)]}
+        other -> other
+      end)
+
+    {{:., dm, [{:__aliases__, am, [:DateTime]}, :shift]}, funm, args}
   end
 
   # {DateTime,NaiveDateTime,Time,Date}.compare(a, b) == :lt => {DateTime,NaiveDateTime,Time,Date}.before?(a, b)
@@ -252,13 +295,13 @@ defmodule Styler.Style.SingleNode do
   defp style({:case, cm, [head, [{do_, arrows}]]}), do: {:case, cm, [head, [{do_, rewrite_arrows(arrows)}]]}
   defp style({:fn, m, arrows}), do: {:fn, m, rewrite_arrows(arrows)}
 
-  defp style({:to_timeout, m, [[_ | _] = args]}), do: {:to_timeout, m, [Enum.map(args, &style_to_timeout_arg/1)]}
+  defp style({:to_timeout, m, [[_ | _] = args]}), do: {:to_timeout, m, [Enum.map(args, &shrink_duration/1)]}
 
   defp style(node), do: node
 
-  # 1. convert plurals to singulars (`minutes` -> `minute`)
-  # 2. upgrade values, eg `minute: 5 * 60` -> `hour: 5` and `minute: 60` -> `hour: 1`
-  defp style_to_timeout_arg({{:__block__, m, [unit]}, value}) do
+  # 1. convert plurals to singulars (`minutes` -> `minute`) to cover erlang `to_timeout` conversions
+  # 2. shrinks values, eg `minute: 5 * 60` -> `hour: 5`; `minute: 60` -> `hour: 1`
+  defp shrink_duration({{:__block__, m, [unit]}, value}) do
     {unit, step, next_unit} =
       case unit do
         :day -> {:day, 7, :week}
@@ -276,30 +319,29 @@ defmodule Styler.Style.SingleNode do
         unit -> {unit, :"$no_next_step", nil}
       end
 
-    {unit, value} =
-      case value do
-        # minute: 60 -> hours: 1
-        {:__block__, tm, [^step]} ->
-          {next_unit, {:__block__, [token: "1", line: tm[:line]], [1]}}
+    next_unit = {:__block__, m, [next_unit]}
 
-        # minute: 60 * rhs -> hours: rhs
-        {:*, _, [{_, _, [^step]}, rhs]} ->
-          {{_, _, [next_unit]}, value} = style_to_timeout_arg({{:__block__, m, [next_unit]}, rhs})
-          {next_unit, value}
+    case value do
+      # minute: 60 -> hour: 1
+      # second: 3600 -> hour: 1
+      {:__block__, vm, [val]} when val != 0 and rem(val, step) == 0 ->
+        result = div(val, step)
+        shrink_duration({next_unit, {:__block__, [token: to_string(result), line: vm[:line]], [result]}})
 
-        # minute: lhs * 60 -> hours: lhs
-        {:*, _, [lhs, {_, _, [^step]}]} ->
-          {{_, _, [next_unit]}, value} = style_to_timeout_arg({{:__block__, m, [next_unit]}, lhs})
-          {next_unit, value}
+      # minute: 60 * rhs -> hours: rhs
+      {:*, _, [{_, _, [^step]}, rhs]} ->
+        shrink_duration({next_unit, rhs})
 
-        value ->
-          {unit, value}
-      end
+      # minute: lhs * 60 -> hours: lhs
+      {:*, _, [lhs, {_, _, [^step]}]} ->
+        shrink_duration({next_unit, lhs})
 
-    {{:__block__, m, [unit]}, value}
+      value ->
+        {{:__block__, m, [unit]}, value}
+    end
   end
 
-  defp style_to_timeout_arg(other), do: other
+  defp shrink_duration(other), do: other
 
   defp replace_into({:., dm, [{_, am, _} = enum, _]}, collectable, rest) do
     case collectable do
