@@ -95,6 +95,12 @@ defmodule Styler.Style.SingleNodeTest do
     test "in a pipe" do
       for module <- ~w(Map Keyword) do
         assert_style("foo |> #{module}.merge(%{one_key: :bar}) |> bop()", "foo |> #{module}.put(:one_key, :bar) |> bop()")
+        assert_style("foo |> #{module}.merge([one_key: :bar]) |> bop()", "foo |> #{module}.put(:one_key, :bar) |> bop()")
+        assert_style("foo |> #{module}.merge(one_key: :bar) |> bop()", "foo |> #{module}.put(:one_key, :bar) |> bop()")
+
+        assert_style("#{module}.merge(foo, %{one_key: :bar})", "#{module}.put(foo, :one_key, :bar)")
+        assert_style("#{module}.merge(foo, [one_key: :bar])", "#{module}.put(foo, :one_key, :bar)")
+        assert_style("#{module}.merge(foo, one_key: :bar)", "#{module}.put(foo, :one_key, :bar)")
       end
     end
 

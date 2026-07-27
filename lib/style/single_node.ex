@@ -176,6 +176,11 @@ defmodule Styler.Style.SingleNode do
     defp style({:|>, pm, [lhs, {{:., dm, [{_, _, [unquote(m)]} = module, :merge]}, m, [[{key, value}]]}]}),
       do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
 
+    # lhs |> Map.merge([key: value]) => lhs |> Map.put(:key, value)
+    defp style(
+           {:|>, pm, [lhs, {{:., dm, [{_, _, [unquote(m)]} = module, :merge]}, m, [{:__block__, _, [[{key, value}]]}]}]}
+         ), do: {:|>, pm, [lhs, {{:., dm, [module, :put]}, m, [key, value]}]}
+
     # Map.merge(foo, %{one_key: :bar}) => Map.put(foo, :one_key, :bar)
     defp style({{:., dm, [{_, _, [unquote(m)]} = module, :merge]}, m, [lhs, {:%{}, _, [{key, value}]}]}),
       do: {{:., dm, [module, :put]}, m, [lhs, key, value]}
@@ -184,15 +189,17 @@ defmodule Styler.Style.SingleNode do
     defp style({{:., dm, [{_, _, [unquote(m)]} = module, :merge]}, m, [lhs, [{key, value}]]}),
       do: {{:., dm, [module, :put]}, m, [lhs, key, value]}
 
+    # Map.merge(foo, [one_key: :bar]) => Map.put(foo, :one_key, :bar)
+    defp style({{:., dm, [{_, _, [unquote(m)]} = module, :merge]}, m, [lhs, {:__block__, _, [[{key, value}]]}]}),
+      do: {{:., dm, [module, :put]}, m, [lhs, key, value]}
+
     # (lhs |>) Map.drop([key]) => Map.delete(key)
     defp style({{:., dm, [{_, _, [unquote(m)]} = module, :drop]}, m, [{:__block__, _, [[{op, _, _} = key]]}]})
-         when op != :|,
-         do: {{:., dm, [module, :delete]}, m, [key]}
+         when op != :|, do: {{:., dm, [module, :delete]}, m, [key]}
 
     # Map.drop(foo, [one_key]) => Map.delete(foo, one_key)
     defp style({{:., dm, [{_, _, [unquote(m)]} = module, :drop]}, m, [lhs, {:__block__, _, [[{op, _, _} = key]]}]})
-         when op != :|,
-         do: {{:., dm, [module, :delete]}, m, [lhs, key]}
+         when op != :|, do: {{:., dm, [module, :delete]}, m, [lhs, key]}
   end
 
   # Timex.now() => DateTime.utc_now()

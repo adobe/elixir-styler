@@ -208,9 +208,8 @@ defmodule Styler.Style.BlocksTest do
         if foo do
           # a
           :ok
+          # b
         end
-
-        # b
         """
       )
 
@@ -1260,13 +1259,101 @@ defmodule Styler.Style.BlocksTest do
         )
       end
     end
+  end
 
-    test "comments and flips" do
+  describe "block swap comment coverage" do
+    test "unless with multi-line do/else bodies" do
+      assert_style(
+        """
+        unless a do
+          # b1
+          b1
+          # b2
+          b2
+        else
+          # c
+          c
+        end
+        """,
+        """
+        if a do
+          # c
+          c
+        else
+          # b1
+          b1
+          # b2
+          b2
+        end
+        """
+      )
+    end
+
+    test "non-! negator (!=) with multi-line do/else bodies" do
+      assert_style(
+        """
+        if a != b do
+          # d1
+          d1
+          # d2
+          d2
+        else
+          # e
+          e
+        end
+        """,
+        """
+        if a == b do
+          # e
+          e
+        else
+          # d1
+          d1
+          # d2
+          d2
+        end
+        """
+      )
+    end
+
+    test "3-statement do body swaps below a 1-statement else" do
+      assert_style(
+        """
+        if !a do
+          # x1
+          x1
+          # x2
+          x2
+          # x3
+          x3
+        else
+          # y
+          y
+        end
+        """,
+        """
+        if a do
+          # y
+          y
+        else
+          # x1
+          x1
+          # x2
+          x2
+          # x3
+          x3
+        end
+        """
+      )
+    end
+
+    test "dangling comment at the end of a swapped do body" do
       assert_style(
         """
         if !a do
           # b
           b
+          # dangling
         else
           # c
           c
@@ -1279,6 +1366,375 @@ defmodule Styler.Style.BlocksTest do
         else
           # b
           b
+          # dangling
+        end
+        """
+      )
+    end
+
+    test "blank line between statements survives the swap" do
+      assert_style(
+        """
+        if !a do
+          # b1
+          b1
+
+          # b2
+          b2
+        else
+          # c
+          c
+        end
+        """,
+        """
+        if a do
+          # c
+          c
+        else
+          # b1
+          b1
+
+          # b2
+          b2
+        end
+        """
+      )
+    end
+
+    test "leading comment on the if itself is untouched by the swap" do
+      assert_style(
+        """
+        # leading comment
+        if !a do
+          # b1
+          b1
+          # b2
+          b2
+        else
+          # c
+          c
+        end
+        """,
+        """
+        # leading comment
+        if a do
+          # c
+          c
+        else
+          # b1
+          b1
+          # b2
+          b2
+        end
+        """
+      )
+    end
+
+    test "double negator collapse leaves multi-line do/else bodies untouched" do
+      assert_style(
+        """
+        if !!a do
+          # b1
+          b1
+          # b2
+          b2
+        else
+          # c
+          c
+        end
+        """,
+        """
+        if a do
+          # b1
+          b1
+          # b2
+          b2
+        else
+          # c
+          c
+        end
+        """
+      )
+    end
+
+    test "case to if with multi-line do/else bodies (false first)" do
+      assert_style(
+        """
+        case foo do
+          false ->
+            # d1
+            d1
+            # d2
+            d2
+          true ->
+            # e
+            e
+        end
+        """,
+        """
+        if foo do
+          # e
+          e
+        else
+          # d1
+          d1
+          # d2
+          d2
+        end
+        """
+      )
+    end
+
+    test "cond to if with multi-line do body and 1-statement else" do
+      assert_style(
+        """
+        cond do
+          a ->
+            # f1
+            f1
+            # f2
+            f2
+          true ->
+            # g
+            g
+        end
+        """,
+        """
+        if a do
+          # f1
+          f1
+          # f2
+          f2
+        else
+          # g
+          g
+        end
+        """
+      )
+    end
+
+    test "multi-line leading comment block on a clause header" do
+      assert_style(
+        """
+        case foo do
+          # line 1
+          # line 2
+          false -> :error
+          true -> :ok
+        end
+        """,
+        """
+        if foo do
+          :ok
+        else
+          # line 1
+          # line 2
+          :error
+        end
+        """
+      )
+    end
+
+    test "wildcard else clause with multi-line do body and a leading comment" do
+      assert_style(
+        """
+        case foo do
+          # a
+          true ->
+            b1
+            b2
+          _ ->
+            # c
+            c
+        end
+        """,
+        """
+        if foo do
+          # a
+          b1
+          b2
+        else
+          # c
+          c
+        end
+        """
+      )
+    end
+
+    test "with rewritten through case to if, with comments" do
+      assert_style(
+        """
+        with true <- foo() do
+          # a
+          bar()
+        else
+          false ->
+            # b
+            baz()
+        end
+        """,
+        """
+        if foo() do
+          # a
+          bar()
+        else
+          # b
+          baz()
+        end
+        """
+      )
+    end
+
+    test "comment directly before the case, no blank line before the first clause" do
+      assert_style(
+        """
+        # leading
+        case foo do
+          false -> :error
+          true -> :ok
+        end
+        """,
+        """
+        # leading
+        if foo do
+          :ok
+        else
+          :error
+        end
+        """
+      )
+    end
+
+    test "nested if inside a swapped multi-statement body" do
+      assert_style(
+        """
+        if !a do
+          # b1
+          b1
+
+          if x do
+            # nested
+            y
+          end
+
+          # b2
+          b2
+        else
+          # c
+          c
+        end
+        """,
+        """
+        if a do
+          # c
+          c
+        else
+          # b1
+          b1
+
+          if x do
+            # nested
+            y
+          end
+
+          # b2
+          b2
+        end
+        """
+      )
+    end
+
+    test "asymmetric case with leading comments on both clauses and a trailing dangling comment" do
+      assert_style(
+        """
+        case foo do
+          # a
+          false ->
+            # foo
+            d1
+            d2
+          # b
+          true ->
+            # bar
+            e
+            # dangling
+        end
+        """,
+        """
+        if foo do
+          # b
+          # bar
+          e
+          # dangling
+        else
+          # a
+          # foo
+          d1
+          d2
+        end
+        """
+      )
+    end
+
+    test "cond do rewrite with dangler" do
+      assert_style(
+        """
+        cond do
+          # a
+          foo? ->
+            # foo
+            d1
+            d2
+          # b
+          true ->
+            # bar
+            e
+            # dangling
+        end
+        """,
+        """
+        if foo? do
+          # a
+          # foo
+          d1
+          d2
+        else
+          # b
+          # bar
+          e
+          # dangling
+        end
+        """
+      )
+    end
+
+    test "yet another" do
+      assert_style(
+        """
+        case foo do
+          # a
+          true ->
+            # foo
+            d1
+          # b
+          false ->
+            # bar
+            e
+            f
+            # dangling
+        end
+        """,
+        """
+        if foo do
+          # a
+          # foo
+          d1
+        else
+          # b
+          # bar
+          e
+          f
+          # dangling
         end
         """
       )
