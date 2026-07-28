@@ -144,9 +144,14 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style("timezone |> Timex.now() |> foo()")
     end
 
+    # took a stab at implementing, but code got too big with both solutions i tried. can come back
+    @tag :skip
+    test "bug: duration shrinking only looks at topmost nodes." do
+      assert_style "DateTime.shift(dt, second: @valid_days * 60 * 60 * 24)", "DateTime.shift(dt, day: @valid_days)"
+    end
+
     test "DateTime.shift shrinks durations" do
       assert_style "DateTime.shift(dt, second: @valid_days * 24 * 60 * 60)", "DateTime.shift(dt, day: @valid_days)"
-      # assert_style "DateTime.shift(dt, second: @valid_days * 60 * 60 * 24)", "DateTime.shift(dt, day: @valid_days)"
       assert_style "DateTime.shift(dt, day: 7)", "DateTime.shift(dt, week: 1)"
       assert_style "DateTime.shift(dt, second: 3600)", "DateTime.shift(dt, hour: 1)"
       assert_style "DateTime.shift(dt, second: 120)", "DateTime.shift(dt, minute: 2)"
