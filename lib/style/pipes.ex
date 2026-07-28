@@ -50,6 +50,10 @@ defmodule Styler.Style.Pipes do
           {{:|>, _, [_, {:unquote, _, [_]}]}, _} = single_pipe_unquote_zipper ->
             {:cont, single_pipe_unquote_zipper, ctx}
 
+          # don't un-pipe dbg because we'd really be throwing off someone's debugging groove
+          {{:|>, _, [_, {:dbg, _, _}]}, _} = actively_debugging_zipper ->
+            {:cont, actively_debugging_zipper, ctx}
+
           # unpipe a single pipe zipper
           {{:|>, _, [lhs, rhs]}, _} = single_pipe_zipper ->
             {fun, rhs_meta, args} = rhs

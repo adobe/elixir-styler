@@ -156,6 +156,10 @@ map = a |> Enum.map(mapper) |> Map.new()
 map = Map.new(a, mapper)
 ```
 
+Some exceptions to this rule exist:
+- `foo |> dbg()` is left alone to not disturb code while folks are debugging
+- `foo |> unquote(bar)` is left alone because some code is only valid as a pipe (!)
+
 ### Pipe-ify
 
 If the first argument to a function call is a pipe, Styler makes the function call the final pipe of the chain.
