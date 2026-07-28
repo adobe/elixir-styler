@@ -170,7 +170,9 @@ defmodule Styler.Style do
     {directive, updated_meta, children}
   end
 
-  def first_line({:__block__, m, [{_, cm, _} | _]}), do: m[:line] || cm[:line]
+  def first_line({:__block__, m, children}), do: m[:line] || first_line(children)
+  def first_line({a, b}), do: first_line(a) || first_line(b)
+  def first_line([a | _]), do: first_line(a)
   def first_line(node), do: meta(node)[:line]
 
   def max_line([_ | _] = list), do: list |> List.last() |> max_line()

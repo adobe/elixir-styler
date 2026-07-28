@@ -7,8 +7,10 @@ they can and will change without that change being reflected in Styler's semanti
 
 ### Improvements
 
-- Pipes: don't unpipe `|> dbg`, to help our friends who format-on-save and like throwing a quick dbg pipe in while debugging (h/t @mhanberg)
-- Negated equality rewrite: `not (a == b)`, `!(a == b)` => `a != b` (#251, h/t @tomkonidas)
+- Pipes: 
+  - don't unpipe `|> dbg`, to help our friends who format-on-save and like throwing a quick dbg pipe in while debugging (h/t @mhanberg)
+  - optimize two `DateTime.shift |> DateTime.shift` into a single `DateTime.shift` when working with literal durations whose keys are disjoint
+- Write "not equal" one way only: `not (a == b)`, `!(a == b)` => `a != b` (#251, h/t @tomkonidas)
 - Deprecations: `DateTime.add(dt, amount, unit)` is rewritten to `DateTime.shift(dt, unit: amount)` for 1.17+ codebases. While not technically deprecated, Elixir docs recommend `shift` over `add` (#253, h/t @tomkonidas)
 - `DateTime.shift(dt, ..duration pairs..)` now has its duration pairs shrunk like `to_timeout`
 - duration pair shrinking improved for precomputed values, for instance `second: 86_400` => `day: 1`

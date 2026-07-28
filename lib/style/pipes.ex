@@ -467,7 +467,8 @@ defmodule Styler.Style.Pipes do
     if MapSet.disjoint?(MapSet.new(a, to_keys), MapSet.new(b, to_keys)) do
       first_line = Style.first_line(a)
       b = if first_line == Style.max_line(a), do: Style.set_line(b, first_line), else: b
-      {:|>, pm, [lhs, {shift, m, [a ++ b]}]}
+      # you can have infinite shifts, so we need to keep collapsing them
+      fix_pipe({:|>, pm, [lhs, {shift, m, [a ++ b]}]})
     else
       chain
     end

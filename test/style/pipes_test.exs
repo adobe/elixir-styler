@@ -835,6 +835,19 @@ defmodule Styler.Style.PipesTest do
       assert_style "a |> DateTime.shift(second: 5) |> DateTime.shift(hour: 1)", "DateTime.shift(a, second: 5, hour: 1)"
       assert_style "a |> DateTime.shift(second: 5) |> DateTime.shift(second: 1)"
       assert_style "a |> DateTime.shift(second: 5) |> DateTime.shift(a)"
+
+      assert_style """
+                   filter.value
+                   |> DateTime.truncate(:second)
+                   |> DateTime.shift(second: -filter.value.second)
+                   |> DateTime.shift(minute: -filter.value.minute)
+                   |> DateTime.shift(hour: -filter.value.hour)
+                   """,
+                   """
+                   filter.value
+                   |> DateTime.truncate(:second)
+                   |> DateTime.shift(second: -filter.value.second, minute: -filter.value.minute, hour: -filter.value.hour)
+                   """
     end
   end
 
