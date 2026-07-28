@@ -450,6 +450,31 @@ defmodule Styler.Style.Pipes do
        )
        when fun in @req2, do: {:|>, pm, [lhs, {req, m, args}]}
 
+  # DateTime.shift |> DateTime.shift
+  defp fix_pipe(
+         pipe_chain(
+           pm,
+           lhs,
+           {{:., _, [{_, _, [:DateTime]}, :shift]} = shift, m, [[_ | _] = a]},
+           {{:., _, [{_, _, [:DateTime]}, :shift]}, _, [[_ | _] = b]}
+         ) = chain
+       ) do
+    to_keys = fn
+      {{:__block__, _, [key]}, _} -> key
+      _ -> throw(:not_kw)
+    end
+
+    if MapSet.disjoint?(MapSet.new(a, to_keys), MapSet.new(b, to_keys)) do
+      first_line = Style.first_line(a)
+      b = if first_line == Style.max_line(a), do: Style.set_line(b, first_line), else: b
+      {:|>, pm, [lhs, {shift, m, [a ++ b]}]}
+    else
+      chain
+    end
+  catch
+    :not_kw -> chain
+  end
+
   defp fix_pipe(node), do: node
 
   defp valid_pipe_start?({op, _, _}) when op in @special_ops, do: true

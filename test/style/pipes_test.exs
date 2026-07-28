@@ -830,6 +830,12 @@ defmodule Styler.Style.PipesTest do
         )
       end
     end
+
+    test "DateTime.shift |> DateTime.shift" do
+      assert_style "a |> DateTime.shift(second: 5) |> DateTime.shift(hour: 1)", "DateTime.shift(a, second: 5, hour: 1)"
+      assert_style "a |> DateTime.shift(second: 5) |> DateTime.shift(second: 1)"
+      assert_style "a |> DateTime.shift(second: 5) |> DateTime.shift(a)"
+    end
   end
 
   describe "comments and..." do
