@@ -206,46 +206,6 @@ defmodule Styler.Style.SingleNode do
   defp style({{:., dm, [{:__aliases__, am, [:Timex]}, :now]}, funm, []}),
     do: {{:., dm, [{:__aliases__, am, [:DateTime]}, :utc_now]}, funm, []}
 
-  # DateTime.shift was introduced in 1.17
-  if Version.match?(System.version(), ">= 1.17.0") do
-    # dt |> DateTime.add(1, :hour) => dt |> DateTime.shift(hour: 1)
-    # just relies on the non-pipe version to do the work by faking that it's not a pipe with the `:pad` first arg
-    defp style({:|>, pm, [lhs, {{:., _, [{:__aliases__, _, [:DateTime]}, :add]} = fun, funm, args}]}) do
-      {fun, funm, [:pad | args]} = style({fun, funm, [:pad | args]})
-      {:|>, pm, [lhs, {fun, funm, args}]}
-    end
-
-    # DateTime.add(dt, 1) => DateTime.shift(dt, second: 1)
-    # DateTime.add(dt, 1, :hour) => DateTime.shift(dt, hour: 1)
-    defp style({{:., dm, [{:__aliases__, am, [:DateTime]}, :add]}, funm, [dt, amount | rest]} = node) do
-      # add/2 defaults to seconds.
-      # add/4 includes a calendar param - likely this never happens?! but could
-      [unit | calendar] =
-        if Enum.empty?(rest),
-          do: [{:__block__, [line: funm[:line]], [:second]}],
-          else: rest
-
-      case unit do
-        {:__block__, um, [u]} when u in ~w(day hour minute second microsecond)a ->
-          keyword = [{{:__block__, Keyword.put(um, :format, :keyword), [u]}, amount}]
-
-          pairs =
-            if Enum.empty?(calendar) do
-              keyword
-            else
-              {:__block__, [line: um[:line], closing: [line: Styler.Style.max_line(keyword)]], [keyword]}
-            end
-
-          fun = {:., dm, [{:__aliases__, am, [:DateTime]}, :shift]}
-          args = [dt, pairs | calendar]
-          style({fun, funm, args})
-
-        _ ->
-          node
-      end
-    end
-  end
-
   # DateTime.shift([dt, ]second: 24 * 60 * 60[, calendar]) => DateTime.shift([dt, ]day: 1[, calendar])
   defp style({{:., dm, [{:__aliases__, am, [:DateTime]}, :shift]}, funm, args}) do
     # rather than go through all the different args we can get due to pipes, not pipes, shift/2, shift/3

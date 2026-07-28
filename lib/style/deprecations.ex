@@ -57,11 +57,53 @@ defmodule Styler.Style.Deprecations do
   end
 
   if Version.match?(System.version(), ">= 1.17.0-dev") do
-    @to_timeout_vsn Version.parse!("1.17.0-dev")
+    @v1_17 Version.parse!("1.17.0-dev")
+
     defp style({{:., _, [{:__block__, _, [:timer]}, unit]}, fm, [x]} = node) when unit in ~w(hours minutes seconds)a do
-      if Styler.Config.version_compatible?(@to_timeout_vsn) do
+      if Styler.Config.version_compatible?(@v1_17) do
         unit = unit |> Atom.to_string() |> String.trim_trailing("s") |> String.to_atom()
         {:to_timeout, fm, [[{{:__block__, [format: :keyword, line: fm[:line]], [unit]}, x}]]}
+      else
+        node
+      end
+    end
+
+    # dt |> DateTime.add(1, :hour) => dt |> DateTime.shift(hour: 1)
+    # just relies on the non-pipe version to do the work by faking that it's not a pipe with the `:pad` first arg
+    defp style({:|>, pm, [lhs, {{:., _, [{:__aliases__, _, [:DateTime]}, :add]} = fun, funm, args}]}) do
+      {fun, funm, [:pad | args]} = style({fun, funm, [:pad | args]})
+      {:|>, pm, [lhs, {fun, funm, args}]}
+    end
+
+    # DateTime.shift was introduced in 1.17. while not technically deprecated, the docs for DateTime.add recommend using shift over add.
+    #
+    # DateTime.add(dt, 1) => DateTime.shift(dt, second: 1)
+    # DateTime.add(dt, 1, :hour) => DateTime.shift(dt, hour: 1)
+    defp style({{:., dm, [{:__aliases__, am, [:DateTime]}, :add]}, funm, [dt, amount | rest]} = node) do
+      if Styler.Config.version_compatible?(@v1_17) do
+        # add/2 defaults to seconds.
+        # add/4 includes a calendar param
+        [unit | calendar] = if Enum.empty?(rest), do: [{:__block__, [line: funm[:line]], [:second]}], else: rest
+
+        case unit do
+          {:__block__, um, [u]} when u in ~w(day hour minute second microsecond)a ->
+            keyword = [{{:__block__, Keyword.put(um, :format, :keyword), [u]}, amount}]
+
+            pairs =
+              if Enum.empty?(calendar) do
+                keyword
+              else
+                {:__block__, [line: um[:line], closing: [line: Styler.Style.max_line(keyword)]], [keyword]}
+              end
+
+            # SingleNode style will pick this up and shrink the args
+            fun = {:., dm, [{:__aliases__, am, [:DateTime]}, :shift]}
+            args = [dt, pairs | calendar]
+            {fun, funm, args}
+
+          _ ->
+            node
+        end
       else
         node
       end

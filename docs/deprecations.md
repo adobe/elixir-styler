@@ -82,6 +82,7 @@ Rewrite `unless x` to `if !x`
 [1.17 Deprecations](https://hexdocs.pm/elixir/1.17.0/changelog.html#4-hard-deprecations)
 
 - Replace `:timer.units(x)` with the new `to_timeout(unit: x)` for `hours|minutes|seconds` (relies on `minimum_supported_elixir_version`)
+- While not technically deprecated, `DateTime.shift` is recommended over `DateTime.add`, so styler does that transformation
 
 ### Range Matching Without Step
 

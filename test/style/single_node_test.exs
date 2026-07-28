@@ -144,38 +144,19 @@ defmodule Styler.Style.SingleNodeTest do
       assert_style("timezone |> Timex.now() |> foo()")
     end
 
-    if Version.match?(System.version(), ">= 1.17.0") do
-      test "DateTime.add/2,3 => DateTime.shift/2" do
-        # for unit <- ~w(day hour minute second microsecond), n <- ["-1", "1", "5", "-5", "0", "var", "-var", "5 + x"] do
-        #   assert_style("DateTime.add(dt, #{n}, :#{unit})", "DateTime.shift(dt, #{unit}: #{n})")
-        #   assert_style("dt |> DateTime.add(#{n}, :#{unit}) |> bop()", "dt |> DateTime.shift(#{unit}: #{n}) |> bop()")
-        # end
+    test "DateTime.shift shrinks durations" do
+      assert_style "DateTime.shift(dt, second: @valid_days * 24 * 60 * 60)", "DateTime.shift(dt, day: @valid_days)"
+      # assert_style "DateTime.shift(dt, second: @valid_days * 60 * 60 * 24)", "DateTime.shift(dt, day: @valid_days)"
+      assert_style "DateTime.shift(dt, day: 7)", "DateTime.shift(dt, week: 1)"
+      assert_style "DateTime.shift(dt, second: 3600)", "DateTime.shift(dt, hour: 1)"
+      assert_style "DateTime.shift(dt, second: 120)", "DateTime.shift(dt, minute: 2)"
+      assert_style "DateTime.shift(dt, hours: 24 * 1, seconds: 240)", "DateTime.shift(dt, day: 1, minute: 4)"
+      assert_style "DateTime.shift(dt, [second: 3600], MyCalendar)", "DateTime.shift(dt, [hour: 1], MyCalendar)"
 
-        # assert_style "DateTime.add(dt, n, :nanosecond)"
-        # assert_style "DateTime.add(dt, n, unit)"
-        # # add allows integers as the unit
-        # assert_style "DateTime.add(dt, n, 1000)"
-        # assert_style "DateTime.add(dt, 60 * 2, :second)", "DateTime.shift(dt, minute: 2)"
-        # assert_style "DateTime.add(dt, @valid_days * 24 * 60 * 60, :second)", "DateTime.shift(dt, day: @valid_days)"
-        # assert_style "foo(bar, baz: DateTime.add(today, -2, :day))", "foo(bar, baz: DateTime.shift(today, day: -2))"
-        # assert_style "DateTime.add(dt, 3600, :second)", "DateTime.shift(dt, hour: 1)"
-        # # /2
-        # assert_style "DateTime.add(dt, 50)", "DateTime.shift(dt, second: 50)"
-        # # /4
-        assert_style "DateTime.add(dt, 60 * 2, :second, MyCalendar)", "DateTime.shift(dt, [minute: 2], MyCalendar)"
-      end
+      assert_style "a |> DateTime.shift([second: 3600], MyCalendar) |> b()",
+                   "a |> DateTime.shift([hour: 1], MyCalendar) |> b()"
 
-      test "DateTime.shift shrinks durations" do
-        assert_style "DateTime.shift(dt, second: @valid_days * 24 * 60 * 60)", "DateTime.shift(dt, day: @valid_days)"
-        assert_style "DateTime.shift(dt, day: 7)", "DateTime.shift(dt, week: 1)"
-        assert_style "DateTime.shift(dt, second: 3600)", "DateTime.shift(dt, hour: 1)"
-        assert_style "DateTime.shift(dt, [second: 3600], MyCalendar)", "DateTime.shift(dt, [hour: 1], MyCalendar)"
-
-        assert_style "a |> DateTime.shift([second: 3600], MyCalendar) |> b()",
-                     "a |> DateTime.shift([hour: 1], MyCalendar) |> b()"
-
-        assert_style "a |> DateTime.shift(second: 3600) |> b()", "a |> DateTime.shift(hour: 1) |> b()"
-      end
+      assert_style "a |> DateTime.shift(second: 3600) |> b()", "a |> DateTime.shift(hour: 1) |> b()"
     end
 
     test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.before?" do

@@ -279,20 +279,27 @@ Additionally, styler rewrites some `Enum` functions inside `assert`
 | `assert Enum.any?(y, & &1 == x)`              | `assert x in y`                     |
 | `assert Enum.any?(y, fn var -> var == x end)` | `assert x in y`                     |
 
-## `to_timeout/1`
+## Duration Pair Shrinking
+
+For `to_timeout` and `DateTime.shift`: 
 
 - rewrites plural units to singular (plurals are invalid values and runtime errors, but they're oh-so-natural to write)
 - steps units up to the next level
 
 ```elixir
 # before
+DateTime.shift(dt, second: @valid_days * 24 * 60 * 60)
+# styled
+DateTime.shift(dt, day: @valid_days)"
+# before
 to_timeout(second: 60 * m)
 # styled
 to_timeout(minute: m)
+
 # before
-to_timeout(second: 60)
+to_timeout(second: 120)
 # styled
-to_timeout(minute: 1)
+to_timeout(minute: 2)
 
 # before
 to_timeout(hours: 24 * 1, seconds: 60 * 4)
