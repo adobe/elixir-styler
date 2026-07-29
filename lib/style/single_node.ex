@@ -302,14 +302,14 @@ defmodule Styler.Style.SingleNode do
         {a, unit} = shrink_unit(a, unit)
         {{:__block__, m, [unit]}, a}
 
-      {:*, m, [x, a]} when is_integer(a) ->
+      {:*, mm, [x, a]} when is_integer(a) ->
         {a, unit} = shrink_unit(a, unit)
-        value = if a == 1, do: x, else: {:*, m, [x, a]}
+        value = if a == 1, do: x, else: {:*, mm, [x, a]}
         {{:__block__, m, [unit]}, value}
 
-      {:*, m, [a, x]} when is_integer(a) ->
+      {:*, mm, [a, x]} when is_integer(a) ->
         {a, unit} = shrink_unit(a, unit)
-        value = if a == 1, do: x, else: {:*, m, [a, x]}
+        value = if a == 1, do: x, else: {:*, mm, [a, x]}
         {{:__block__, m, [unit]}, value}
 
       value ->

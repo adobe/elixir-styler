@@ -180,17 +180,17 @@ defmodule Styler.Style.DeprecationsTest do
 
       # runs before pipes to make sure shifts get re-written
       assert_style """
-      filter.value
-      |> DateTime.truncate(:second)
-      |> DateTime.add(-filter.value.second, :second)
-      |> DateTime.add(-filter.value.minute, :minute)
-      |> DateTime.add(-filter.value.hour, :hour)
-      """,
-      """
-      filter.value
-      |> DateTime.truncate(:second)
-      |> DateTime.shift(second: -filter.value.second, minute: -filter.value.minute, hour: -filter.value.hour)
-      """
+                   filter.value
+                   |> DateTime.truncate(:second)
+                   |> DateTime.add(-filter.value.second, :second)
+                   |> DateTime.add(-filter.value.minute, :minute)
+                   |> DateTime.add(-filter.value.hour, :hour)
+                   """,
+                   """
+                   filter.value
+                   |> DateTime.truncate(:second)
+                   |> DateTime.shift(second: -filter.value.second, minute: -filter.value.minute, hour: -filter.value.hour)
+                   """
     end
   end
 end
