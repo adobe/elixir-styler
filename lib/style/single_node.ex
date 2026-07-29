@@ -259,42 +259,58 @@ defmodule Styler.Style.SingleNode do
 
   defp style(node), do: node
 
+  defp duration_step(:day), do: {:day, 7, :week}
+  defp duration_step(:days), do: {:day, 7, :week}
+  defp duration_step(:hour), do: {:hour, 24, :day}
+  defp duration_step(:hours), do: {:hour, 24, :day}
+  defp duration_step(:millisecond), do: {:millisecond, 1000, :second}
+  defp duration_step(:milliseconds), do: {:millisecond, 1000, :second}
+  defp duration_step(:minute), do: {:minute, 60, :hour}
+  defp duration_step(:minutes), do: {:minute, 60, :hour}
+  defp duration_step(:second), do: {:second, 60, :minute}
+  defp duration_step(:seconds), do: {:second, 60, :minute}
+  defp duration_step(:week), do: {:week, :"$no_next_step", nil}
+  defp duration_step(:weeks), do: {:week, :"$no_next_step", nil}
+  defp duration_step(unit), do: {unit, :"$no_next_step", nil}
+
+  # does the heavy work of recursively stepping the integer/unit pair up, eg
+  # second: 86_400 -> day: 1
+  defp shrink_unit(int, unit) when is_atom(unit), do: shrink_unit(int, duration_step(unit))
+
+  defp shrink_unit(int, {_, step, next_unit}) when int != 0 and rem(int, step) == 0,
+    do: int |> div(step) |> shrink_unit(duration_step(next_unit))
+
+  defp shrink_unit(int, {unit, _, _}), do: {int, unit}
   # 1. convert plurals to singulars (`minutes` -> `minute`) to cover erlang `to_timeout` conversions
   # 2. shrinks values, eg `minute: 5 * 60` -> `hour: 5`; `minute: 60` -> `hour: 1`
   defp shrink_duration({{:__block__, m, [unit]}, value}) do
-    {unit, step, next_unit} =
-      case unit do
-        :day -> {:day, 7, :week}
-        :days -> {:day, 7, :week}
-        :hour -> {:hour, 24, :day}
-        :hours -> {:hour, 24, :day}
-        :millisecond -> {:millisecond, 1000, :second}
-        :milliseconds -> {:millisecond, 1000, :second}
-        :minute -> {:minute, 60, :hour}
-        :minutes -> {:minute, 60, :hour}
-        :second -> {:second, 60, :minute}
-        :seconds -> {:second, 60, :minute}
-        :week -> {:week, :"$no_next_step", nil}
-        :weeks -> {:week, :"$no_next_step", nil}
-        unit -> {unit, :"$no_next_step", nil}
-      end
+    # with step-ups, there's no need for multiplication in shifts (i think??)
+    # # so we reduce all literal multiplication that we can
+    computed =
+      Macro.postwalk(value, fn
+        {:__block__, _, [a]} when is_integer(a) -> a
+        {:*, _, [a, b]} when is_integer(a) and is_integer(b) -> a * b
+        {:*, m, [{:*, _, [x, a]}, b]} when is_integer(a) and is_integer(b) -> {:*, m, [x, a * b]}
+        {:*, m, [{:*, _, [a, x]}, b]} when is_integer(a) and is_integer(b) -> {:*, m, [x, a * b]}
+        {:-, _, [a]} when is_integer(a) -> -a
+        {:*, _, [a, b]} = node when is_integer(a) or is_integer(b) -> node
+        other -> other
+      end)
 
-    next_unit = {:__block__, m, [next_unit]}
+    case computed do
+      a when is_integer(a) ->
+        {a, unit} = shrink_unit(a, unit)
+        {{:__block__, m, [unit]}, a}
 
-    case value do
-      # minute: 60 -> hour: 1
-      # second: 3600 -> hour: 1
-      {:__block__, vm, [val]} when val != 0 and rem(val, step) == 0 ->
-        result = div(val, step)
-        shrink_duration({next_unit, {:__block__, [token: to_string(result), line: vm[:line]], [result]}})
+      {:*, m, [x, a]} when is_integer(a) ->
+        {a, unit} = shrink_unit(a, unit)
+        value = if a == 1, do: x, else: {:*, m, [x, a]}
+        {{:__block__, m, [unit]}, value}
 
-      # minute: 60 * rhs -> hours: rhs
-      {:*, _, [{_, _, [^step]}, rhs]} ->
-        shrink_duration({next_unit, rhs})
-
-      # minute: lhs * 60 -> hours: lhs
-      {:*, _, [lhs, {_, _, [^step]}]} ->
-        shrink_duration({next_unit, lhs})
+      {:*, m, [a, x]} when is_integer(a) ->
+        {a, unit} = shrink_unit(a, unit)
+        value = if a == 1, do: x, else: {:*, m, [a, x]}
+        {{:__block__, m, [unit]}, value}
 
       value ->
         {{:__block__, m, [unit]}, value}
