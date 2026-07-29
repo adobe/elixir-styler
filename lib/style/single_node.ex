@@ -297,27 +297,35 @@ defmodule Styler.Style.SingleNode do
         other -> other
       end)
 
+    line = m[:line]
+
     case computed do
       a when is_integer(a) ->
         {a, unit} = shrink_unit(a, unit)
-        {{:__block__, m, [unit]}, a}
+        {{:__block__, m, [unit]}, int_to_literal(a, line)}
 
       {:*, mm, [x, a]} when is_integer(a) ->
         {a, unit} = shrink_unit(a, unit)
-        value = if a == 1, do: x, else: {:*, mm, [x, a]}
+        value = if a == 1, do: x, else: {:*, mm, [x, int_to_literal(a, line)]}
         {{:__block__, m, [unit]}, value}
 
       {:*, mm, [a, x]} when is_integer(a) ->
         {a, unit} = shrink_unit(a, unit)
-        value = if a == 1, do: x, else: {:*, mm, [a, x]}
+        value = if a == 1, do: x, else: {:*, mm, [int_to_literal(a, line), x]}
         {{:__block__, m, [unit]}, value}
 
-      value ->
+      # couldn't shrink! identity it.
+      _ ->
         {{:__block__, m, [unit]}, value}
     end
   end
 
   defp shrink_duration(other), do: other
+
+  defp int_to_literal(int, line) when int >= 0,
+    do: {:__block__, [line: line, token: int |> to_string() |> delimit()], [int]}
+
+  defp int_to_literal(negative, line), do: {:-, [line: line], [int_to_literal(-1 * negative, line)]}
 
   defp replace_into({:., dm, [{_, am, _} = enum, _]}, collectable, rest) do
     case collectable do

@@ -176,6 +176,9 @@ defmodule Styler.Style.SingleNodeTest do
 
       assert_style "DateTime.shift(dt, second: -3600 * 2)", "DateTime.shift(dt, hour: -2)"
       assert_style "@tag foo: DateTime.shift(DateTime.utc_now(), second: -30 * @day_in_seconds)"
+
+      assert_style "DateTime.shift(second: 10_000_000)"
+      assert_style "DateTime.shift(second: 10_000_000 * x * y)"
     end
 
     test "{DateTime,NaiveDateTime,Time,Date}.compare to {DateTime,NaiveDateTime,Time,Date}.before?" do
