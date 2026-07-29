@@ -177,6 +177,20 @@ defmodule Styler.Style.DeprecationsTest do
       assert_style "DateTime.add(dt, 50)", "DateTime.shift(dt, second: 50)"
       # # /4
       assert_style "DateTime.add(dt, 60 * 2, :second, MyCalendar)", "DateTime.shift(dt, [minute: 2], MyCalendar)"
+
+      # runs before pipes to make sure shifts get re-written
+      assert_style """
+      filter.value
+      |> DateTime.truncate(:second)
+      |> DateTime.add(-filter.value.second, :second)
+      |> DateTime.add(-filter.value.minute, :minute)
+      |> DateTime.add(-filter.value.hour, :hour)
+      """,
+      """
+      filter.value
+      |> DateTime.truncate(:second)
+      |> DateTime.shift(second: -filter.value.second, minute: -filter.value.minute, hour: -filter.value.hour)
+      """
     end
   end
 end

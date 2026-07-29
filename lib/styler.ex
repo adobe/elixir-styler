@@ -19,9 +19,9 @@ defmodule Styler do
   alias Styler.Zipper
 
   @styles [
+    Styler.Style.Deprecations,
     Styler.Style.ModuleDirectives,
     Styler.Style.Pipes,
-    Styler.Style.Deprecations,
     Styler.Style.SingleNode,
     Styler.Style.Defs,
     Styler.Style.Blocks,
