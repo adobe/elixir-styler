@@ -157,13 +157,14 @@ defmodule Styler.Style.DeprecationsTest do
       assert_style ":timer.tc(fn -> :ok end)"
     end
 
-    test "DateTime.add/2,3 => DateTime.shift/2" do
-      for unit <- ~w(day hour minute second microsecond), n <- ["-1", "1", "5", "-5", "0", "var", "-var", "5 + x"] do
+    test "DateTime.add/2,3,4 => DateTime.shift/2" do
+      for unit <- ~w(day hour minute second), n <- ["-1", "1", "5", "-5", "0", "var", "-var", "5 + x"] do
         assert_style("DateTime.add(dt, #{n}, :#{unit})", "DateTime.shift(dt, #{unit}: #{n})")
         assert_style("dt |> DateTime.add(#{n}, :#{unit}) |> bop()", "dt |> DateTime.shift(#{unit}: #{n}) |> bop()")
       end
 
       assert_style "DateTime.add(dt, n, :nanosecond)"
+      assert_style "DateTime.add(dt, n, :microsecond)"
       assert_style "DateTime.add(dt, n, unit)"
       # add allows integers as the unit
       assert_style "DateTime.add(dt, n, 1000)"
@@ -173,12 +174,13 @@ defmodule Styler.Style.DeprecationsTest do
       # regression: having it deeper in a tree lead to a `:day => -2` bug
       assert_style "foo(bar, baz: DateTime.add(today, -2, :day))", "foo(bar, baz: DateTime.shift(today, day: -2))"
       assert_style "DateTime.add(dt, 3600, :second)", "DateTime.shift(dt, hour: 1)"
-      # # /2
+      # /2
       assert_style "DateTime.add(dt, 50)", "DateTime.shift(dt, second: 50)"
-      # # /4
+      # /4
       assert_style "DateTime.add(dt, 60 * 2, :second, MyCalendar)", "DateTime.shift(dt, [minute: 2], MyCalendar)"
+    end
 
-      # runs before pipes to make sure shifts get re-written
+    test "rewritten deprecations get picked up by pipes " do
       assert_style """
                    filter.value
                    |> DateTime.truncate(:second)

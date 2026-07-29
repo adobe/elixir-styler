@@ -81,12 +81,14 @@ defmodule Styler.Style.Deprecations do
     # DateTime.add(dt, 1, :hour) => DateTime.shift(dt, hour: 1)
     defp style({{:., dm, [{:__aliases__, am, [:DateTime]}, :add]}, funm, [dt, amount | rest]} = node) do
       if Styler.Config.version_compatible?(@v1_17) do
-        # add/2 defaults to seconds.
+        # add/2 defaults to seconds
         # add/4 includes a calendar param
         [unit | calendar] = if Enum.empty?(rest), do: [{:__block__, [line: funm[:line]], [:second]}], else: rest
 
         case unit do
-          {:__block__, um, [u]} when u in ~w(day hour minute second microsecond)a ->
+          # `:nanosecond` is valid for add, but not shift
+          # `:microsecond` is valid for both, but with shift requires a precision (add resolves that precision at runtime), so can't be styled
+          {:__block__, um, [u]} when u in ~w(day hour minute second)a ->
             keyword = [{{:__block__, Keyword.put(um, :format, :keyword), [u]}, amount}]
 
             pairs =

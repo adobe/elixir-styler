@@ -5,6 +5,12 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.12.1
+
+### Fixes
+
+- leave `DateTime.add(dt, val, :microsecond)` untouched since `DateTime.shift` with microseconds requires a precision (#255, h/t @janpieper)
+
 ## 1.12.0
 
 ### Improvements
