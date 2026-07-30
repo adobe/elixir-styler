@@ -5,6 +5,8 @@ they can and will change without that change being reflected in Styler's semanti
 
 ## main
 
+## 1.12.2
+
 ### Fixes
 
 - also leave piped versions of the shift + microsecond bug alone (`|> DateTime.add(val, :microsecond)` (#256, h/t @zvlasic)
