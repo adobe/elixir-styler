@@ -72,7 +72,9 @@ defmodule Styler.Style.Deprecations do
     # just relies on the non-pipe version to do the work by faking that it's not a pipe with the `:pad` first arg
     defp style({:|>, pm, [lhs, {{:., _, [{:__aliases__, _, [:DateTime]}, :add]} = fun, funm, args}]}) do
       {fun, funm, [:pad | args]} = style({fun, funm, [:pad | args]})
-      {:|>, pm, [lhs, {fun, funm, args}]}
+      # on rewrite failure, noting that this is a piped `add` will keep us from incorrectly rewriting it
+      # as its non-piped versino when we visit it directly
+      {:|>, pm, [lhs, {fun, [{:_styler_piped, true} | funm], args}]}
     end
 
     # DateTime.shift was introduced in 1.17. while not technically deprecated, the docs for DateTime.add recommend using shift over add.
@@ -80,7 +82,7 @@ defmodule Styler.Style.Deprecations do
     # DateTime.add(dt, 1) => DateTime.shift(dt, second: 1)
     # DateTime.add(dt, 1, :hour) => DateTime.shift(dt, hour: 1)
     defp style({{:., dm, [{:__aliases__, am, [:DateTime]}, :add]}, funm, [dt, amount | rest]} = node) do
-      if Styler.Config.version_compatible?(@v1_17) do
+      if Styler.Config.version_compatible?(@v1_17) and !funm[:_styler_piped] do
         # add/2 defaults to seconds
         # add/4 includes a calendar param
         [unit | calendar] = if Enum.empty?(rest), do: [{:__block__, [line: funm[:line]], [:second]}], else: rest

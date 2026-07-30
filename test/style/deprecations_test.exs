@@ -163,9 +163,12 @@ defmodule Styler.Style.DeprecationsTest do
         assert_style("dt |> DateTime.add(#{n}, :#{unit}) |> bop()", "dt |> DateTime.shift(#{unit}: #{n}) |> bop()")
       end
 
-      assert_style "DateTime.add(dt, n, :nanosecond)"
-      assert_style "DateTime.add(dt, n, :microsecond)"
-      assert_style "DateTime.add(dt, n, unit)"
+      for ignored_unit <- ~w(a_variable :nanosecond :microsecond) do
+        assert_style "DateTime.add(dt, n, #{ignored_unit})"
+        assert_style "dt |> DateTime.add(n, #{ignored_unit}) |> foo()"
+      end
+
+      assert_style "dt |> DateTime.add(1, :hour)", "DateTime.shift(dt, hour: 1)"
       # add allows integers as the unit
       assert_style "DateTime.add(dt, n, 1000)"
       assert_style "DateTime.add(dt, 60 * 2, :second)", "DateTime.shift(dt, minute: 2)"
