@@ -43,7 +43,15 @@ defmodule Styler.Style.Pipes do
     case fix_pipe_start(zipper) do
       {{:|>, _, _}, _} = zipper ->
         case Zipper.traverse(zipper, fn {node, meta} -> {fix_pipe(node), meta} end) do
-          {{:|>, _, [{:|>, _, _}, _]}, _} = chain_zipper ->
+          # a |> f(...args) |> block(do ... end)
+          # =>
+          # block f(a, ...args) do ... end
+          {{:|>, _, [{:|>, _, [a, {f, fm, args}]}, {b, bm, [[{{:__block__, dm, [:do]}, _} | _]] = ba}]}, _} = blockz ->
+            {:cont, Zipper.replace(blockz, {b, bm, [Style.set_line({f, fm, [a | args]}, dm[:line]) | ba]}), ctx}
+
+          {{:|>, _, [{:|>,_, x}, _]}, _} = chain_zipper ->
+            IO.puts "chaining it up"
+            dbg(x)
             {:cont, find_pipe_start(chain_zipper), ctx}
 
           # don't un-pipe into unquotes, as some expressions are only valid as pipes
