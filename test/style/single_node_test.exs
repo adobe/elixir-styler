@@ -343,6 +343,10 @@ defmodule Styler.Style.SingleNodeTest do
       )
     end
 
+    test "leaves a double-var assignment unchanged" do
+      assert_style("def foo(%{key: val} = bar = baz), do: {val, bar, baz}")
+    end
+
     test "defs" do
       assert_style(
         "def foo(bar = %{baz: baz? = true}, opts = [[a = %{}] | _]), do: :ok",
