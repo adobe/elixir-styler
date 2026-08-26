@@ -354,6 +354,8 @@ defmodule Styler.Style.SingleNode do
       {:=, _, [{:_, _, nil}, var]} -> var
       # `var = _ ->` => `var ->`
       {:=, _, [var, {:_, _, nil}]} -> var
+      # `var = other_var ->` is unchanged
+      {:=, _, [{_, _, nil}, {_, _, nil}]} = node -> node
       # `var = *match*`  -> `*match -> var`
       {:=, m, [{_, _, nil} = var, match]} -> {:=, m, [match, var]}
       node -> node
